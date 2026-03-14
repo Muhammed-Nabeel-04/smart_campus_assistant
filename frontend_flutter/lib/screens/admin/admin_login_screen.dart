@@ -29,18 +29,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  /// aids.hod@college.edu → AIDS
-  String _deptFromEmail(String email) {
-    final p = email.split('@')[0].toLowerCase();
-    if (p.contains('aids')) return 'AIDS';
-    if (p.contains('cse')) return 'CSE';
-    if (p.contains('ece')) return 'ECE';
-    if (p.contains('mech')) return 'MECH';
-    if (p.contains('civil')) return 'CIVIL';
-    if (p.contains('it')) return 'IT';
-    return p.toUpperCase();
-  }
-
   /// Local flag — no network call needed
   Future<bool> _isSetupDone(int userId) async {
     final prefs = await SharedPreferences.getInstance();
@@ -82,8 +70,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
       if (!mounted) return;
 
-      // 3. Decide route using LOCAL flag (no network, no 401)
-      final dept = _deptFromEmail(email);
+      // 3. Decide route using LOCAL flag
       final setupDone = await _isSetupDone(uid);
 
       if (!mounted) return;
@@ -91,6 +78,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       if (setupDone) {
         Navigator.pushReplacementNamed(context, '/adminDashboard');
       } else {
+        // ✅ Get department from DB
+        String dept = 'UNKNOWN';
+        try {
+          final deptData = await ApiService.getHODDepartment();
+          dept = deptData['department'] ?? 'UNKNOWN';
+        } catch (_) {}
+
+        if (!mounted) return;
+
         Navigator.pushReplacementNamed(
           context,
           '/adminInitialSetup',

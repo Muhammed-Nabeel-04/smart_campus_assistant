@@ -22,162 +22,15 @@ from app.models.class_subject import ClassSubject
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
-# ============================================================================
-# SUBJECT TEMPLATES — auto-created per dept/year when admin assigns a class
-# ============================================================================
-
-DEPT_NAMES = {
-    "CSE": "Computer Science Engineering",
-    "AI":  "Artificial Intelligence & Data Science",
-    "BME": "Biomedical Engineering",
-    "ECE": "Electronics and Communication",
-    "IT":  "Information Technology",
-    "MECH": "Mechanical Engineering",
-    "CIVIL": "Civil Engineering",
-}
-
-YEAR_TO_SEMESTER = {
-    "1st Year": "Semester 1",
-    "2nd Year": "Semester 3",
-    "3rd Year": "Semester 5",
-    "4th Year": "Semester 7",
-}
-
-# (name, code_suffix, credits, type)
-_SUBJ = {
-    "CSE": {
-        "1st Year": [
-            ("Engineering Mathematics I",   "MA101",  4, "Theory"),
-            ("Engineering Physics",         "PH101",  3, "Theory"),
-            ("Programming in C",             "CS101",  3, "Theory"),
-            ("Programming Lab",              "CS101L", 2, "Lab"),
-            ("Basic Electronics",            "EC101",  3, "Theory"),
-            ("Technical English",            "EN101",  2, "Theory"),
-        ],
-        "2nd Year": [
-            ("Data Structures",              "CS201",  4, "Theory"),
-            ("Data Structures Lab",          "CS201L", 2, "Lab"),
-            ("Database Management Systems",  "CS202",  3, "Theory"),
-            ("DBMS Lab",                     "CS202L", 2, "Lab"),
-            ("Object Oriented Programming",  "CS203",  3, "Theory"),
-            ("Discrete Mathematics",         "MA201",  4, "Theory"),
-        ],
-        "3rd Year": [
-            ("Operating Systems",            "CS301",  4, "Theory"),
-            ("Computer Networks",            "CS302",  3, "Theory"),
-            ("Software Engineering",         "CS303",  3, "Theory"),
-            ("Web Technologies",             "CS304",  3, "Theory"),
-            ("Networks Lab",                 "CS302L", 2, "Lab"),
-        ],
-        "4th Year": [
-            ("Machine Learning",             "CS401",  4, "Theory"),
-            ("Artificial Intelligence",      "CS402",  3, "Theory"),
-            ("Cloud Computing",              "CS403",  3, "Theory"),
-            ("Project Work",                 "CS404P", 6, "Project"),
-        ],
-    },
-    "AI": {
-        "1st Year": [
-            ("Engineering Mathematics I",    "MA101",  4, "Theory"),
-            ("Introduction to AI",           "AI101",  3, "Theory"),
-            ("Python Programming",           "AI102",  3, "Theory"),
-            ("Python Lab",                   "AI102L", 2, "Lab"),
-            ("Data Science Basics",          "AI103",  3, "Theory"),
-        ],
-        "2nd Year": [
-            ("Machine Learning Fundamentals","AI201",  4, "Theory"),
-            ("Data Structures",              "CS201",  4, "Theory"),
-            ("Database Systems",             "AI202",  3, "Theory"),
-            ("Statistics for AI",            "AI203",  3, "Theory"),
-            ("ML Lab",                       "AI201L", 2, "Lab"),
-        ],
-        "3rd Year": [
-            ("Deep Learning",                "AI301",  4, "Theory"),
-            ("Natural Language Processing",  "AI302",  3, "Theory"),
-            ("Computer Vision",              "AI303",  3, "Theory"),
-            ("AI Applications Lab",          "AI301L", 2, "Lab"),
-        ],
-        "4th Year": [
-            ("Reinforcement Learning",       "AI401",  4, "Theory"),
-            ("AI Ethics and Governance",     "AI402",  2, "Theory"),
-            ("Advanced Deep Learning",       "AI403",  3, "Theory"),
-            ("Project Work",                 "AI404P", 6, "Project"),
-        ],
-    },
-    "BME": {
-        "1st Year": [
-            ("Engineering Mathematics I",    "MA101",  4, "Theory"),
-            ("Biology for Engineers",        "BM101",  3, "Theory"),
-            ("Engineering Physics",          "PH101",  3, "Theory"),
-            ("Basic Electronics",            "EC101",  3, "Theory"),
-            ("Human Anatomy",                "BM102",  3, "Theory"),
-        ],
-        "2nd Year": [
-            ("Biomedical Instrumentation",   "BM201",  4, "Theory"),
-            ("Signals and Systems",          "EC301",  4, "Theory"),
-            ("Physiology",                   "BM202",  3, "Theory"),
-            ("Medical Imaging",              "BM203",  3, "Theory"),
-            ("Biomedical Lab",               "BM201L", 2, "Lab"),
-        ],
-        "3rd Year": [
-            ("Medical Device Design",        "BM301",  4, "Theory"),
-            ("Biomechanics",                 "BM302",  3, "Theory"),
-            ("Rehabilitation Engineering",   "BM303",  3, "Theory"),
-            ("Clinical Engineering Lab",     "BM301L", 2, "Lab"),
-        ],
-        "4th Year": [
-            ("Telemedicine",                 "BM401",  3, "Theory"),
-            ("Healthcare Systems",           "BM402",  3, "Theory"),
-            ("Biomedical Signal Processing", "BM403",  4, "Theory"),
-            ("Project Work",                 "BM404P", 6, "Project"),
-        ],
-    },
-}
-
-_DEFAULT_SUBJ = {
-    "1st Year": [
-        ("Engineering Mathematics I",    "MA101",  4, "Theory"),
-        ("Engineering Physics",          "PH101",  3, "Theory"),
-        ("Engineering Chemistry",        "CH101",  3, "Theory"),
-        ("Programming in C",             "CS101",  3, "Theory"),
-        ("Technical English",            "EN101",  2, "Theory"),
-    ],
-    "2nd Year": [
-        ("Engineering Mathematics II",   "MA201",  4, "Theory"),
-        ("Data Structures",              "CS201",  4, "Theory"),
-        ("Analog Electronics",           "EC201",  3, "Theory"),
-        ("Digital Electronics",          "EC202",  3, "Theory"),
-        ("Lab Work",                     "LAB201", 2, "Lab"),
-    ],
-    "3rd Year": [
-        ("Signals and Systems",          "EC301",  4, "Theory"),
-        ("Microprocessors",              "EC302",  3, "Theory"),
-        ("Control Systems",              "EE301",  3, "Theory"),
-        ("Professional Ethics",          "HU301",  2, "Theory"),
-        ("Advanced Lab",                 "LAB301", 2, "Lab"),
-    ],
-    "4th Year": [
-        ("Embedded Systems",             "EC401",  3, "Theory"),
-        ("Industrial Management",        "HU401",  2, "Theory"),
-        ("Advanced Topics",              "ADV401", 3, "Theory"),
-        ("Project Work",                 "PRJ401", 6, "Project"),
-    ],
-}
-
-
 def _ensure_class_with_subjects(db: Session, year: str, dept_code: str, section: str) -> ClassModel:
     """
-    Idempotently creates: Department → ClassModel → Subjects → ClassSubject links.
-    Safe to call multiple times — skips anything that already exists.
-    Returns the ClassModel.
+    Idempotently creates: Department → ClassModel → ClassSubject links.
+    Uses subjects added by HOD instead of hardcoded templates.
     """
     # 1. Find or create department
     dept = db.query(Department).filter(Department.code == dept_code).first()
     if not dept:
-        dept = Department(
-            name=DEPT_NAMES.get(dept_code, dept_code),
-            code=dept_code
-        )
+        dept = Department(name=dept_code, code=dept_code)
         db.add(dept)
         db.commit()
         db.refresh(dept)
@@ -193,7 +46,7 @@ def _ensure_class_with_subjects(db: Session, year: str, dept_code: str, section:
             department_id=dept.id,
             year=year,
             section=section,
-            current_semester=YEAR_TO_SEMESTER.get(year, "Semester 1"),
+            current_semester="Semester 1",
         )
         db.add(cls)
         db.commit()
@@ -205,22 +58,29 @@ def _ensure_class_with_subjects(db: Session, year: str, dept_code: str, section:
     ).count()
 
     if existing_links == 0:
-        semester  = YEAR_TO_SEMESTER.get(year, "Semester 1")
-        templates = _SUBJ.get(dept_code, _DEFAULT_SUBJ).get(year, _DEFAULT_SUBJ.get(year, []))
+        # ✅ Get subjects from DB added by HOD for this dept + year
+        hod_subjects = db.query(Subject).filter(
+            Subject.department == dept_code,
+            Subject.year == year,
+        ).all()
 
-        for name, code, credits, stype in templates:
-            sub = db.query(Subject).filter(Subject.code == code).first()
-            if not sub:
-                sub = Subject(name=name, code=code, credits=credits, type=stype)
-                db.add(sub)
-                db.commit()
-                db.refresh(sub)
+        for sub in hod_subjects:
+            db.add(ClassSubject(
+                class_id=cls.id,
+                subject_id=sub.id,
+                semester=f"Semester {sub.semester}" if sub.semester else "Semester 1"
+            ))
 
-            db.add(ClassSubject(class_id=cls.id, subject_id=sub.id, semester=semester))
+        if hod_subjects:
+            db.commit()
 
-        db.commit()
+        # Update class current_semester from first subject
+        if hod_subjects and hod_subjects[0].semester:
+            cls.current_semester = f"Semester {hod_subjects[0].semester}"
+            db.commit()
 
     return cls
+
 
 # ============================================================================
 # DASHBOARD & STATS
@@ -312,22 +172,15 @@ def get_all_faculty(
     if current_user['role'] != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
 
-    # ✅ Get HOD's department from their email
-    hod_user = db.query(User).filter(User.id == current_user['user_id']).first()
+  # ✅ Get HOD's department from DB (dynamic, not hardcoded)
     hod_dept = None
-    if hod_user:
-        prefix = hod_user.email.split('@')[0].lower()
-        dept_map = {
-            'aids': 'AIDS', 'aids.hod': 'AIDS',
-            'cse': 'CSE', 'cse.hod': 'CSE',
-            'ece': 'ECE', 'ece.hod': 'ECE',
-            'mech': 'MECH', 'mech.hod': 'MECH',
-            'civil': 'CIVIL', 'civil.hod': 'CIVIL',
-            'it': 'IT', 'it.hod': 'IT',
-        }
-        hod_dept = dept_map.get(prefix)
+    dept = db.query(Department).filter(
+        Department.hod_user_id == current_user['user_id']
+    ).first()
+    if dept:
+        hod_dept = dept.code
 
-    # Filter by department if detected
+    # Filter by department if found
     if hod_dept:
         faculty_list = db.query(Faculty).filter(
             Faculty.department == hod_dept
@@ -479,7 +332,7 @@ def update_faculty(
     if payload.phone:
         faculty.phone_number = payload.phone
     
-# Update teaching assignments if provided
+    # Update teaching assignments if provided
     if payload.teaching_assignments is not None:
         assignments_list = []
         for ta in payload.teaching_assignments:
@@ -772,6 +625,73 @@ def get_system_reports(
         Complaint.status == 'pending'
     ).count()
     
+    # ✅ Calculate top department by attendance
+    top_department = "N/A"
+    lowest_class = "N/A"
+
+    try:
+        dept_attendance = {}
+        all_depts = db.query(Department).all()
+
+        for dept in all_depts:
+            classes = db.query(ClassModel).filter(
+                ClassModel.department_id == dept.id
+            ).all()
+            class_ids = [c.id for c in classes]
+            if not class_ids:
+                continue
+
+            dept_sessions = db.query(AttendanceSession).filter(
+                AttendanceSession.class_id.in_(class_ids),
+                func.date(AttendanceSession.started_at) >= start_date
+            ).all()
+            session_ids = [s.id for s in dept_sessions]
+            if not session_ids:
+                continue
+
+            present = db.query(Attendance).filter(
+                Attendance.session_id.in_(session_ids),
+                Attendance.status == 'present'
+            ).count()
+            total = db.query(Attendance).filter(
+                Attendance.session_id.in_(session_ids)
+            ).count()
+
+            if total > 0:
+                dept_attendance[dept.name] = round(present / total * 100, 1)
+
+        if dept_attendance:
+            top_department = max(dept_attendance, key=dept_attendance.get)
+
+            # Lowest attendance class
+            lowest_pct = 100
+            for dept in all_depts:
+                classes = db.query(ClassModel).filter(
+                    ClassModel.department_id == dept.id
+                ).all()
+                for cls in classes:
+                    cls_sessions = db.query(AttendanceSession).filter(
+                        AttendanceSession.class_id == cls.id,
+                        func.date(AttendanceSession.started_at) >= start_date
+                    ).all()
+                    cls_session_ids = [s.id for s in cls_sessions]
+                    if not cls_session_ids:
+                        continue
+                    p = db.query(Attendance).filter(
+                        Attendance.session_id.in_(cls_session_ids),
+                        Attendance.status == 'present'
+                    ).count()
+                    t = db.query(Attendance).filter(
+                        Attendance.session_id.in_(cls_session_ids)
+                    ).count()
+                    if t > 0:
+                        pct = round(p / t * 100, 1)
+                        if pct < lowest_pct:
+                            lowest_pct = pct
+                            lowest_class = f"{dept.code} {cls.year} Sec {cls.section} ({pct}%)"
+    except Exception:
+        pass
+
     return {
         "period": period,
         "total_attendance_sessions": total_sessions,
@@ -780,6 +700,6 @@ def get_system_reports(
         "total_students_absent": total_absent,
         "complaints_resolved": complaints_resolved,
         "complaints_pending": complaints_pending,
-        "top_department": "Computer Science",  # TODO: Calculate from data
-        "lowest_attendance_class": "N/A",  # TODO: Calculate from data
+        "top_department": top_department,
+        "lowest_attendance_class": lowest_class,
     }

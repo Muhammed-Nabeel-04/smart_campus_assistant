@@ -1,20 +1,20 @@
-# File: campus_assistant/backend/app/routes/hod_setup_routes.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 from passlib.context import CryptContext
 
 from app.services.deps import get_db, get_current_user
 from app.models.user import User
 from app.models.subject import Subject
-from app.models.class_model import ClassModel
 from app.models.department import Department
+from app.models.class_model import ClassModel
 from app.models.class_subject import ClassSubject
 
 router = APIRouter(prefix="/hod", tags=["HOD Setup"])
 
 bcrypt = CryptContext(schemes=["bcrypt"])
+
 
 # ============================================================================
 # CHANGE PASSWORD
@@ -31,20 +31,17 @@ def change_password(
     db: Session = Depends(get_db)
 ):
     """HOD changes their password during initial setup"""
-    
+
     if current_user['role'] != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
-    
-    # Get user
+
     user = db.query(User).filter(User.id == current_user['user_id']).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    # Hash and update password
+
     user.password = bcrypt.hash(payload.new_password)
-    
     db.commit()
-    
+
     return {"message": "Password changed successfully"}
 
 
@@ -55,7 +52,7 @@ def change_password(
 class SubjectCreate(BaseModel):
     name: str
     department: str
-    year: str  # "1st Year", "2nd Year", etc.
+    year: str
     semester: int
 
 
@@ -69,15 +66,14 @@ def create_subjects_batch(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create multiple subjects in one request (for HOD setup)"""
-    
+    """Create multiple subjects + link to existing classes"""
+
     if current_user['role'] != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
-    
+
     created_subjects = []
-    
+
     for subject_data in payload.subjects:
-        # Check if subject already exists
         existing = db.query(Subject).filter(
             Subject.name == subject_data.name,
             Subject.department == subject_data.department,
@@ -88,7 +84,6 @@ def create_subjects_batch(
         if existing:
             sub = existing
         else:
-            # Create new subject
             sub = Subject(
                 name=subject_data.name,
                 department=subject_data.department,
@@ -101,7 +96,7 @@ def create_subjects_batch(
             db.refresh(sub)
             created_subjects.append(sub)
 
-        # ✅ Link subject to all matching classes for this dept+year
+        # ✅ Link to existing classes for this dept + year
         dept = db.query(Department).filter(
             Department.code == subject_data.department
         ).first()
@@ -113,7 +108,6 @@ def create_subjects_batch(
             ).all()
 
             for cls in classes:
-                # Check if link already exists
                 existing_link = db.query(ClassSubject).filter(
                     ClassSubject.class_id == cls.id,
                     ClassSubject.subject_id == sub.id,
@@ -144,40 +138,40 @@ def check_setup_status(
     db: Session = Depends(get_db)
 ):
     """Check if HOD has completed initial setup"""
-    
+
     if current_user['role'] != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
-    
-    # Get user
+
     user = db.query(User).filter(User.id == current_user['user_id']).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    # Check if password is still default (empty or default value)
-    # In production, you'd check a setup_completed flag
+
+    # ✅ Get department from DB
+    dept = db.query(Department).filter(
+        Department.hod_user_id == current_user['user_id']
+    ).first()
+
+    department = dept.code if dept else None
+
+    subjects_exist = False
+    if department:
+        subjects_exist = db.query(Subject).filter(
+            Subject.department == department
+        ).count() > 0
+
     password_changed = len(user.password) > 0 and user.password != "default"
-    
-    # Check if any subjects exist for this department
-    # For now, we'll assume department is in user metadata or email
-    # You might need to add a department field to User model
-    department = getattr(user, 'department', None) or user.email.split('@')[0].upper()
-    
-    subjects_exist = db.query(Subject).filter(
-        Subject.department == department
-    ).count() > 0
-    
     setup_completed = password_changed and subjects_exist
-    
+
     return {
         "setup_completed": setup_completed,
         "password_changed": password_changed,
         "subjects_added": subjects_exist,
-        "department": department
+        "department": department or "UNKNOWN"
     }
 
 
 # ============================================================================
-# GET DEPARTMENT FROM EMAIL
+# GET HOD DEPARTMENT
 # ============================================================================
 
 @router.get("/department")
@@ -185,39 +179,26 @@ def get_hod_department(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get HOD's department based on their login"""
-    
+    """Get HOD's department from DB (dynamic)"""
+
     if current_user['role'] != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
-    
+
     user = db.query(User).filter(User.id == current_user['user_id']).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    # Extract department from email
-    # Example: aids.hod@college.edu -> AIDS
-    email_prefix = user.email.split('@')[0]
-    
-    # Department mapping
-    dept_map = {
-        'aids': 'AIDS',
-        'aids.hod': 'AIDS',
-        'cse': 'CSE',
-        'cse.hod': 'CSE',
-        'ece': 'ECE',
-        'ece.hod': 'ECE',
-        'mech': 'MECH',
-        'mech.hod': 'MECH',
-        'civil': 'CIVIL',
-        'civil.hod': 'CIVIL',
-        'it': 'IT',
-        'it.hod': 'IT',
-    }
-    
-    department = dept_map.get(email_prefix.lower(), email_prefix.upper())
-    
+
+    # ✅ Get department from DB via hod_user_id
+    dept = db.query(Department).filter(
+        Department.hod_user_id == current_user['user_id']
+    ).first()
+
+    department = dept.code if dept else "UNKNOWN"
+    dept_name = dept.name if dept else "Unknown Department"
+
     return {
         "department": department,
+        "department_name": dept_name,
         "email": user.email,
         "name": user.name
     }
