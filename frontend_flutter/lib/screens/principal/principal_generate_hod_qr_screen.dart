@@ -27,20 +27,28 @@ class _PrincipalGenerateHODQRScreenState
   }
 
   Future<void> _generateQR() async {
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
       final res = await ApiService.generateHODQR(widget.hod['id']);
       if (mounted) {
         setState(() {
-          _qrData = res['qr_data'];
+          // ✅ Build QR data from token
+          _qrData = res['token'];
           _expiresIn = res['expires_in_minutes'] != null
               ? (res['expires_in_minutes'] as int) * 60
-              : 600;
+              : 300;
           _isLoading = false;
         });
       }
     } on ApiException catch (e) {
-      if (mounted) setState(() { _error = e.message; _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.message;
+          _isLoading = false;
+        });
     }
   }
 
@@ -55,96 +63,106 @@ class _PrincipalGenerateHODQRScreenState
           child: _isLoading
               ? const CircularProgressIndicator()
               : _error != null
-                  ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline,
-                            color: AppColors.danger, size: 64),
-                        const SizedBox(height: 16),
-                        Text(_error!,
-                            style: const TextStyle(
-                                color: AppColors.danger),
-                            textAlign: TextAlign.center),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: _generateQR,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          widget.hod['name'] ?? '',
-                          style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.hod['department_name'] ?? '',
-                          style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 14),
-                        ),
-                        const SizedBox(height: 32),
-
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: QrImageView(
-                            data: _qrData ?? '',
-                            version: QrVersions.auto,
-                            size: 220,
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppColors.warning.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                                color: AppColors.warning.withOpacity(0.3)),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.timer_outlined,
-                                  color: AppColors.warning, size: 18),
-                              SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'QR expires in 10 minutes. HOD must scan this to set their password.',
-                                  style: TextStyle(
-                                      color: AppColors.warning,
-                                      fontSize: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        OutlinedButton.icon(
-                          onPressed: _generateQR,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Regenerate QR'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF1565C0),
-                            side: const BorderSide(
-                                color: Color(0xFF1565C0)),
-                          ),
-                        ),
-                      ],
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: AppColors.danger,
+                      size: 64,
                     ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _error!,
+                      style: const TextStyle(color: AppColors.danger),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _generateQR,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      widget.hod['name'] ?? '',
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.hod['department_name'] ?? '',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: QrImageView(
+                        data: _qrData ?? '',
+                        version: QrVersions.auto,
+                        size: 220,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppColors.warning.withOpacity(0.3),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.timer_outlined,
+                            color: AppColors.warning,
+                            size: 18,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'QR expires in 10 minutes. HOD must scan this to set their password.',
+                              style: TextStyle(
+                                color: AppColors.warning,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    OutlinedButton.icon(
+                      onPressed: _generateQR,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Regenerate QR'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF1565C0),
+                        side: const BorderSide(color: Color(0xFF1565C0)),
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );

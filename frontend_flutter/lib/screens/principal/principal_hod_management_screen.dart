@@ -57,118 +57,135 @@ class _PrincipalHODManagementScreenState
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _hods.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.manage_accounts,
-                          size: 80,
-                          color: AppColors.textSecondary.withOpacity(0.4)),
-                      const SizedBox(height: 16),
-                      const Text('No HODs added yet',
-                          style:
-                              TextStyle(color: AppColors.textSecondary)),
-                      const SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          await Navigator.pushNamed(
-                              context, '/principalAddHOD');
-                          _loadHODs();
-                        },
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1565C0)),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add HOD'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.manage_accounts,
+                    size: 80,
+                    color: AppColors.textSecondary.withOpacity(0.4),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadHODs,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _hods.length,
-                    itemBuilder: (ctx, i) {
-                      final hod = _hods[i];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        color: AppColors.bgCard,
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: const Color(0xFF1565C0),
-                            child: Text(
-                              (hod['name'] ?? 'H')
-                                  .toString()
-                                  .substring(0, 1)
-                                  .toUpperCase(),
-                              style:
-                                  const TextStyle(color: Colors.white),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No HODs added yet',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      await Navigator.pushNamed(context, '/principalAddHOD');
+                      _loadHODs();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1565C0),
+                    ),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add HOD'),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadHODs,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _hods.length,
+                itemBuilder: (ctx, i) {
+                  final hod = _hods[i];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    color: AppColors.bgCard,
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: const Color(0xFF1565C0),
+                        child: Text(
+                          (hod['name'] ?? 'H')
+                              .toString()
+                              .substring(0, 1)
+                              .toUpperCase(),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      title: Text(
+                        hod['name'] ?? '',
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hod['email'] ?? '',
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
                             ),
                           ),
-                          title: Text(hod['name'] ?? '',
-                              style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600)),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(hod['email'] ?? '',
-                                  style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12)),
-                              Text(
-                                hod['department_name'] != null
-                                    ? 'Dept: ${hod['department_name']} (${hod['department_code']})'
-                                    : 'No department assigned',
-                                style: TextStyle(
-                                  color: hod['department_name'] != null
-                                      ? AppColors.info
-                                      : AppColors.warning,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
+                          Text(
+                            hod['department'] != null
+                                ? 'Dept: ${hod['department']['name']} (${hod['department']['code']})'
+                                : 'No department assigned',
+                            style: TextStyle(
+                              color: hod['department'] != null
+                                  ? AppColors.info
+                                  : AppColors.warning,
+                              fontSize: 12,
+                            ),
                           ),
-                          trailing: PopupMenuButton<String>(
-                            onSelected: (val) async {
-                              if (val == 'details') {
-                                await Navigator.pushNamed(
-                                    context, '/principalHODDetails',
-                                    arguments: hod);
-                                _loadHODs();
-                              }
-                              if (val == 'qr') {
-                                await Navigator.pushNamed(
-                                    context, '/principalGenerateHODQR',
-                                    arguments: hod);
-                              }
-                              if (val == 'delete') {
-                                _confirmDelete(hod);
-                              }
-                            },
-                            itemBuilder: (ctx) => [
-                              const PopupMenuItem(
-                                  value: 'details',
-                                  child: Text('View Details')),
-                              const PopupMenuItem(
-                                  value: 'qr',
-                                  child: Text('Generate QR')),
-                              const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Text('Delete')),
-                            ],
-                          ),
-                          onTap: () async {
+                        ],
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (val) async {
+                          if (val == 'details') {
                             await Navigator.pushNamed(
-                                context, '/principalHODDetails',
-                                arguments: hod);
+                              context,
+                              '/principalHODDetails',
+                              arguments: hod,
+                            );
                             _loadHODs();
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                          }
+                          if (val == 'qr') {
+                            await Navigator.pushNamed(
+                              context,
+                              '/principalGenerateHODQR',
+                              arguments: hod,
+                            );
+                          }
+                          if (val == 'delete') {
+                            _confirmDelete(hod);
+                          }
+                        },
+                        itemBuilder: (ctx) => [
+                          const PopupMenuItem(
+                            value: 'details',
+                            child: Text('View Details'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'qr',
+                            child: Text('Generate QR'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Delete'),
+                          ),
+                        ],
+                      ),
+                      onTap: () async {
+                        await Navigator.pushNamed(
+                          context,
+                          '/principalHODDetails',
+                          arguments: hod,
+                        );
+                        _loadHODs();
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 
@@ -177,14 +194,19 @@ class _PrincipalHODManagementScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgCard,
-        title: const Text('Delete HOD',
-            style: TextStyle(color: AppColors.textPrimary)),
-        content: Text('Delete ${hod['name']}? This cannot be undone.',
-            style: const TextStyle(color: AppColors.textSecondary)),
+        title: const Text(
+          'Delete HOD',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'Delete ${hod['name']}? This cannot be undone.',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
@@ -199,9 +221,12 @@ class _PrincipalHODManagementScreenState
         _loadHODs();
       } on ApiException catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
               content: Text(e.message),
-              backgroundColor: AppColors.danger));
+              backgroundColor: AppColors.danger,
+            ),
+          );
         }
       }
     }

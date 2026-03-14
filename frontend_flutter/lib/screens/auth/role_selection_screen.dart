@@ -116,6 +116,14 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 subtitle: 'Manage campus & resolve complaints',
                 onTap: () => Navigator.pushNamed(context, '/adminLogin'),
               ),
+              const SizedBox(height: 16),
+
+              _RoleButton(
+                icon: Icons.account_balance_rounded,
+                label: 'Principal',
+                subtitle: 'Manage departments & HODs',
+                onTap: () => Navigator.pushNamed(context, '/principalLogin'),
+              ),
             ],
           ),
         ),

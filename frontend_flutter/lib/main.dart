@@ -49,6 +49,16 @@ import 'screens/admin/admin_complaints_management_screen.dart';
 import 'screens/admin/admin_system_reports_screen.dart';
 import 'screens/admin/admin_settings_screen.dart';
 import 'screens/admin/admin_profile_screen.dart';
+import 'screens/principal/principal_login_screen.dart';
+import 'screens/principal/principal_initial_setup_screen.dart';
+import 'screens/principal/principal_dashboard_screen.dart';
+import 'screens/principal/principal_department_management_screen.dart';
+import 'screens/principal/principal_add_department_screen.dart';
+import 'screens/principal/principal_hod_management_screen.dart';
+import 'screens/principal/principal_add_hod_screen.dart';
+import 'screens/principal/principal_hod_details_screen.dart';
+import 'screens/principal/principal_generate_hod_qr_screen.dart';
+import 'screens/principal/principal_profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -328,6 +338,33 @@ class SmartCampusApp extends StatelessWidget {
         '/adminSystemReports': (context) => const AdminSystemReportsScreen(),
         '/adminSettings': (context) => const AdminSettingsScreen(),
         '/adminProfile': (context) => const AdminProfileScreen(),
+        '/principalLogin': (context) => const PrincipalLoginScreen(),
+        '/principalDashboard': (context) => const PrincipalDashboardScreen(),
+        '/principalInitialSetup': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return PrincipalInitialSetupScreen(userId: args['userId'] as int?);
+        },
+        '/principalDepartments': (context) =>
+            const PrincipalDepartmentManagementScreen(),
+        '/principalAddDepartment': (context) =>
+            const PrincipalAddDepartmentScreen(),
+        '/principalHODs': (context) => const PrincipalHODManagementScreen(),
+        '/principalAddHOD': (context) => const PrincipalAddHODScreen(),
+        '/principalHODDetails': (context) {
+          final hod =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return PrincipalHODDetailsScreen(hod: hod);
+        },
+        '/principalGenerateHODQR': (context) {
+          final hod =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return PrincipalGenerateHODQRScreen(hod: hod);
+        },
+        '/principalProfile': (context) => const PrincipalProfileScreen(),
       },
     );
   }

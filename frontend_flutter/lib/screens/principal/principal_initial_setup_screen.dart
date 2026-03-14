@@ -19,9 +19,12 @@ class _PrincipalInitialSetupScreenState
   int _currentPage = 0;
 
   // Step 1 — Change password
+  // Step 1 — Change password
   final _passFormKey = GlobalKey<FormState>();
+  final _currentPassCtrl = TextEditingController();
   final _newPassCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
+  bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
   bool _passLoading = false;
@@ -35,6 +38,7 @@ class _PrincipalInitialSetupScreenState
   @override
   void dispose() {
     _pageCtrl.dispose();
+    _currentPassCtrl.dispose();
     _newPassCtrl.dispose();
     _confirmPassCtrl.dispose();
     _deptNameCtrl.dispose();
@@ -47,11 +51,14 @@ class _PrincipalInitialSetupScreenState
     setState(() => _passLoading = true);
     try {
       await ApiService.changePrincipalPassword(
-          newPassword: _newPassCtrl.text);
+        currentPassword: _currentPassCtrl.text,
+        newPassword: _newPassCtrl.text,
+      );
       if (mounted) {
         _pageCtrl.nextPage(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut);
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
         setState(() => _currentPage = 1);
       }
     } on ApiException catch (e) {
@@ -88,8 +95,7 @@ class _PrincipalInitialSetupScreenState
     try {
       await ApiService.createDepartmentsBatch(_departments);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(
-          'principal_setup_done_${widget.userId}', true);
+      await prefs.setBool('principal_setup_done_${widget.userId}', true);
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/principalDashboard');
       }
@@ -101,9 +107,9 @@ class _PrincipalInitialSetupScreenState
   }
 
   void _showSnack(String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: color),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
   @override
@@ -120,8 +126,11 @@ class _PrincipalInitialSetupScreenState
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.account_balance_rounded,
-                          color: Color(0xFF6A1B9A), size: 28),
+                      const Icon(
+                        Icons.account_balance_rounded,
+                        color: Color(0xFF6A1B9A),
+                        size: 28,
+                      ),
                       const SizedBox(width: 12),
                       const Text(
                         'Principal Setup',
@@ -135,7 +144,9 @@ class _PrincipalInitialSetupScreenState
                       Text(
                         'Step ${_currentPage + 1}/2',
                         style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 14),
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -186,16 +197,44 @@ class _PrincipalInitialSetupScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Set New Password',
-                style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold)),
+            const Text(
+              'Set New Password',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
-            const Text('Change your default password to something secure.',
-                style:
-                    TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+            const Text(
+              'Change your default password to something secure.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
             const SizedBox(height: 32),
+
+            TextFormField(
+              controller: _currentPassCtrl,
+              obscureText: _obscureCurrent,
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                labelText: 'Current Password',
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureCurrent
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscureCurrent = !_obscureCurrent),
+                ),
+              ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Required';
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
 
             TextFormField(
               controller: _newPassCtrl,
@@ -205,11 +244,12 @@ class _PrincipalInitialSetupScreenState
                 labelText: 'New Password',
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureNew
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined),
-                  onPressed: () =>
-                      setState(() => _obscureNew = !_obscureNew),
+                  icon: Icon(
+                    _obscureNew
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () => setState(() => _obscureNew = !_obscureNew),
                 ),
               ),
               validator: (v) {
@@ -228,9 +268,11 @@ class _PrincipalInitialSetupScreenState
                 labelText: 'Confirm Password',
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureConfirm
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined),
+                  icon: Icon(
+                    _obscureConfirm
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
                   onPressed: () =>
                       setState(() => _obscureConfirm = !_obscureConfirm),
                 ),
@@ -248,16 +290,24 @@ class _PrincipalInitialSetupScreenState
               child: ElevatedButton(
                 onPressed: _passLoading ? null : _handleChangePassword,
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6A1B9A)),
+                  backgroundColor: const Color(0xFF6A1B9A),
+                ),
                 child: _passLoading
                     ? const SizedBox(
                         height: 24,
                         width: 24,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : const Text('Save & Continue',
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Save & Continue',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -272,15 +322,19 @@ class _PrincipalInitialSetupScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Add Departments',
-              style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold)),
+          const Text(
+            'Add Departments',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
           const Text(
-              'Add all departments in your institution. You can add more later.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+            'Add all departments in your institution. You can add more later.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          ),
           const SizedBox(height: 24),
 
           // Input row
@@ -312,8 +366,11 @@ class _PrincipalInitialSetupScreenState
               const SizedBox(width: 12),
               IconButton(
                 onPressed: _addDepartment,
-                icon: const Icon(Icons.add_circle,
-                    color: Color(0xFF6A1B9A), size: 36),
+                icon: const Icon(
+                  Icons.add_circle,
+                  color: Color(0xFF6A1B9A),
+                  size: 36,
+                ),
               ),
             ],
           ),
@@ -321,57 +378,72 @@ class _PrincipalInitialSetupScreenState
 
           // Added departments
           if (_departments.isNotEmpty) ...[
-            const Text('ADDED DEPARTMENTS',
-                style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8)),
+            const Text(
+              'ADDED DEPARTMENTS',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
             const SizedBox(height: 12),
-            ..._departments.map((d) => Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.bgCard,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: const Color(0xFF6A1B9A).withOpacity(0.4)),
+            ..._departments.map(
+              (d) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.bgCard,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: const Color(0xFF6A1B9A).withOpacity(0.4),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6A1B9A).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          d['code']!,
-                          style: const TextStyle(
-                              color: Color(0xFF6A1B9A),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13),
-                        ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          d['name']!,
-                          style: const TextStyle(
-                              color: AppColors.textPrimary, fontSize: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6A1B9A).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        d['code']!,
+                        style: const TextStyle(
+                          color: Color(0xFF6A1B9A),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close,
-                            color: AppColors.danger, size: 18),
-                        onPressed: () =>
-                            setState(() => _departments.remove(d)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        d['name']!,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                        ),
                       ),
-                    ],
-                  ),
-                )),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.danger,
+                        size: 18,
+                      ),
+                      onPressed: () => setState(() => _departments.remove(d)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
           ],
 
@@ -381,16 +453,24 @@ class _PrincipalInitialSetupScreenState
             child: ElevatedButton(
               onPressed: _deptLoading ? null : _handleFinish,
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6A1B9A)),
+                backgroundColor: const Color(0xFF6A1B9A),
+              ),
               child: _deptLoading
                   ? const SizedBox(
                       height: 24,
                       width: 24,
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
-                  : const Text('Complete Setup',
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      'Complete Setup',
                       style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ),
         ],

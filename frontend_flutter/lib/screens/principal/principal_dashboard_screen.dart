@@ -26,7 +26,11 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
     setState(() => _isLoading = true);
     try {
       final stats = await ApiService.getPrincipalStats();
-      if (mounted) setState(() { _stats = stats; _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _stats = stats;
+          _isLoading = false;
+        });
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -47,12 +51,13 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
               Text(
                 SessionManager.displayName,
                 style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Text(
                 'Principal',
-                style: TextStyle(
-                    fontSize: 12, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -116,9 +121,10 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                       const Text(
                         'Quick Actions',
                         style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: 16),
 
@@ -130,7 +136,9 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                               icon: Icons.account_tree,
                               color: const Color(0xFF6A1B9A),
                               onTap: () => Navigator.pushNamed(
-                                  context, '/principalDepartments'),
+                                context,
+                                '/principalDepartments',
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -140,7 +148,9 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                               icon: Icons.manage_accounts,
                               color: const Color(0xFF1565C0),
                               onTap: () => Navigator.pushNamed(
-                                  context, '/principalHODs'),
+                                context,
+                                '/principalHODs',
+                              ),
                             ),
                           ),
                         ],
@@ -154,7 +164,9 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                               icon: Icons.analytics,
                               color: AppColors.info,
                               onTap: () => Navigator.pushNamed(
-                                  context, '/principalReports'),
+                                context,
+                                '/adminSystemReports',
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -164,7 +176,9 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                               icon: Icons.person,
                               color: AppColors.warning,
                               onTap: () => Navigator.pushNamed(
-                                  context, '/principalProfile'),
+                                context,
+                                '/principalProfile',
+                              ),
                             ),
                           ),
                         ],
@@ -177,13 +191,15 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                         const Text(
                           'Department Overview',
                           style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                         const SizedBox(height: 12),
-                        ...(_stats['departments'] as List).map((d) =>
-                            _DeptRow(dept: d)),
+                        ...(_stats['departments'] as List).map(
+                          (d) => _DeptRow(dept: d),
+                        ),
                       ],
                     ],
                   ),
@@ -198,11 +214,12 @@ class _StatCard extends StatelessWidget {
   final String title, value;
   final IconData icon;
   final Color color;
-  const _StatCard(
-      {required this.title,
-      required this.value,
-      required this.icon,
-      required this.color});
+  const _StatCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -218,14 +235,23 @@ class _StatCard extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 28),
           const SizedBox(height: 8),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 12, color: AppColors.textSecondary),
-              textAlign: TextAlign.center),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -237,11 +263,12 @@ class _ActionCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-  const _ActionCard(
-      {required this.title,
-      required this.icon,
-      required this.color,
-      required this.onTap});
+  const _ActionCard({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -259,12 +286,15 @@ class _ActionCard extends StatelessWidget {
           children: [
             Icon(icon, color: color, size: 28),
             const SizedBox(height: 8),
-            Text(title,
-                style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -288,21 +318,25 @@ class _DeptRow extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: const Color(0xFF6A1B9A).withOpacity(0.15),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text(dept['code'] ?? '',
-                style: const TextStyle(
-                    color: Color(0xFF6A1B9A),
-                    fontWeight: FontWeight.bold)),
+            child: Text(
+              dept['code'] ?? '',
+              style: const TextStyle(
+                color: Color(0xFF6A1B9A),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(dept['name'] ?? '',
-                style: const TextStyle(color: AppColors.textPrimary)),
+            child: Text(
+              dept['name'] ?? '',
+              style: const TextStyle(color: AppColors.textPrimary),
+            ),
           ),
           Text(
             dept['hod_name'] ?? 'No HOD',

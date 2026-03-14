@@ -8,15 +8,16 @@ class PrincipalProfileScreen extends StatefulWidget {
   const PrincipalProfileScreen({super.key});
 
   @override
-  State<PrincipalProfileScreen> createState() =>
-      _PrincipalProfileScreenState();
+  State<PrincipalProfileScreen> createState() => _PrincipalProfileScreenState();
 }
 
 class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
   final _passFormKey = GlobalKey<FormState>();
+  final _currentPassCtrl = TextEditingController();
   final _newPassCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
+  bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
   bool _isChangingPass = false;
@@ -30,6 +31,7 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
 
   @override
   void dispose() {
+    _currentPassCtrl.dispose();
     _newPassCtrl.dispose();
     _confirmPassCtrl.dispose();
     _emailCtrl.dispose();
@@ -41,18 +43,24 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
     setState(() => _isChangingPass = true);
     try {
       await ApiService.changePrincipalPassword(
-          newPassword: _newPassCtrl.text);
+        currentPassword: _currentPassCtrl.text,
+        newPassword: _newPassCtrl.text,
+      );
       if (mounted) {
         _newPassCtrl.clear();
         _confirmPassCtrl.clear();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
             content: Text('Password changed successfully'),
-            backgroundColor: AppColors.success));
+            backgroundColor: AppColors.success,
+          ),
+        );
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.message), backgroundColor: AppColors.danger));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+        );
       }
     } finally {
       if (mounted) setState(() => _isChangingPass = false);
@@ -64,18 +72,22 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgCard,
-        title: const Text('Logout',
-            style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('Are you sure you want to logout?',
-            style: TextStyle(color: AppColors.textSecondary)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: const Text(
+          'Are you sure you want to logout?',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style:
-                TextButton.styleFrom(foregroundColor: AppColors.danger),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             child: const Text('Logout'),
           ),
         ],
@@ -84,8 +96,7 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
     if (confirm == true) {
       await SessionManager.clearSession();
       if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(
-            context, '/', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       }
     }
   }
@@ -115,40 +126,42 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
                   radius: 48,
                   backgroundColor: Colors.white,
                   child: Text(
-                    (SessionManager.displayName)
-                        .substring(0, 1)
-                        .toUpperCase(),
+                    (SessionManager.displayName).substring(0, 1).toUpperCase(),
                     style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF6A1B9A)),
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6A1B9A),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   SessionManager.displayName,
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   SessionManager.email ?? '',
-                  style: const TextStyle(
-                      color: Colors.white70, fontSize: 14),
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 6),
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text('Principal',
-                      style:
-                          TextStyle(color: Colors.white, fontSize: 13)),
+                  child: const Text(
+                    'Principal',
+                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  ),
                 ),
               ],
             ),
@@ -168,27 +181,55 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Change Password',
-                      style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Change Password',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 16),
+
+                  TextFormField(
+                    controller: _currentPassCtrl,
+                    obscureText: _obscureCurrent,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      labelText: 'Current Password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureCurrent
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureCurrent = !_obscureCurrent),
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Required';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
 
                   TextFormField(
                     controller: _newPassCtrl,
                     obscureText: _obscureNew,
-                    style:
-                        const TextStyle(color: AppColors.textPrimary),
+                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'New Password',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscureNew
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
-                        onPressed: () => setState(
-                            () => _obscureNew = !_obscureNew),
+                        icon: Icon(
+                          _obscureNew
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureNew = !_obscureNew),
                       ),
                     ),
                     validator: (v) {
@@ -202,17 +243,18 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
                   TextFormField(
                     controller: _confirmPassCtrl,
                     obscureText: _obscureConfirm,
-                    style:
-                        const TextStyle(color: AppColors.textPrimary),
+                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Confirm Password',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscureConfirm
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
-                        onPressed: () => setState(
-                            () => _obscureConfirm = !_obscureConfirm),
+                        icon: Icon(
+                          _obscureConfirm
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
                       ),
                     ),
                     validator: (v) {
@@ -226,18 +268,19 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isChangingPass
-                          ? null
-                          : _handleChangePassword,
+                      onPressed: _isChangingPass ? null : _handleChangePassword,
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6A1B9A)),
+                        backgroundColor: const Color(0xFF6A1B9A),
+                      ),
                       child: _isChangingPass
                           ? const SizedBox(
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white))
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
                           : const Text('Update Password'),
                     ),
                   ),
@@ -254,11 +297,13 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
             child: ElevatedButton.icon(
               onPressed: _handleLogout,
               style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.danger),
+                backgroundColor: AppColors.danger,
+              ),
               icon: const Icon(Icons.logout),
-              label: const Text('Logout',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Logout',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],
