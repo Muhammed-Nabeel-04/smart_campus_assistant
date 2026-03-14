@@ -233,7 +233,7 @@ def get_admin_stats(
 ):
     """Get admin dashboard statistics"""
     
-    if current_user['role'] != 'admin':
+    if current_user['role'] not in ['admin', 'principal']:
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Count totals
@@ -722,13 +722,13 @@ def update_complaint(
 
 @router.get("/reports")
 def get_system_reports(
-    period: str = "today",  # today, week, month
+    period: str = "today",
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Get system-wide reports"""
     
-    if current_user['role'] != 'admin':
+    if current_user['role'] not in ['admin', 'principal']:
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Calculate date range based on period

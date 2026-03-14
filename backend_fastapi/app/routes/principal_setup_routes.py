@@ -85,6 +85,32 @@ def change_principal_password(
     return {"message": "Password changed successfully"}
 
 
+class SetPasswordRequest(BaseModel):
+    new_password: str
+
+@router.post("/set-password")
+def set_initial_password(
+    payload: SetPasswordRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Set password during first-time setup — no current password needed"""
+    if current_user['role'] != 'principal':
+        raise HTTPException(status_code=403, detail="Principal access required")
+    
+    if len(payload.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        
+    user = db.query(User).filter(User.id == current_user['user_id']).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.password = bcrypt.hash(payload.new_password)
+    db.commit()
+    
+    return {"message": "Password set successfully"}
+
+
 # ============================================================================
 # BATCH CREATE DEPARTMENTS
 # ============================================================================

@@ -50,8 +50,7 @@ class _PrincipalInitialSetupScreenState
     if (!_passFormKey.currentState!.validate()) return;
     setState(() => _passLoading = true);
     try {
-      await ApiService.changePrincipalPassword(
-        currentPassword: _currentPassCtrl.text,
+      await ApiService.setPrincipalInitialPassword(
         newPassword: _newPassCtrl.text,
       );
       if (mounted) {
@@ -93,7 +92,11 @@ class _PrincipalInitialSetupScreenState
     }
     setState(() => _deptLoading = true);
     try {
-      await ApiService.createDepartmentsBatch(_departments);
+      await ApiService.createDepartmentsBatch(
+        _departments
+            .map((d) => {'name': d['name']!, 'code': d['code']!})
+            .toList(),
+      );
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('principal_setup_done_${widget.userId}', true);
       if (mounted) {
@@ -211,30 +214,6 @@ class _PrincipalInitialSetupScreenState
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 32),
-
-            TextFormField(
-              controller: _currentPassCtrl,
-              obscureText: _obscureCurrent,
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: InputDecoration(
-                labelText: 'Current Password',
-                prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureCurrent
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                  ),
-                  onPressed: () =>
-                      setState(() => _obscureCurrent = !_obscureCurrent),
-                ),
-              ),
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Required';
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
 
             TextFormField(
               controller: _newPassCtrl,

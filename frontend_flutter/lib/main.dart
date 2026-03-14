@@ -49,6 +49,8 @@ import 'screens/admin/admin_complaints_management_screen.dart';
 import 'screens/admin/admin_system_reports_screen.dart';
 import 'screens/admin/admin_settings_screen.dart';
 import 'screens/admin/admin_profile_screen.dart';
+import 'screens/admin/hod_qr_onboarding_screen.dart';
+import 'screens/admin/hod_password_setup_screen.dart';
 import 'screens/principal/principal_login_screen.dart';
 import 'screens/principal/principal_initial_setup_screen.dart';
 import 'screens/principal/principal_dashboard_screen.dart';
@@ -338,13 +340,20 @@ class SmartCampusApp extends StatelessWidget {
         '/adminSystemReports': (context) => const AdminSystemReportsScreen(),
         '/adminSettings': (context) => const AdminSettingsScreen(),
         '/adminProfile': (context) => const AdminProfileScreen(),
+        '/hodQROnboarding': (context) => const HODQROnboardingScreen(),
+        '/hodPasswordSetup': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return HODPasswordSetupScreen(hodData: args);
+        },
         '/principalLogin': (context) => const PrincipalLoginScreen(),
         '/principalDashboard': (context) => const PrincipalDashboardScreen(),
         '/principalInitialSetup': (context) {
           final args =
               ModalRoute.of(context)!.settings.arguments
-                  as Map<String, dynamic>;
-          return PrincipalInitialSetupScreen(userId: args['userId'] as int?);
+                  as Map<String, dynamic>?;
+          return PrincipalInitialSetupScreen(userId: args?['userId'] as int?);
         },
         '/principalDepartments': (context) =>
             const PrincipalDepartmentManagementScreen(),

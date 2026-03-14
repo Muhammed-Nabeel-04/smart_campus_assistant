@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
 import '../../core/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PrincipalLoginScreen extends StatefulWidget {
   const PrincipalLoginScreen({super.key});
@@ -54,20 +55,21 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
       );
 
       if (mounted) {
-        // Step 3: Check if setup is completed
-        try {
-          final setupStatus = await ApiService.checkPrincipalSetupStatus();
+        // ✅ Use local flag — no network call needed
+        final prefs = await SharedPreferences.getInstance();
+        final uid = response['user_id'] as int;
+        final setupDone = prefs.getBool('principal_setup_done_$uid') ?? false;
 
-          if (setupStatus['setup_completed'] == false) {
-            // First time login - go to setup
-            Navigator.pushReplacementNamed(context, '/principalInitialSetup');
-          } else {
-            // Setup already done - go to dashboard
-            Navigator.pushReplacementNamed(context, '/principalDashboard');
-          }
-        } catch (setupError) {
-          // If setup check fails, go to setup screen
-          Navigator.pushReplacementNamed(context, '/principalInitialSetup');
+        if (!mounted) return;
+
+        if (setupDone) {
+          Navigator.pushReplacementNamed(context, '/principalDashboard');
+        } else {
+          Navigator.pushReplacementNamed(
+            context,
+            '/principalInitialSetup',
+            arguments: {'userId': uid},
+          );
         }
       }
     } on ApiException catch (e) {

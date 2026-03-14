@@ -659,13 +659,18 @@ class ApiService {
   }) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(response.body);
-    } else if (response.statusCode == 401 || response.statusCode == 403) {
+    } else if (response.statusCode == 401) {
       if (isLogin) {
-        // Wrong credentials — don't clear session
         throw ApiException('Invalid email or password.');
       }
       SessionManager.clearSession();
       throw ApiException('Session expired. Please log in again.');
+    } else if (response.statusCode == 403) {
+      if (isLogin) {
+        throw ApiException('Invalid email or password.');
+      }
+      final error = jsonDecode(response.body);
+      throw ApiException(error['detail'] ?? 'Access denied.');
     } else {
       final error = jsonDecode(response.body);
       throw ApiException(error['detail'] ?? 'Request failed');
@@ -842,6 +847,23 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> setPrincipalInitialPassword({
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/principal/setup/set-password"),
+            headers: _authHeaders,
+            body: jsonEncode({'new_password': newPassword}),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   static Future<Map<String, dynamic>> changePrincipalPassword({
     required String currentPassword,
     required String newPassword,
@@ -926,6 +948,9 @@ class ApiService {
       throw _handleError(e);
     }
   }
+
+  // ✅ Alias used by principal screens
+  static Future<List<dynamic>> getAllDepartments() => getPrincipalDepartments();
 
   static Future<Map<String, dynamic>> createDepartment({
     required String name,

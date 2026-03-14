@@ -243,6 +243,23 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
+                  const SizedBox(height: 8),
+
+                  // First time? Scan QR
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/hodQROnboarding'),
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('First Time? Scan QR'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.danger,
+                      side: const BorderSide(color: AppColors.danger),
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
                   TextButton.icon(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.arrow_back),

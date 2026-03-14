@@ -26,11 +26,19 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
     setState(() => _isLoading = true);
     try {
       final stats = await ApiService.getPrincipalStats();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _stats = stats;
           _isLoading = false;
         });
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+        );
+      }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
