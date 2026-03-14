@@ -1,0 +1,8 @@
+import sys
+sys.path.append(".")
+
+from app.database import engine
+from sqlalchemy import inspect
+
+inspector = inspect(engine)
+print(inspector.get_table_names())

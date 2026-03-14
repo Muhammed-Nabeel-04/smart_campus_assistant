@@ -1,0 +1,111 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from typing import Optional
+from app.services.deps import get_db
+from app.models.notification import Notification
+from app.models.student import Student
+from app.services.deps import get_db, get_current_user
+
+router = APIRouter(prefix="/notifications", tags=["Notifications"])
+
+
+class PostNotificationRequest(BaseModel):
+    title: str
+    message: str
+    type: str                           # info, warning, urgent, announcement
+    target: str                         # all, department, class
+    target_class_id: Optional[int] = None
+    target_department_id: Optional[int] = None
+    sent_by: Optional[int] = None       # faculty_id
+
+
+# ============================================================================
+# POST NOTIFICATION
+# ============================================================================
+
+@router.post("/")
+def post_notification(
+    payload: PostNotificationRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user['role'] not in ['faculty', 'admin']:
+        raise HTTPException(status_code=403, detail="Faculty access required")
+    notification = Notification(
+        title=payload.title,
+        message=payload.message,
+        type=payload.type,
+        target_role=payload.target,
+        target_class_id=payload.target_class_id,
+        target_department_id=payload.target_department_id,
+        sent_by=payload.sent_by,
+    )
+
+    db.add(notification)
+    db.commit()
+    db.refresh(notification)
+
+    return {
+        "message": "Notification sent successfully",
+        "id": notification.id,
+        "title": notification.title,
+        "type": notification.type,
+    }
+
+
+# ============================================================================
+# GET NOTIFICATIONS FOR STUDENT
+# ============================================================================
+
+@router.get("/student/{student_id}")
+def get_student_notifications(student_id: int, db: Session = Depends(get_db)):
+
+    # Check student exists
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Get all notifications relevant to students
+    # Includes: all, student, department, class targets
+    notifications = db.query(Notification).filter(
+        (Notification.target_role == "all") |
+        (Notification.target_role == "student") |
+        (Notification.target_role == "department") |
+        (Notification.target_role == "class")
+    ).order_by(Notification.created_at.desc()).limit(50).all()
+
+    return [
+        {
+            "id": n.id,
+            "title": n.title,
+            "message": n.message,
+            "type": n.type,
+            "created_at": n.created_at.isoformat(),
+        }
+        for n in notifications
+    ]
+
+
+# ============================================================================
+# GET ALL NOTIFICATIONS (for admin/faculty)
+# ============================================================================
+
+@router.get("/")
+def get_all_notifications(db: Session = Depends(get_db)):
+
+    notifications = db.query(Notification).order_by(
+        Notification.created_at.desc()
+    ).limit(100).all()
+
+    return [
+        {
+            "id": n.id,
+            "title": n.title,
+            "message": n.message,
+            "type": n.type,
+            "target_role": n.target_role,
+            "created_at": n.created_at.isoformat(),
+        }
+        for n in notifications
+    ]

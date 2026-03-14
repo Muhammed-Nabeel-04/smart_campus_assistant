@@ -1,0 +1,316 @@
+// File: lib/screens/admin/admin_system_reports_screen.dart
+import 'package:flutter/material.dart';
+import '../../core/app_colors.dart';
+import '../../services/api_service.dart';
+
+class AdminSystemReportsScreen extends StatefulWidget {
+  const AdminSystemReportsScreen({super.key});
+
+  @override
+  State<AdminSystemReportsScreen> createState() =>
+      _AdminSystemReportsScreenState();
+}
+
+class _AdminSystemReportsScreenState extends State<AdminSystemReportsScreen> {
+  String _selectedPeriod = 'today';
+  bool _isLoading = true;
+  Map<String, dynamic> _reportData = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReports();
+  }
+
+  Future<void> _loadReports() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await ApiService.getSystemReports(
+        // ✅ Real API
+        period: _selectedPeriod,
+      );
+      if (mounted) {
+        setState(() {
+          _reportData = data;
+          _isLoading = false;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bgDark,
+      appBar: AppBar(
+        title: const Text('System Reports'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Export feature coming soon')),
+              );
+            },
+            tooltip: 'Export Report',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Period Selector
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                _buildPeriodChip('Today', 'today'),
+                _buildPeriodChip('This Week', 'week'),
+                _buildPeriodChip('This Month', 'month'),
+              ],
+            ),
+          ),
+
+          // Reports Content
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _loadReports,
+                    child: ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        // Attendance Overview
+                        _buildSectionTitle('Attendance Overview'),
+                        _buildReportCard(
+                          'Total Sessions',
+                          '${_reportData['total_attendance_sessions']}',
+                          Icons.timer,
+                          AppColors.info,
+                        ),
+                        _buildReportCard(
+                          'Average Attendance',
+                          '${_reportData['avg_attendance_percentage']}%',
+                          Icons.assessment,
+                          AppColors.success,
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Student Stats
+                        _buildSectionTitle('Student Statistics'),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildReportCard(
+                                'Present',
+                                '${_reportData['total_students_present']}',
+                                Icons.check_circle,
+                                AppColors.success,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildReportCard(
+                                'Absent',
+                                '${_reportData['total_students_absent']}',
+                                Icons.cancel,
+                                AppColors.danger,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Performance Insights
+                        _buildSectionTitle('Performance Insights'),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.bgCard,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildInsightRow(
+                                'Best Department',
+                                _reportData['top_department'],
+                                Icons.emoji_events,
+                                AppColors.warning,
+                              ),
+                              const Divider(height: 24),
+                              _buildInsightRow(
+                                'Needs Attention',
+                                _reportData['lowest_attendance_class'],
+                                Icons.warning,
+                                AppColors.danger,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Complaints Summary
+                        _buildSectionTitle('Complaints Summary'),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildReportCard(
+                                'Resolved',
+                                '${_reportData['complaints_resolved']}',
+                                Icons.check_circle,
+                                AppColors.success,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildReportCard(
+                                'Pending',
+                                '${_reportData['complaints_pending']}',
+                                Icons.pending,
+                                AppColors.warning,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodChip(String label, String value) {
+    final isSelected = _selectedPeriod == value;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (selected) {
+          setState(() => _selectedPeriod = value);
+          _loadReports();
+        },
+        backgroundColor: AppColors.bgCard,
+        selectedColor: AppColors.danger,
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReportCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightRow(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
