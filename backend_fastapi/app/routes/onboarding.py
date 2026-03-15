@@ -1,6 +1,7 @@
+# File: backend/app/routes/onboarding.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.services.deps import get_db, create_access_token
 from app.models.onboarding_token import OnboardingToken
 from app.models.faculty import Faculty
@@ -107,6 +108,22 @@ def set_faculty_password(payload: dict, db: Session = Depends(get_db)):
         "role": "faculty",
         "faculty_id": faculty.id,
     })
+
+    # ✅ Save session token — single device enforcement
+    from app.models.session_token import SessionToken
+    existing = db.query(SessionToken).filter(
+        SessionToken.user_id == user_id
+    ).first()
+    if existing:
+        existing.token = jwt_token
+        existing.expires_at = datetime.utcnow() + timedelta(days=30)
+    else:
+        db.add(SessionToken(
+            user_id=user_id,
+            token=jwt_token,
+            expires_at=datetime.utcnow() + timedelta(days=30)
+        ))
+    db.commit()
 
     return {
         "message": "Password set successfully",
@@ -228,6 +245,22 @@ def complete_student_registration(payload: dict, db: Session = Depends(get_db)):
         "student_id": student.id,
     })
 
+    # ✅ Save session token — single device enforcement
+    from app.models.session_token import SessionToken
+    existing = db.query(SessionToken).filter(
+        SessionToken.user_id == user_id
+    ).first()
+    if existing:
+        existing.token = jwt_token
+        existing.expires_at = datetime.utcnow() + timedelta(days=30)
+    else:
+        db.add(SessionToken(
+            user_id=user_id,
+            token=jwt_token,
+            expires_at=datetime.utcnow() + timedelta(days=30)
+        ))
+    db.commit()
+
     return {
         "message": "Registration complete",
         "token": jwt_token,
@@ -323,6 +356,25 @@ def set_hod_password(payload: dict, db: Session = Depends(get_db)):
         "user_id": hod_user.id,
         "role": "admin",
     })
+
+    user_id = hod_user.id
+
+    # ✅ Save session token — single device enforcement
+    from app.models.session_token import SessionToken
+    existing = db.query(SessionToken).filter(
+        SessionToken.user_id == user_id
+    ).first()
+    if existing:
+        existing.token = jwt_token
+        existing.expires_at = datetime.utcnow() + timedelta(days=30)
+    else:
+        db.add(SessionToken(
+            user_id=user_id,
+            token=jwt_token,
+            expires_at=datetime.utcnow() + timedelta(days=30)
+        ))
+    db.commit()
+    
 
     return {
         "message": "Password set successfully",

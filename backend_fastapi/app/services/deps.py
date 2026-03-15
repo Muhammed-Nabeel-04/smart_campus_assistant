@@ -10,7 +10,6 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 
-# auto_error=False so we return a clean 401 instead of FastAPI's opaque 403
 security = HTTPBearer(auto_error=False)
 
 
@@ -57,10 +56,10 @@ def get_current_user(
 
         if role not in ["student", "faculty", "admin", "principal"]:
             raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid role in token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid role in token.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
     except JWTError:
         raise HTTPException(
@@ -69,7 +68,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # ✅ Check if user still exists in DB (handles deleted accounts)
+    # ✅ Check user still exists
     from app.models.user import User
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -79,15 +78,16 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return {"user_id": user_id, "role": role}
+    # ✅ Check token matches DB (single session enforcement)
+    from app.models.session_token import SessionToken
+    session = db.query(SessionToken).filter(
+        SessionToken.user_id == user_id
+    ).first()
 
-    # ✅ Check if user still exists in DB (handles deleted accounts)
-    from app.models.user import User
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+    if not session or session.token != token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Account no longer exists. Please log in again.",
+            detail="Logged in on another device. Please log in again.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

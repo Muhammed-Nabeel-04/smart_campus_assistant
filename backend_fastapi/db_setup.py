@@ -18,10 +18,11 @@ print('✅ All tables created!')
 conn = sqlite3.connect('campus.db')
 
 MIGRATIONS = [
-    ('faculty',   'ALTER TABLE faculty ADD COLUMN assigned_classes TEXT'),
-    ('subjects',  'ALTER TABLE subjects ADD COLUMN department TEXT'),
-    ('subjects',  'ALTER TABLE subjects ADD COLUMN year TEXT'),
-    ('subjects',  'ALTER TABLE subjects ADD COLUMN semester TEXT'),
+    ('faculty',        'ALTER TABLE faculty ADD COLUMN assigned_classes TEXT'),
+    ('subjects',       'ALTER TABLE subjects ADD COLUMN department TEXT'),
+    ('subjects',       'ALTER TABLE subjects ADD COLUMN year TEXT'),
+    ('subjects',       'ALTER TABLE subjects ADD COLUMN semester TEXT'),
+    ('session_tokens', 'ALTER TABLE session_tokens ADD COLUMN user_id INTEGER'),
 ]
 
 for label, sql in MIGRATIONS:

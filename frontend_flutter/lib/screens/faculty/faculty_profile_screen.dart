@@ -25,11 +25,11 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
 
   Future<void> _loadFacultyData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       // Get faculty stats (contains faculty info)
       final response = await ApiService.getFacultyStats(SessionManager.userId!);
-      
+
       setState(() {
         _facultyData = response;
         _isLoading = false;
@@ -60,9 +60,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.danger,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
             child: const Text('Logout'),
           ),
         ],
@@ -70,6 +68,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     );
 
     if (confirm == true && mounted) {
+      await ApiService.logout();
       await SessionManager.clearSession();
       Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     }
@@ -125,7 +124,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
           ElevatedButton(
             onPressed: () {
               // TODO: Implement password change API call
-              if (newPasswordController.text == confirmPasswordController.text) {
+              if (newPasswordController.text ==
+                  confirmPasswordController.text) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(this.context).showSnackBar(
                   const SnackBar(
@@ -154,10 +154,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgDark,
-      appBar: AppBar(
-        title: const Text('Profile'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Profile'), centerTitle: true),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -204,7 +201,10 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                             ),
                             child: Center(
                               child: Text(
-                                SessionManager.name?.substring(0, 1).toUpperCase() ?? 'F',
+                                SessionManager.name
+                                        ?.substring(0, 1)
+                                        .toUpperCase() ??
+                                    'F',
                                 style: const TextStyle(
                                   fontSize: 40,
                                   fontWeight: FontWeight.bold,
@@ -213,9 +213,9 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                               ),
                             ),
                           ),
-                          
+
                           const SizedBox(height: 16),
-                          
+
                           // Name
                           Text(
                             SessionManager.name ?? 'Faculty',
@@ -226,9 +226,9 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          
+
                           const SizedBox(height: 4),
-                          
+
                           // Role Badge
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -299,39 +299,39 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          
+
                           _buildInfoRow(
                             Icons.email,
                             'Email',
                             SessionManager.email ?? 'N/A',
                           ),
-                          
+
                           const Divider(height: 24),
-                          
+
                           _buildInfoRow(
                             Icons.badge,
                             'Employee ID',
                             _facultyData?['employee_id']?.toString() ?? 'N/A',
                           ),
-                          
+
                           const Divider(height: 24),
-                          
+
                           _buildInfoRow(
                             Icons.business,
                             'Department',
                             _facultyData?['department'] ?? 'N/A',
                           ),
-                          
+
                           const Divider(height: 24),
-                          
+
                           _buildInfoRow(
                             Icons.phone,
                             'Phone',
                             _facultyData?['phone_number'] ?? 'N/A',
                           ),
-                          
+
                           const Divider(height: 24),
-                          
+
                           _buildInfoRow(
                             Icons.person,
                             'User ID',
@@ -357,9 +357,9 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                             color: AppColors.warning,
                             onTap: _showChangePasswordDialog,
                           ),
-                          
+
                           const Divider(height: 1),
-                          
+
                           _buildActionTile(
                             icon: Icons.history,
                             title: 'Recent Sessions',
@@ -367,25 +367,30 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                             onTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('View recent sessions from dashboard'),
+                                  content: Text(
+                                    'View recent sessions from dashboard',
+                                  ),
                                 ),
                               );
                             },
                           ),
-                          
+
                           const Divider(height: 1),
-                          
+
                           _buildActionTile(
                             icon: Icons.assessment,
                             title: 'My Reports',
                             color: AppColors.success,
                             onTap: () {
-                              Navigator.pushNamed(context, '/facultyAttendanceReports');
+                              Navigator.pushNamed(
+                                context,
+                                '/facultyAttendanceReports',
+                              );
                             },
                           ),
-                          
+
                           const Divider(height: 1),
-                          
+
                           _buildActionTile(
                             icon: Icons.help_outline,
                             title: 'Help & Support',
@@ -432,10 +437,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                     // Version Info
                     Text(
                       'Smart Campus Assistant v2.0',
-                      style: TextStyle(
-                        color: AppColors.textHint,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: AppColors.textHint, fontSize: 12),
                     ),
 
                     const SizedBox(height: 24),
@@ -446,7 +448,12 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

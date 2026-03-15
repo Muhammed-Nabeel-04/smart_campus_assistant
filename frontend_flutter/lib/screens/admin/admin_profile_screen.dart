@@ -24,20 +24,26 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
   Future<void> _loadDepartment() async {
     setState(() => _isLoading = true);
-    
+
     try {
       // Extract department from email
       final email = SessionManager.email ?? '';
       String dept = 'UNKNOWN';
-      
+
       final prefix = email.split('@')[0].toLowerCase();
-      if (prefix.contains('aids')) dept = 'AIDS';
-      else if (prefix.contains('cse')) dept = 'CSE';
-      else if (prefix.contains('ece')) dept = 'ECE';
-      else if (prefix.contains('mech')) dept = 'MECH';
-      else if (prefix.contains('civil')) dept = 'CIVIL';
-      else if (prefix.contains('it')) dept = 'IT';
-      
+      if (prefix.contains('aids'))
+        dept = 'AIDS';
+      else if (prefix.contains('cse'))
+        dept = 'CSE';
+      else if (prefix.contains('ece'))
+        dept = 'ECE';
+      else if (prefix.contains('mech'))
+        dept = 'MECH';
+      else if (prefix.contains('civil'))
+        dept = 'CIVIL';
+      else if (prefix.contains('it'))
+        dept = 'IT';
+
       setState(() {
         _department = dept;
         _isLoading = false;
@@ -60,9 +66,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.danger,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
             child: const Text('Logout'),
           ),
         ],
@@ -70,6 +74,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     );
 
     if (confirm == true && mounted) {
+      await ApiService.logout();
       await SessionManager.clearSession();
       Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     }
@@ -125,7 +130,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           ElevatedButton(
             onPressed: () {
               // TODO: Implement password change API call
-              if (newPasswordController.text == confirmPasswordController.text) {
+              if (newPasswordController.text ==
+                  confirmPasswordController.text) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(this.context).showSnackBar(
                   const SnackBar(
@@ -154,10 +160,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgDark,
-      appBar: AppBar(
-        title: const Text('Profile'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Profile'), centerTitle: true),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -201,7 +204,10 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                           ),
                           child: Center(
                             child: Text(
-                              SessionManager.name?.substring(0, 1).toUpperCase() ?? 'A',
+                              SessionManager.name
+                                      ?.substring(0, 1)
+                                      .toUpperCase() ??
+                                  'A',
                               style: const TextStyle(
                                 fontSize: 40,
                                 fontWeight: FontWeight.bold,
@@ -210,9 +216,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                             ),
                           ),
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Name
                         Text(
                           SessionManager.name ?? 'Administrator',
@@ -223,9 +229,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        
+
                         const SizedBox(height: 4),
-                        
+
                         // Role
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -270,31 +276,31 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         _buildInfoRow(
                           Icons.email,
                           'Email',
                           SessionManager.email ?? 'N/A',
                         ),
-                        
+
                         const Divider(height: 24),
-                        
+
                         _buildInfoRow(
                           Icons.business,
                           'Department',
                           _department,
                         ),
-                        
+
                         const Divider(height: 24),
-                        
+
                         _buildInfoRow(
                           Icons.admin_panel_settings,
                           'Role',
                           'Head of Department',
                         ),
-                        
+
                         const Divider(height: 24),
-                        
+
                         _buildInfoRow(
                           Icons.badge,
                           'User ID',
@@ -320,9 +326,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                           color: AppColors.warning,
                           onTap: _showChangePasswordDialog,
                         ),
-                        
+
                         const Divider(height: 1),
-                        
+
                         _buildActionTile(
                           icon: Icons.settings,
                           title: 'Settings',
@@ -331,9 +337,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                             Navigator.pushNamed(context, '/adminSettings');
                           },
                         ),
-                        
+
                         const Divider(height: 1),
-                        
+
                         _buildActionTile(
                           icon: Icons.help_outline,
                           title: 'Help & Support',
@@ -380,10 +386,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   // Version Info
                   Text(
                     'Smart Campus Assistant v2.0',
-                    style: TextStyle(
-                      color: AppColors.textHint,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: AppColors.textHint, fontSize: 12),
                   ),
 
                   const SizedBox(height: 24),

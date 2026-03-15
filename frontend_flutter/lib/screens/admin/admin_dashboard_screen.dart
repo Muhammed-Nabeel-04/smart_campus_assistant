@@ -64,6 +64,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
 
     if (confirm == true) {
+      await ApiService.logout();
       await SessionManager.clearSession();
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);

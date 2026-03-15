@@ -94,6 +94,7 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
       ),
     );
     if (confirm == true) {
+      await ApiService.logout();
       await SessionManager.clearSession();
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);

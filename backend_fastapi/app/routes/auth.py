@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from passlib.hash import bcrypt
-from datetime import datetime
+from datetime import datetime,timedelta
 
-from app.services.deps import get_db, create_access_token
+# ✅ Added get_current_user to the import here
+from app.services.deps import get_db, create_access_token, get_current_user
 from app.models.user import User
 from app.models.student import Student
 from app.models.faculty import Faculty
@@ -171,6 +172,22 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
     token = create_access_token(token_data)
 
+    # ✅ Save token to DB — replaces any existing session (single device)
+    from app.models.session_token import SessionToken
+    existing_session = db.query(SessionToken).filter(
+        SessionToken.user_id == user.id
+    ).first()
+    if existing_session:
+        existing_session.token = token
+        existing_session.expires_at = datetime.utcnow() + timedelta(days=30)
+    else:
+        db.add(SessionToken(
+            user_id=user.id,
+            token=token,
+            expires_at=datetime.utcnow() + timedelta(days=30)
+        ))
+    db.commit()
+
     return {
         "message": "Login successful",
         "token": token,
@@ -185,3 +202,26 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         "section": section,
         "register_number": register_number,
     }
+
+
+# ============================================================================
+# LOGOUT
+# ============================================================================
+
+@router.post("/logout")
+def logout(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Logout — invalidates session token"""
+    from app.models.session_token import SessionToken
+    
+    session = db.query(SessionToken).filter(
+        SessionToken.user_id == current_user['user_id']
+    ).first()
+    
+    if session:
+        db.delete(session)
+        db.commit()
+        
+    return {"message": "Logged out successfully"}

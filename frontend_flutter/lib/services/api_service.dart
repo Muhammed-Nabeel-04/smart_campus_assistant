@@ -1197,6 +1197,16 @@ class ApiService {
       throw _handleError(e);
     }
   }
+
+  static Future<void> logout() async {
+    try {
+      await http
+          .post(Uri.parse("$_baseUrl/auth/logout"), headers: _authHeaders)
+          .timeout(_timeout);
+    } catch (_) {
+      // Ignore errors — clear session regardless
+    }
+  }
 }
 
 class ApiException implements Exception {

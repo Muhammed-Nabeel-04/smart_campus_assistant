@@ -71,6 +71,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     );
 
     if (confirm == true && mounted) {
+      await ApiService.logout();
       await SessionManager.clearSession();
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
