@@ -62,6 +62,7 @@ import 'screens/principal/principal_hod_details_screen.dart';
 import 'screens/principal/principal_generate_hod_qr_screen.dart';
 import 'screens/principal/principal_profile_screen.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SessionManager.initialize();
@@ -75,6 +76,7 @@ class SmartCampusApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Smart Campus Assistant',
 

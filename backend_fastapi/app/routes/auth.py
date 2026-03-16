@@ -225,3 +225,88 @@ def logout(
         db.commit()
         
     return {"message": "Logged out successfully"}
+
+# ============================================================================
+# STUDENT QR LOGIN
+# ============================================================================
+
+@router.post("/student-qr-login")
+def student_qr_login(payload: dict, db: Session = Depends(get_db)):
+    """Student scans QR to login — validates token, returns JWT"""
+
+    token = payload.get("token")
+    if not token:
+        raise HTTPException(status_code=400, detail="Token is required")
+
+    # Validate onboarding/login token
+    from app.models.onboarding_token import OnboardingToken
+    onboarding = db.query(OnboardingToken).filter(
+        OnboardingToken.token == token,
+        OnboardingToken.role == "student",
+        OnboardingToken.used == False,
+    ).first()
+
+    if not onboarding:
+        raise HTTPException(status_code=400, detail="Invalid or expired QR code")
+
+    if datetime.utcnow() > onboarding.expiry_time:
+        raise HTTPException(status_code=400, detail="QR code has expired")
+
+    from app.models.student import Student
+    student = db.query(Student).filter(
+        Student.id == onboarding.target_id
+    ).first()
+
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Get or check user account
+    user = db.query(User).filter(User.id == student.user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail="Account not set up. Please complete registration first."
+        )
+
+    # Mark token as used
+    onboarding.used = True
+    onboarding.used_at = datetime.utcnow()
+    db.commit()
+
+    # Generate JWT
+    jwt_token = create_access_token({
+        "user_id": user.id,
+        "role": "student",
+        "student_id": student.id,
+    })
+
+    # ✅ Save session token — single device enforcement
+    from app.models.session_token import SessionToken
+    existing = db.query(SessionToken).filter(
+        SessionToken.user_id == user.id
+    ).first()
+    if existing:
+        existing.token = jwt_token
+        existing.expires_at = datetime.utcnow() + timedelta(days=30)
+    else:
+        db.add(SessionToken(
+            user_id=user.id,
+            token=jwt_token,
+            expires_at=datetime.utcnow() + timedelta(days=30)
+        ))
+    db.commit()
+
+    return {
+        "message": "Login successful",
+        "token": jwt_token,
+        "user_id": user.id,
+        "student_id": student.id,
+        "name": student.full_name,
+        "email": student.email or student.register_number,
+        "role": "student",
+        "department": student.department,
+        "year": student.year,
+        "section": student.section,
+        "register_number": student.register_number,
+        "is_first_login": False,
+    }

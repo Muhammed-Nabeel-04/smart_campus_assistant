@@ -68,7 +68,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # ✅ Check user still exists
+    # ✅ Check user still exists in DB
     from app.models.user import User
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -78,7 +78,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # ✅ Check token matches DB (single session enforcement)
+    # ✅ Single device enforcement — token must match DB
     from app.models.session_token import SessionToken
     session = db.query(SessionToken).filter(
         SessionToken.user_id == user_id

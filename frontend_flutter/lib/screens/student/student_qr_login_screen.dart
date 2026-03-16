@@ -69,6 +69,7 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
         name: response['name'],
         email: response['email'],
         role: 'student',
+        token: response['token'],
         studentId: response['student_id'],
         department: response['department'],
         year: response['year'],

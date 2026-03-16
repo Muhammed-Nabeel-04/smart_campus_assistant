@@ -71,6 +71,11 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
           ),
           actions: [
             IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => Navigator.pushNamed(context, '/backendSettings'),
+              tooltip: 'Settings',
+            ),
+            IconButton(
               icon: const Icon(Icons.person_outline),
               onPressed: () =>
                   Navigator.pushNamed(context, '/principalProfile'),

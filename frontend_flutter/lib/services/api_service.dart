@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../core/app_config.dart';
 import '../core/session.dart';
+import '../main.dart';
 
 class ApiService {
   static String get _baseUrl => AppConfig.backendUrl;
@@ -145,9 +146,10 @@ class ApiService {
     required String token,
   }) async {
     try {
+      // ✅ Use new login endpoint that saves session token
       final response = await http
           .post(
-            Uri.parse("$_baseUrl/onboarding/student/validate-qr"),
+            Uri.parse("$_baseUrl/auth/student-qr-login"),
             headers: {"Content-Type": "application/json"},
             body: jsonEncode({"token": token}),
           )
@@ -663,8 +665,12 @@ class ApiService {
       if (isLogin) {
         throw ApiException('Invalid email or password.');
       }
+      final error = jsonDecode(response.body);
+      final detail = error['detail'] ?? 'Session expired. Please log in again.';
       SessionManager.clearSession();
-      throw ApiException('Session expired. Please log in again.');
+      // ✅ Navigate to role selection from anywhere
+      navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (route) => false);
+      throw ApiException(detail);
     } else if (response.statusCode == 403) {
       if (isLogin) {
         throw ApiException('Invalid email or password.');
