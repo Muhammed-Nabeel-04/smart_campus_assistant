@@ -282,11 +282,11 @@ class _PrincipalDepartmentManagementScreenState
                             ),
                           ),
                           Text(
-                            dept['hod_name'] != null
-                                ? 'HOD: ${dept['hod_name']}'
+                            dept['hod'] != null
+                                ? 'HOD: ${dept['hod']['name']}'
                                 : 'No HOD assigned',
                             style: TextStyle(
-                              color: dept['hod_name'] != null
+                              color: dept['hod'] != null
                                   ? AppColors.success
                                   : AppColors.warning,
                               fontSize: 12,

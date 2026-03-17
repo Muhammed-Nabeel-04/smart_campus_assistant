@@ -289,6 +289,11 @@ def create_hod(
     )
     db.add(faculty)
     db.commit()
+
+    # ✅ FIX: Re-query dept to get a fresh tracked object, then assign HOD
+    dept_to_update = db.query(Department).filter(Department.id == payload.department_id).first()
+    dept_to_update.hod_user_id = new_user.id
+    db.commit()
     
     return {
         "id": new_user.id,

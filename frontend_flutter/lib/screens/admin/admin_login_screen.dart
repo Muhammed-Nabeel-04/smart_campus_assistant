@@ -70,29 +70,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
       if (!mounted) return;
 
-      // 3. Decide route using LOCAL flag
-      final setupDone = await _isSetupDone(uid);
-
+      // 3. Always go to dashboard — setup wizard only shown after QR onboarding
       if (!mounted) return;
-
-      if (setupDone) {
-        Navigator.pushReplacementNamed(context, '/adminDashboard');
-      } else {
-        // ✅ Get department from DB
-        String dept = 'UNKNOWN';
-        try {
-          final deptData = await ApiService.getHODDepartment();
-          dept = deptData['department'] ?? 'UNKNOWN';
-        } catch (_) {}
-
-        if (!mounted) return;
-
-        Navigator.pushReplacementNamed(
-          context,
-          '/adminInitialSetup',
-          arguments: {'department': dept, 'userId': uid},
-        );
-      }
+      Navigator.pushReplacementNamed(context, '/adminDashboard');
     } on ApiException catch (e) {
       if (mounted) _showError(e.message);
     } catch (e) {

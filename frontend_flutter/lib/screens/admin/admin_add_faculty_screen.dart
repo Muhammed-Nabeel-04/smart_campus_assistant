@@ -19,6 +19,8 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
 
   String _selectedDepartment = '';
   bool _isLoading = false;
+  List<Map<String, dynamic>> _departments = [];
+  bool _loadingDepts = true;
 
   static const List<String> _years = [
     '1st Year',
@@ -26,18 +28,32 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
     '3rd Year',
     '4th Year',
   ];
-  static const List<String> _depts = ['CSE', 'AI', 'BME'];
   static const List<String> _sections = ['A', 'B', 'C', 'D', 'E', 'F'];
-  static const Map<String, String> _deptLabels = {
-    'CSE': 'Computer Science',
-    'AI': 'Artificial Intelligence',
-    'BME': 'Biomedical Engg',
-  };
 
   String? _pickerYear;
   String? _pickerDept;
   String? _pickerSection;
   final List<Map<String, String>> _assignments = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDepartments();
+  }
+
+  Future<void> _loadDepartments() async {
+    try {
+      final data = await ApiService.getDepartments();
+      if (mounted) {
+        setState(() {
+          _departments = List<Map<String, dynamic>>.from(data);
+          _loadingDepts = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loadingDepts = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -258,46 +274,26 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                   validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Home Department',
-                    prefixIcon: Icon(Icons.business),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'CSE',
-                      child: Text('Computer Science (CSE)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'AI',
-                      child: Text('Artificial Intelligence (AI)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'BME',
-                      child: Text('Biomedical Engineering (BME)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'ECE',
-                      child: Text('Electronics (ECE)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'MECH',
-                      child: Text('Mechanical (MECH)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'CIVIL',
-                      child: Text('Civil (CIVIL)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'IT',
-                      child: Text('Information Technology (IT)'),
-                    ),
-                  ],
-                  onChanged: (v) =>
-                      setState(() => _selectedDepartment = v ?? ''),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Required' : null,
-                ),
+                _loadingDepts
+                    ? const CircularProgressIndicator()
+                    : DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'Home Department',
+                          prefixIcon: Icon(Icons.business),
+                        ),
+                        items: _departments
+                            .map(
+                              (d) => DropdownMenuItem<String>(
+                                value: d['code'] as String,
+                                child: Text('${d['name']} (${d['code']})'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setState(() => _selectedDepartment = v ?? ''),
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Required' : null,
+                      ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _phoneController,
@@ -381,12 +377,13 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: _depts
+                  children: _departments
                       .map(
                         (d) => _selChip(
-                          '$d  ·  ${_deptLabels[d] ?? d}',
-                          _pickerDept == d,
-                          () => setState(() => _pickerDept = d),
+                          '${d['code']}  ·  ${d['name']}',
+                          _pickerDept == d['code'],
+                          () =>
+                              setState(() => _pickerDept = d['code'] as String),
                         ),
                       )
                       .toList(),

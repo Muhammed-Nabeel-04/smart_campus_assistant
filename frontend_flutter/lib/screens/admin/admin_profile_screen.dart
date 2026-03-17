@@ -29,7 +29,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       // ✅ Get department from DB dynamically
       final deptData = await ApiService.getHODDepartment();
       setState(() {
-        _department = deptData['department'] ?? 'UNKNOWN';
+        _department =
+            deptData['department_name'] ?? deptData['department'] ?? 'UNKNOWN';
         _isLoading = false;
       });
     } catch (e) {

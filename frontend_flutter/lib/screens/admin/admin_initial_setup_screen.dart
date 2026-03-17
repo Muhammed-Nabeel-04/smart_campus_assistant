@@ -24,8 +24,6 @@ class AdminInitialSetupScreen extends StatefulWidget {
 
 class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _newPasswordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
   int _currentStep = 0;
@@ -47,8 +45,6 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
 
   @override
   void dispose() {
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
     // Dispose subject controllers
     for (var year in _yearData.values) {
       year.dispose();
@@ -62,12 +58,7 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Step 1: Change password
-      await ApiService.changeAdminPassword(
-        newPassword: _newPasswordController.text,
-      );
-
-      // Step 2: Add all subjects
+      // Add all subjects
       List<Map<String, dynamic>> allSubjects = [];
 
       for (var entry in _yearData.entries) {
@@ -139,7 +130,7 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
         child: Stepper(
           currentStep: _currentStep,
           onStepContinue: () {
-            if (_currentStep < 4) {
+            if (_currentStep < 3) {
               setState(() => _currentStep++);
             } else {
               _handleComplete();
@@ -175,102 +166,47 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : Text(_currentStep == 4 ? 'Complete Setup' : 'Next'),
+                        : Text(_currentStep == 3 ? 'Complete Setup' : 'Next'),
                   ),
                 ],
               ),
             );
           },
           steps: [
-            // Step 0: Change Password
+            // Step 0: 1st Year Subjects
             Step(
-              title: const Text('Change Password'),
-              content: _buildPasswordStep(),
+              title: const Text('1st Year Subjects'),
+              content: _buildYearStep('1st Year'),
               isActive: _currentStep >= 0,
               state: _currentStep > 0 ? StepState.complete : StepState.indexed,
             ),
 
-            // Step 1: 1st Year Subjects
+            // Step 1: 2nd Year Subjects
             Step(
-              title: const Text('1st Year Subjects'),
-              content: _buildYearStep('1st Year'),
+              title: const Text('2nd Year Subjects'),
+              content: _buildYearStep('2nd Year'),
               isActive: _currentStep >= 1,
               state: _currentStep > 1 ? StepState.complete : StepState.indexed,
             ),
 
-            // Step 2: 2nd Year Subjects
+            // Step 2: 3rd Year Subjects
             Step(
-              title: const Text('2nd Year Subjects'),
-              content: _buildYearStep('2nd Year'),
+              title: const Text('3rd Year Subjects'),
+              content: _buildYearStep('3rd Year'),
               isActive: _currentStep >= 2,
               state: _currentStep > 2 ? StepState.complete : StepState.indexed,
             ),
 
-            // Step 3: 3rd Year Subjects
-            Step(
-              title: const Text('3rd Year Subjects'),
-              content: _buildYearStep('3rd Year'),
-              isActive: _currentStep >= 3,
-              state: _currentStep > 3 ? StepState.complete : StepState.indexed,
-            ),
-
-            // Step 4: 4th Year Subjects
+            // Step 3: 4th Year Subjects
             Step(
               title: const Text('4th Year Subjects'),
               content: _buildYearStep('4th Year'),
-              isActive: _currentStep >= 4,
+              isActive: _currentStep >= 3,
               state: StepState.indexed,
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildPasswordStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Set your new password',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-        ),
-        const SizedBox(height: 24),
-
-        TextFormField(
-          controller: _newPasswordController,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'New Password',
-            prefixIcon: Icon(Icons.lock_outline),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Password is required';
-            }
-            if (value.length < 6) {
-              return 'Password must be at least 6 characters';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-
-        TextFormField(
-          controller: _confirmPasswordController,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'Confirm Password',
-            prefixIcon: Icon(Icons.lock_outline),
-          ),
-          validator: (value) {
-            if (value != _newPasswordController.text) {
-              return 'Passwords do not match';
-            }
-            return null;
-          },
-        ),
-      ],
     );
   }
 

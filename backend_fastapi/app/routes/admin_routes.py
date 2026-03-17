@@ -172,7 +172,7 @@ def get_all_faculty(
     if current_user['role'] != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
 
-  # ✅ Get HOD's department from DB (dynamic, not hardcoded)
+    # ✅ Get HOD's department from DB (dynamic, not hardcoded)
     hod_dept = None
     dept = db.query(Department).filter(
         Department.hod_user_id == current_user['user_id']

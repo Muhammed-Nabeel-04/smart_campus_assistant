@@ -49,27 +49,11 @@ class _HODPasswordSetupScreenState extends State<HODPasswordSetupScreen> {
       );
 
       if (mounted) {
-        // ✅ Check if setup is done — QR is first time so it won't be
+        // ✅ QR login = first time setup, go straight to dashboard
         final prefs = await SharedPreferences.getInstance();
         final uid = response['user_id'] as int;
-        final setupDone = prefs.getBool('hod_setup_done_$uid') ?? false;
-
-        if (setupDone) {
-          Navigator.pushReplacementNamed(context, '/adminDashboard');
-        } else {
-          // Get department from DB
-          String dept = 'UNKNOWN';
-          try {
-            final deptData = await ApiService.getHODDepartment();
-            dept = deptData['department'] ?? 'UNKNOWN';
-          } catch (_) {}
-
-          Navigator.pushReplacementNamed(
-            context,
-            '/adminInitialSetup',
-            arguments: {'department': dept, 'userId': uid},
-          );
-        }
+        await prefs.setBool('hod_setup_done_$uid', true);
+        Navigator.pushReplacementNamed(context, '/adminDashboard');
       }
     } on ApiException catch (e) {
       if (mounted) {

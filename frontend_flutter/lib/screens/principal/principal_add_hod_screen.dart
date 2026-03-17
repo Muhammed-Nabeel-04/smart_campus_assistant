@@ -39,10 +39,13 @@ class _PrincipalAddHODScreenState extends State<PrincipalAddHODScreen> {
 
   Future<void> _loadDepartments() async {
     try {
-      final data = await ApiService.getAllDepartments();
+      final data = await ApiService.getPrincipalDepartments();
       if (mounted) {
         setState(() {
-          _departments = List<Map<String, dynamic>>.from(data);
+          // ✅ FIX Issue 2: Only show departments that have no HOD assigned yet
+          _departments = List<Map<String, dynamic>>.from(
+            data,
+          ).where((d) => d['hod'] == null).toList();
           _loadingDepts = false;
         });
       }
@@ -103,6 +106,37 @@ class _PrincipalAddHODScreenState extends State<PrincipalAddHODScreen> {
       appBar: AppBar(title: const Text('Add New HOD')),
       body: _loadingDepts
           ? const Center(child: CircularProgressIndicator())
+          : _departments.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline,
+                      size: 64,
+                      color: AppColors.success.withOpacity(0.6),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'All departments already have HODs assigned.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Remove an existing HOD first to reassign.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.textHint, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            )
           : Form(
               key: _formKey,
               child: ListView(
