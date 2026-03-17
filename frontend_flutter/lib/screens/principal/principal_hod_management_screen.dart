@@ -139,6 +139,9 @@ class _PrincipalHODManagementScreenState
                       ),
                       trailing: PopupMenuButton<String>(
                         onSelected: (val) async {
+                          if (val == 'edit') {
+                            _showEditDialog(hod);
+                          }
                           if (val == 'details') {
                             await Navigator.pushNamed(
                               context,
@@ -164,6 +167,10 @@ class _PrincipalHODManagementScreenState
                             child: Text('View Details'),
                           ),
                           const PopupMenuItem(
+                            value: 'edit',
+                            child: Text('Edit'),
+                          ),
+                          const PopupMenuItem(
                             value: 'qr',
                             child: Text('Generate QR'),
                           ),
@@ -186,6 +193,126 @@ class _PrincipalHODManagementScreenState
                 },
               ),
             ),
+    );
+  }
+
+  Future<void> _showEditDialog(Map<String, dynamic> hod) async {
+    final nameCtrl = TextEditingController(text: hod['name']);
+    final emailCtrl = TextEditingController(text: hod['email']);
+    List<Map<String, dynamic>> departments = [];
+    int? selectedDeptId = hod['department']?['id'];
+
+    // Load departments
+    try {
+      final data = await ApiService.getPrincipalDepartments();
+      departments = List<Map<String, dynamic>>.from(data);
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.bgCard,
+          title: const Text(
+            'Edit HOD',
+            style: TextStyle(color: AppColors.textPrimary),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: emailCtrl,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (departments.isNotEmpty)
+                  DropdownButtonFormField<int>(
+                    value: selectedDeptId,
+                    decoration: const InputDecoration(
+                      labelText: 'Department',
+                      prefixIcon: Icon(Icons.account_tree),
+                    ),
+                    items: departments
+                        .map(
+                          (d) => DropdownMenuItem<int>(
+                            value: d['id'] as int,
+                            child: Text(
+                              '${d['code']} · ${d['name']}',
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setDialogState(() => selectedDeptId = v),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1565C0),
+              ),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                try {
+                  await ApiService.updateHOD(
+                    id: hod['id'],
+                    name: nameCtrl.text.trim().isEmpty
+                        ? null
+                        : nameCtrl.text.trim(),
+                    email: emailCtrl.text.trim().isEmpty
+                        ? null
+                        : emailCtrl.text.trim(),
+                    departmentId: selectedDeptId,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('HOD updated successfully'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                    _loadHODs();
+                  }
+                } on ApiException catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.message),
+                        backgroundColor: AppColors.danger,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

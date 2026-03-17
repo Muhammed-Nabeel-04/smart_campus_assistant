@@ -244,22 +244,30 @@ def create_hod(
     if current_user['role'] != 'principal':
         raise HTTPException(status_code=403, detail="Principal access required")
     
-    # Check if email already exists
+    # ✅ All checks BEFORE creating anything
     existing_user = db.query(User).filter(User.email == payload.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already exists")
-    
-    # Check if department exists
+
     dept = db.query(Department).filter(Department.id == payload.department_id).first()
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
-    
-    # Check if department already has a HOD
+
     if dept.hod_user_id:
-        raise HTTPException(status_code=400, detail="Department already has a HOD")
-    
+        raise HTTPException(status_code=400, detail="Department already has a HOD. Remove existing HOD first.")
+
+    # ✅ Check employee_id uniqueness before creating
+    base_emp_id = payload.employee_id or f"HOD{dept.code}"
+    existing_emp = db.query(Faculty).filter(
+        Faculty.employee_id == base_emp_id
+    ).first()
+    if existing_emp:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Employee ID '{base_emp_id}' already exists. Please provide a different Employee ID."
+        )
+
     # Create user with role 'admin' (HOD)
-    # Password will be set during onboarding
     new_user = User(
         name=payload.name,
         email=payload.email,
@@ -271,14 +279,10 @@ def create_hod(
     db.commit()
     db.refresh(new_user)
     
-    # Assign HOD to department
-    dept.hod_user_id = new_user.id
-    db.commit()
-    
     faculty = Faculty(
         user_id=new_user.id,
         full_name=payload.name,
-        employee_id=payload.employee_id or f"HOD{dept.code}",
+        employee_id=base_emp_id,
         department=dept.code,
         email=payload.email,
         phone_number=payload.phone_number or ""

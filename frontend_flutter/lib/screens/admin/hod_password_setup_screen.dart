@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
 import '../../core/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HODPasswordSetupScreen extends StatefulWidget {
   final Map<String, dynamic> hodData;
@@ -48,7 +49,27 @@ class _HODPasswordSetupScreenState extends State<HODPasswordSetupScreen> {
       );
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/adminDashboard');
+        // ✅ Check if setup is done — QR is first time so it won't be
+        final prefs = await SharedPreferences.getInstance();
+        final uid = response['user_id'] as int;
+        final setupDone = prefs.getBool('hod_setup_done_$uid') ?? false;
+
+        if (setupDone) {
+          Navigator.pushReplacementNamed(context, '/adminDashboard');
+        } else {
+          // Get department from DB
+          String dept = 'UNKNOWN';
+          try {
+            final deptData = await ApiService.getHODDepartment();
+            dept = deptData['department'] ?? 'UNKNOWN';
+          } catch (_) {}
+
+          Navigator.pushReplacementNamed(
+            context,
+            '/adminInitialSetup',
+            arguments: {'department': dept, 'userId': uid},
+          );
+        }
       }
     } on ApiException catch (e) {
       if (mounted) {

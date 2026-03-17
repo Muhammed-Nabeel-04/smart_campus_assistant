@@ -25,32 +25,18 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
   Future<void> _loadDepartment() async {
     setState(() => _isLoading = true);
-
     try {
-      // Extract department from email
-      final email = SessionManager.email ?? '';
-      String dept = 'UNKNOWN';
-
-      final prefix = email.split('@')[0].toLowerCase();
-      if (prefix.contains('aids'))
-        dept = 'AIDS';
-      else if (prefix.contains('cse'))
-        dept = 'CSE';
-      else if (prefix.contains('ece'))
-        dept = 'ECE';
-      else if (prefix.contains('mech'))
-        dept = 'MECH';
-      else if (prefix.contains('civil'))
-        dept = 'CIVIL';
-      else if (prefix.contains('it'))
-        dept = 'IT';
-
+      // ✅ Get department from DB dynamically
+      final deptData = await ApiService.getHODDepartment();
       setState(() {
-        _department = dept;
+        _department = deptData['department'] ?? 'UNKNOWN';
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _department = 'UNKNOWN';
+        _isLoading = false;
+      });
     }
   }
 
@@ -129,24 +115,48 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // TODO: Implement password change API call
-              if (newPasswordController.text ==
-                  confirmPasswordController.text) {
-                Navigator.pop(context);
+            onPressed: () async {
+              if (newPasswordController.text.length < 6) {
                 ScaffoldMessenger.of(this.context).showSnackBar(
                   const SnackBar(
-                    content: Text('Password changed successfully'),
-                    backgroundColor: AppColors.success,
+                    content: Text('Password must be at least 6 characters'),
+                    backgroundColor: AppColors.danger,
                   ),
                 );
-              } else {
+                return;
+              }
+              if (newPasswordController.text !=
+                  confirmPasswordController.text) {
                 ScaffoldMessenger.of(this.context).showSnackBar(
                   const SnackBar(
                     content: Text('Passwords do not match'),
                     backgroundColor: AppColors.danger,
                   ),
                 );
+                return;
+              }
+              Navigator.pop(context);
+              try {
+                await ApiService.changeAdminPassword(
+                  newPassword: newPasswordController.text,
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Password changed successfully'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                }
+              } on ApiException catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(
+                      content: Text(e.message),
+                      backgroundColor: AppColors.danger,
+                    ),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
