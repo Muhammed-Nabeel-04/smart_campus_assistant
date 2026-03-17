@@ -30,12 +30,19 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
   bool _isLoading = false;
   int _currentStep = 0;
 
-  // Year-wise subject data
   final Map<String, YearSubjects> _yearData = {
-    '1st Year': YearSubjects(),
-    '2nd Year': YearSubjects(),
-    '3rd Year': YearSubjects(),
-    '4th Year': YearSubjects(),
+    '1st Year': YearSubjects(selectedSemester: 1),
+    '2nd Year': YearSubjects(selectedSemester: 3),
+    '3rd Year': YearSubjects(selectedSemester: 5),
+    '4th Year': YearSubjects(selectedSemester: 7),
+  };
+
+  // ✅ Semesters per year
+  final Map<String, List<int>> _yearSemesters = {
+    '1st Year': [1, 2],
+    '2nd Year': [3, 4],
+    '3rd Year': [5, 6],
+    '4th Year': [7, 8],
   };
 
   @override
@@ -273,7 +280,6 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Semester Selection
         DropdownButtonFormField<int>(
           value: yearData.selectedSemester,
           decoration: const InputDecoration(
@@ -281,7 +287,7 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
             prefixIcon: Icon(Icons.calendar_today),
           ),
           items: [
-            for (int i = 1; i <= 8; i++)
+            for (int i in _yearSemesters[year]!)
               DropdownMenuItem(value: i, child: Text('Semester $i')),
           ],
           onChanged: (value) {
@@ -357,13 +363,12 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
   }
 }
 
-// Helper class to manage year-wise subjects
 class YearSubjects {
   int selectedSemester;
   int subjectCount;
   List<TextEditingController> subjectControllers;
 
-  YearSubjects({this.selectedSemester = 1, this.subjectCount = 0})
+  YearSubjects({required this.selectedSemester, this.subjectCount = 0})
     : subjectControllers = [];
 
   void updateSubjectCount(int newCount) {

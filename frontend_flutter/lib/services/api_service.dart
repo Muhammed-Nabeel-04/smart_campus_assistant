@@ -1187,6 +1187,80 @@ class ApiService {
     }
   }
 
+  // ============================================================================
+  // HOD SUBJECT MANAGEMENT
+  // ============================================================================
+
+  static Future<Map<String, dynamic>> getHODSubjects() async {
+    try {
+      final response = await http
+          .get(Uri.parse("$_baseUrl/hod/subjects"), headers: _authHeadersGet)
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> addHODSubject({
+    required String name,
+    required String year,
+    required int semester,
+    int credits = 3,
+    String subjectType = 'Theory',
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/hod/subjects/add"),
+            headers: _authHeaders,
+            body: jsonEncode({
+              'name': name,
+              'year': year,
+              'semester': semester,
+              'credits': credits,
+              'subject_type': subjectType,
+            }),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteHODSubject(int subjectId) async {
+    try {
+      final response = await http
+          .delete(
+            Uri.parse("$_baseUrl/hod/subjects/$subjectId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateClassSemester({
+    required String year,
+    required int semester,
+  }) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse("$_baseUrl/hod/classes/update-semester"),
+            headers: _authHeaders,
+            body: jsonEncode({'year': year, 'semester': semester}),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   static Future<Map<String, dynamic>> createSubjectsBatch(
     List<Map<String, dynamic>> subjects,
   ) async {

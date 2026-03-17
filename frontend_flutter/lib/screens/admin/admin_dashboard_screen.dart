@@ -197,22 +197,39 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           children: [
             Expanded(
               child: _QuickActionCard(
-                title: 'Manage Faculty',
-                icon: Icons.group,
-                color: const Color(0xFF1565C0),
+                title: 'Complaints',
+                icon: Icons.inbox,
+                color: AppColors.warning,
                 onTap: () =>
-                    Navigator.pushNamed(context, '/adminFacultyManagement'),
+                    Navigator.pushNamed(context, '/adminComplaintsManagement'),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _QuickActionCard(
-                title: 'Add Faculty',
-                icon: Icons.person_add,
-                color: AppColors.success,
-                onTap: () => Navigator.pushNamed(context, '/adminAddFaculty'),
+                title: 'Reports',
+                icon: Icons.analytics,
+                color: AppColors.info,
+                onTap: () =>
+                    Navigator.pushNamed(context, '/adminSystemReports'),
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickActionCard(
+                title: 'Subjects & Semesters',
+                icon: Icons.menu_book,
+                color: AppColors.danger,
+                onTap: () =>
+                    Navigator.pushNamed(context, '/hodSubjectManagement'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(child: SizedBox()),
           ],
         ),
         const SizedBox(height: 12),

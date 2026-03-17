@@ -49,6 +49,7 @@ import 'screens/admin/admin_complaints_management_screen.dart';
 import 'screens/admin/admin_system_reports_screen.dart';
 import 'screens/admin/admin_settings_screen.dart';
 import 'screens/admin/admin_profile_screen.dart';
+import 'screens/admin/hod_subject_management_screen.dart';
 import 'screens/admin/hod_qr_onboarding_screen.dart';
 import 'screens/admin/hod_password_setup_screen.dart';
 import 'screens/principal/principal_login_screen.dart';
@@ -342,6 +343,8 @@ class SmartCampusApp extends StatelessWidget {
         '/adminSystemReports': (context) => const AdminSystemReportsScreen(),
         '/adminSettings': (context) => const AdminSettingsScreen(),
         '/adminProfile': (context) => const AdminProfileScreen(),
+        '/hodSubjectManagement': (context) =>
+            const HODSubjectManagementScreen(),
         '/hodQROnboarding': (context) => const HODQROnboardingScreen(),
         '/hodPasswordSetup': (context) {
           final args =
