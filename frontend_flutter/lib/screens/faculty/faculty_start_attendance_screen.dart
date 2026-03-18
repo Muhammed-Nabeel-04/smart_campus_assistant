@@ -58,13 +58,75 @@ class _FacultyStartAttendanceScreenState
     super.dispose();
   }
 
+  int? _durationMinutes;
+
   Future<void> _startSession() async {
+    // Show duration picker first
+    final duration = await showDialog<int>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        int selected = 60;
+        return StatefulBuilder(
+          builder: (ctx, setS) => AlertDialog(
+            backgroundColor: AppColors.bgCard,
+            title: const Text(
+              'Set Class Duration',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'How long is this class?',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [30, 45, 60, 75, 90, 120]
+                      .map(
+                        (m) => ChoiceChip(
+                          label: Text('$m min'),
+                          selected: selected == m,
+                          onSelected: (_) => setS(() => selected = m),
+                          selectedColor: AppColors.primary,
+                          labelStyle: TextStyle(
+                            color: selected == m
+                                ? Colors.white
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, null),
+                child: const Text('No Limit'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, selected),
+                child: const Text('Start'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (!mounted) return;
+    _durationMinutes = duration;
     setState(() => _isLoading = true);
 
     try {
       final response = await ApiService.startAttendanceSession(
         classId: widget.classData['id'],
         subjectId: widget.subject['id'],
+        durationMinutes: _durationMinutes,
       );
 
       setState(() {
@@ -101,6 +163,11 @@ class _FacultyStartAttendanceScreenState
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted && _isActive) {
         setState(() => _sessionDuration++);
+        // Auto-end when duration reached
+        if (_durationMinutes != null &&
+            _sessionDuration >= _durationMinutes! * 60) {
+          _autoEndSession();
+        }
       }
     });
 
@@ -144,6 +211,24 @@ class _FacultyStartAttendanceScreenState
       }
     } catch (e) {
       // Silent fail for polling
+    }
+  }
+
+  Future<void> _autoEndSession() async {
+    _qrTimer?.cancel();
+    _durationTimer?.cancel();
+    _pollTimer?.cancel();
+    if (_sessionId != null) {
+      await ApiService.endAttendanceSession(_sessionId!);
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Class time ended. Session closed automatically.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      Navigator.pop(context);
     }
   }
 

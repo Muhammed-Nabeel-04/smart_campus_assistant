@@ -439,13 +439,18 @@ class ApiService {
   static Future<Map<String, dynamic>> startAttendanceSession({
     required int subjectId,
     required int classId,
+    int? durationMinutes,
   }) async {
     try {
       final response = await http
           .post(
             Uri.parse("$_baseUrl/attendance/sessions/start/"),
             headers: _authHeaders,
-            body: jsonEncode({"subject_id": subjectId, "class_id": classId}),
+            body: jsonEncode({
+              "subject_id": subjectId,
+              "class_id": classId,
+              if (durationMinutes != null) "duration_minutes": durationMinutes,
+            }),
           )
           .timeout(_timeout);
       return _handleResponse(response) as Map<String, dynamic>;
