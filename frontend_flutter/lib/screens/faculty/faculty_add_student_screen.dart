@@ -126,7 +126,7 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
         'date_of_birth': _dateOfBirth?.toIso8601String(),
         'blood_group': _bloodGroup,
         'gender': _gender,
-        'department': widget.department['id'].toString(),
+        'department': widget.department['code'].toString(),
         'year': widget.classData['year'],
         'section': widget.classData['section'],
         'phone_number': _phoneController.text.trim(),

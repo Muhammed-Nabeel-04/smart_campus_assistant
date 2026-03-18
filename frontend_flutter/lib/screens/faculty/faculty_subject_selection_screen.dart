@@ -73,13 +73,7 @@ class _FacultySubjectSelectionScreenState
         Navigator.pushNamed(
           context,
           '/facultyStartAttendance',
-          arguments: {
-            'class_id': widget.classData['id'],
-            'subject_id': subject['id'],
-            'subject_name': subject['name'],
-            'class_name':
-                '${widget.classData['year']} - Section ${widget.classData['section']}',
-          },
+          arguments: completeData,
         );
         break;
       case 'classroom':

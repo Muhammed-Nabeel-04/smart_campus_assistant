@@ -4,7 +4,7 @@ import '../../core/app_colors.dart';
 
 class AdminFacultyDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> faculty;
-  
+
   const AdminFacultyDetailsScreen({super.key, required this.faculty});
 
   @override
@@ -91,11 +91,20 @@ class AdminFacultyDetailsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 _buildInfoRow('Employee ID', faculty['employee_id']),
                 _buildInfoRow('Department', faculty['department']),
-                _buildInfoRow('Phone', faculty['phone'] ?? 'Not provided'),
+                _buildInfoRow('Phone', faculty['phone']),
                 _buildInfoRow('Email', faculty['email']),
+                _buildInfoRow(
+                  'Teaching Assignments',
+                  (faculty['teaching_assignments'] as List?)
+                      ?.map(
+                        (a) =>
+                            '${a['department']} ${a['year']} Sec ${a['section']}',
+                      )
+                      .join(', '),
+                ),
               ],
             ),
           ),
@@ -111,7 +120,9 @@ class AdminFacultyDetailsScreen extends StatelessWidget {
                 '/adminGenerateFacultyQR',
                 arguments: faculty,
               ),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger,
+              ),
               icon: const Icon(Icons.qr_code),
               label: const Text('Generate QR Code'),
             ),
@@ -121,7 +132,7 @@ class AdminFacultyDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, dynamic value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -139,7 +150,7 @@ class AdminFacultyDetailsScreen extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              value,
+              value?.toString() ?? 'N/A',
               style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14,

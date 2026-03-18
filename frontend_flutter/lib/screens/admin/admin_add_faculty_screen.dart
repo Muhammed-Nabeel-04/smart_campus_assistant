@@ -18,11 +18,9 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
   final _phoneController = TextEditingController();
 
   String _selectedDepartment = '';
-  String _hodDepartmentCode = '';
-
+  bool _isLoading = false;
   List<Map<String, dynamic>> _departments = [];
   bool _loadingDepts = true;
-  bool _isLoading = false;
 
   static const List<String> _years = [
     '1st Year',
@@ -45,13 +43,10 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
 
   Future<void> _loadDepartments() async {
     try {
-      // ✅ Get HOD's own department and pre-select it
-      final deptData = await ApiService.getHODDepartment();
-      final code = deptData['department'] ?? '';
+      final data = await ApiService.getDepartments();
       if (mounted) {
         setState(() {
-          _hodDepartmentCode = code;
-          _selectedDepartment = code;
+          _departments = List<Map<String, dynamic>>.from(data);
           _loadingDepts = false;
         });
       }
@@ -286,13 +281,16 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                           labelText: 'Home Department',
                           prefixIcon: Icon(Icons.business),
                         ),
-                        items: [
-                          DropdownMenuItem<String>(
-                            value: _hodDepartmentCode,
-                            child: Text(_hodDepartmentCode),
-                          ),
-                        ],
-                        onChanged: null, // ✅ locked to HOD's department
+                        items: _departments
+                            .map(
+                              (d) => DropdownMenuItem<String>(
+                                value: d['code'] as String,
+                                child: Text('${d['name']} (${d['code']})'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setState(() => _selectedDepartment = v ?? ''),
                         validator: (v) =>
                             (v == null || v.isEmpty) ? 'Required' : null,
                       ),

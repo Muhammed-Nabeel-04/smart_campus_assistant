@@ -27,11 +27,13 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Get faculty stats (contains faculty info)
-      final response = await ApiService.getFacultyStats(SessionManager.userId!);
+      final profile = await ApiService.getFacultyProfile();
+      final stats = await ApiService.getFacultyStats(
+        SessionManager.facultyId ?? SessionManager.userId!,
+      );
 
       setState(() {
-        _facultyData = response;
+        _facultyData = {...profile, ...stats};
         _isLoading = false;
       });
     } catch (e) {

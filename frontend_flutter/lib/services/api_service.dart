@@ -182,6 +182,17 @@ class ApiService {
   // FACULTY APIs
   // ============================================================================
 
+  static Future<Map<String, dynamic>> getFacultyProfile() async {
+    try {
+      final response = await http
+          .get(Uri.parse("$_baseUrl/faculty/me"), headers: _authHeadersGet)
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   static Future<Map<String, dynamic>> getFacultyStats(int facultyId) async {
     try {
       final response = await http

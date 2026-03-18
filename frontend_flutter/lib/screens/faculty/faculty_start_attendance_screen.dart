@@ -79,11 +79,12 @@ class _FacultyStartAttendanceScreenState
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to start attendance session'),
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: AppColors.danger,
           ),
         );
+        Navigator.pop(context);
       }
     }
   }
@@ -335,6 +336,11 @@ class _FacultyStartAttendanceScreenState
                             version: QrVersions.auto,
                             size: 280,
                             backgroundColor: Colors.white,
+                          )
+                        else
+                          const SizedBox(
+                            height: 280,
+                            child: Center(child: CircularProgressIndicator()),
                           ),
                         const SizedBox(height: 16),
                         Row(
