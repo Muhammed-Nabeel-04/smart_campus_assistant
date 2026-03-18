@@ -25,7 +25,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> _loadStats() async {
     try {
-      final stats = await ApiService.getAdminStats(); // ✅ Real API
+      final stats = await ApiService.getAdminStats();
       if (mounted) {
         setState(() {
           _stats = stats;
@@ -95,6 +95,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           actions: [
             IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () => Navigator.pushNamed(context, '/backendSettings'),
+              tooltip: 'Server Settings',
+            ),
+            IconButton(
               icon: const Icon(Icons.person),
               onPressed: () => Navigator.pushNamed(context, '/adminProfile'),
               tooltip: 'Profile',
@@ -111,12 +116,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Stats Grid
                       _buildStatsGrid(),
-
                       const SizedBox(height: 24),
-
-                      // Quick Actions
                       const Text(
                         'Quick Actions',
                         style: TextStyle(
@@ -125,14 +126,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           color: AppColors.textPrimary,
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       _buildQuickActions(),
-
                       const SizedBox(height: 24),
-
-                      // Recent Activity (Optional)
                       const Text(
                         'System Overview',
                         style: TextStyle(
@@ -141,9 +137,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           color: AppColors.textPrimary,
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       _buildSystemOverview(),
                     ],
                   ),
@@ -160,7 +154,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.3,
       children: [
         _StatCard(
           title: 'Total Faculty',
@@ -228,12 +222,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(child: SizedBox()),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
             Expanded(
               child: _QuickActionCard(
                 title: 'Complaints',
@@ -243,7 +231,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     Navigator.pushNamed(context, '/adminComplaintsManagement'),
               ),
             ),
-            const SizedBox(width: 12),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
             Expanded(
               child: _QuickActionCard(
                 title: 'Reports',
@@ -253,6 +245,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     Navigator.pushNamed(context, '/adminSystemReports'),
               ),
             ),
+            const SizedBox(width: 12),
+            const Expanded(child: SizedBox()),
           ],
         ),
       ],
@@ -275,7 +269,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           const Divider(height: 24),
           _OverviewRow(
-            label: 'Today\'s Attendance',
+            label: "Today's Attendance",
             value: '${_stats['today_attendance'] ?? 0}%',
             icon: Icons.check_circle,
           ),
@@ -285,7 +279,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
-// Stat Card Widget
+// ── Stat Card ────────────────────────────────────────────────────────────────
+
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
@@ -311,12 +306,12 @@ class _StatCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 32),
+          Icon(icon, color: color, size: 28),
           const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -336,7 +331,8 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// Quick Action Card Widget
+// ── Quick Action Card ────────────────────────────────────────────────────────
+
 class _QuickActionCard extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -356,16 +352,17 @@ class _QuickActionCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
         decoration: BoxDecoration(
           color: AppColors.bgCard,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               title,
               style: const TextStyle(
@@ -382,7 +379,8 @@ class _QuickActionCard extends StatelessWidget {
   }
 }
 
-// Overview Row Widget
+// ── Overview Row ─────────────────────────────────────────────────────────────
+
 class _OverviewRow extends StatelessWidget {
   final String label;
   final String value;

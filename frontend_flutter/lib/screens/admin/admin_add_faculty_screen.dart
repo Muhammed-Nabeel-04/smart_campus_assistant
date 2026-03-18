@@ -18,9 +18,11 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
   final _phoneController = TextEditingController();
 
   String _selectedDepartment = '';
-  bool _isLoading = false;
+  String _hodDepartmentCode = '';
+
   List<Map<String, dynamic>> _departments = [];
   bool _loadingDepts = true;
+  bool _isLoading = false;
 
   static const List<String> _years = [
     '1st Year',
@@ -43,10 +45,13 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
 
   Future<void> _loadDepartments() async {
     try {
-      final data = await ApiService.getDepartments();
+      // ✅ Get HOD's own department and pre-select it
+      final deptData = await ApiService.getHODDepartment();
+      final code = deptData['department'] ?? '';
       if (mounted) {
         setState(() {
-          _departments = List<Map<String, dynamic>>.from(data);
+          _hodDepartmentCode = code;
+          _selectedDepartment = code;
           _loadingDepts = false;
         });
       }
@@ -281,16 +286,13 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                           labelText: 'Home Department',
                           prefixIcon: Icon(Icons.business),
                         ),
-                        items: _departments
-                            .map(
-                              (d) => DropdownMenuItem<String>(
-                                value: d['code'] as String,
-                                child: Text('${d['name']} (${d['code']})'),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => _selectedDepartment = v ?? ''),
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: _hodDepartmentCode,
+                            child: Text(_hodDepartmentCode),
+                          ),
+                        ],
+                        onChanged: null, // ✅ locked to HOD's department
                         validator: (v) =>
                             (v == null || v.isEmpty) ? 'Required' : null,
                       ),
