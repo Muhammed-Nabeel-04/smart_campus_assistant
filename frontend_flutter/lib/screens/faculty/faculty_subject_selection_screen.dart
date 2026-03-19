@@ -3,9 +3,8 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../core/session.dart';
 import '../../core/app_colors.dart';
-import 'faculty_classroom_management_screen.dart';
-import 'faculty_add_student_screen.dart';
 
 class FacultySubjectSelectionScreen extends StatefulWidget {
   final Map<String, dynamic> department;
@@ -60,7 +59,7 @@ class _FacultySubjectSelectionScreenState
   }
 
   // ✅ Updated _selectSubject with fixed routing
-  void _selectSubject(Map<String, dynamic> subject) {
+  Future<void> _selectSubject(Map<String, dynamic> subject) async {
     final completeData = {
       'department': widget.department,
       'class': widget.classData,
@@ -70,11 +69,64 @@ class _FacultySubjectSelectionScreenState
 
     switch (widget.action) {
       case 'attendance':
-        Navigator.pushNamed(
-          context,
-          '/facultyStartAttendance',
-          arguments: completeData,
-        );
+        // Check if session already active for this subject
+        final facultyId = SessionManager.facultyId!;
+        try {
+          final activeSessions = await ApiService.getActiveSessions(facultyId);
+          final existing = activeSessions.firstWhere(
+            (s) => s['subject_name'] == subject['name'],
+            orElse: () => {},
+          );
+          if (!mounted) return;
+          if (existing.isNotEmpty) {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                backgroundColor: AppColors.bgCard,
+                title: const Text(
+                  'Session Already Active',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                content: Text(
+                  '${subject['name']} already has an ongoing session.\nDo you want to rejoin it?',
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.pushNamed(
+                        context,
+                        '/facultyStartAttendance',
+                        arguments: completeData,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                    ),
+                    child: const Text('Rejoin'),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            Navigator.pushNamed(
+              context,
+              '/facultyStartAttendance',
+              arguments: completeData,
+            );
+          }
+        } catch (_) {
+          Navigator.pushNamed(
+            context,
+            '/facultyStartAttendance',
+            arguments: completeData,
+          );
+        }
         break;
       case 'classroom':
         Navigator.pushNamed(

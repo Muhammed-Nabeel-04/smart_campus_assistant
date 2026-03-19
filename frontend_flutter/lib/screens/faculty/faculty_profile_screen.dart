@@ -363,37 +363,6 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                           const Divider(height: 1),
 
                           _buildActionTile(
-                            icon: Icons.history,
-                            title: 'Recent Sessions',
-                            color: AppColors.info,
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'View recent sessions from dashboard',
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-
-                          const Divider(height: 1),
-
-                          _buildActionTile(
-                            icon: Icons.assessment,
-                            title: 'My Reports',
-                            color: AppColors.success,
-                            onTap: () {
-                              Navigator.pushNamed(
-                                context,
-                                '/facultyAttendanceReports',
-                              );
-                            },
-                          ),
-
-                          const Divider(height: 1),
-
-                          _buildActionTile(
                             icon: Icons.help_outline,
                             title: 'Help & Support',
                             color: AppColors.primary,

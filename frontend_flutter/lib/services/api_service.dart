@@ -207,6 +207,39 @@ class ApiService {
     }
   }
 
+  static Future<List<dynamic>> getActiveSessions(int facultyId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/faculty/$facultyId/active-sessions"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as List<dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<List<dynamic>> getSessionsByPeriod(
+    int facultyId, {
+    String period = 'all',
+  }) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse(
+              "$_baseUrl/faculty/$facultyId/sessions-by-period?period=$period",
+            ),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as List<dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   static Future<List<dynamic>> getRecentSessions(
     int facultyId, {
     int limit = 10,

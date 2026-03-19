@@ -1,7 +1,4 @@
 // File: lib/screens/faculty/faculty_start_attendance_screen.dart
-// Live attendance session with rotating QR code
-// BUG 7 FIX: _rotateToken() now calls backend to get a real new token
-// instead of generating a fake client-side token that backend never knows about.
 
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -33,12 +30,13 @@ class _FacultyStartAttendanceScreenState
     extends State<FacultyStartAttendanceScreen> {
   int? _sessionId;
   String? _currentToken;
-  bool _isLoading = true;
+  bool _isLoading = false;
   bool _isActive = false;
   bool _isRefreshing = false;
   int _sessionDuration = 0;
   int _studentsPresent = 0;
   List<Map<String, dynamic>> _presentStudents = [];
+  int? _durationMinutes;
 
   Timer? _qrTimer;
   Timer? _durationTimer;
@@ -47,7 +45,7 @@ class _FacultyStartAttendanceScreenState
   @override
   void initState() {
     super.initState();
-    _startSession();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startSession());
   }
 
   @override
@@ -57,8 +55,6 @@ class _FacultyStartAttendanceScreenState
     _pollTimer?.cancel();
     super.dispose();
   }
-
-  int? _durationMinutes;
 
   Future<void> _startSession() async {
     // Show duration picker first
@@ -129,6 +125,51 @@ class _FacultyStartAttendanceScreenState
         durationMinutes: _durationMinutes,
       );
 
+      final isExisting = response['is_existing'] == true;
+      final isSameFaculty = response['is_same_faculty'] == true;
+      final startedBy = response['started_by'] ?? 'Another faculty';
+
+      if (isExisting && !isSameFaculty && mounted) {
+        // Different faculty is already taking this class — block and show info
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.bgCard,
+            title: const Text(
+              'Class Already Ongoing',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            content: Text(
+              '$startedBy is currently taking this class.\nYou cannot start another session.',
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.danger,
+                ),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      if (isExisting && isSameFaculty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Rejoining your active session'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
+
       setState(() {
         _sessionId = response['session_id'];
         _currentToken = response['token'];
@@ -152,18 +193,13 @@ class _FacultyStartAttendanceScreenState
   }
 
   void _startTimers() {
-    // Rotate QR every 3 seconds by fetching a new token from backend
     _qrTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (mounted && _isActive) {
-        _rotateToken();
-      }
+      if (mounted && _isActive) _rotateToken();
     });
 
-    // Update session duration every second
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted && _isActive) {
         setState(() => _sessionDuration++);
-        // Auto-end when duration reached
         if (_durationMinutes != null &&
             _sessionDuration >= _durationMinutes! * 60) {
           _autoEndSession();
@@ -171,28 +207,18 @@ class _FacultyStartAttendanceScreenState
       }
     });
 
-    // Poll for attendance updates every 5 seconds
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (mounted && _isActive) {
-        _fetchAttendance();
-      }
+      if (mounted && _isActive) _fetchAttendance();
     });
   }
 
-  // BUG 7 FIX: Call backend to generate a new token and save it to DB.
-  // Previously this made up a fake token locally that backend never stored,
-  // so any student scanning the rotated QR would get "invalid token" error.
   Future<void> _rotateToken() async {
     if (_sessionId == null || _isRefreshing) return;
     _isRefreshing = true;
-
     try {
       final response = await ApiService.refreshAttendanceToken(_sessionId!);
-      if (mounted) {
-        setState(() => _currentToken = response['token']);
-      }
+      if (mounted) setState(() => _currentToken = response['token']);
     } catch (_) {
-      // Silent fail — keep showing current token if refresh fails
     } finally {
       _isRefreshing = false;
     }
@@ -200,7 +226,6 @@ class _FacultyStartAttendanceScreenState
 
   Future<void> _fetchAttendance() async {
     if (_sessionId == null) return;
-
     try {
       final data = await ApiService.getSessionAttendance(_sessionId!);
       if (mounted) {
@@ -209,9 +234,7 @@ class _FacultyStartAttendanceScreenState
           _studentsPresent = _presentStudents.length;
         });
       }
-    } catch (e) {
-      // Silent fail for polling
-    }
+    } catch (_) {}
   }
 
   Future<void> _autoEndSession() async {
@@ -270,12 +293,9 @@ class _FacultyStartAttendanceScreenState
       _qrTimer?.cancel();
       _durationTimer?.cancel();
       _pollTimer?.cancel();
-
       try {
         await ApiService.endAttendanceSession(_sessionId!);
-        if (mounted) {
-          Navigator.pop(context);
-        }
+        if (mounted) Navigator.pop(context);
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -355,6 +375,12 @@ class _FacultyStartAttendanceScreenState
                               'Duration',
                               _durationDisplay,
                             ),
+                            if (_durationMinutes != null)
+                              _buildStatItem(
+                                Icons.hourglass_bottom,
+                                'Limit',
+                                '$_durationMinutes min',
+                              ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -430,14 +456,14 @@ class _FacultyStartAttendanceScreenState
                         const SizedBox(height: 16),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
+                          children: const [
+                            Icon(
                               Icons.autorenew,
                               color: Color(0xFF1565C0),
                               size: 16,
                             ),
-                            const SizedBox(width: 8),
-                            const Text(
+                            SizedBox(width: 8),
+                            Text(
                               'QR rotates every 3 seconds',
                               style: TextStyle(
                                 color: Color(0xFF1565C0),
@@ -464,14 +490,14 @@ class _FacultyStartAttendanceScreenState
                       ),
                     ),
                     child: Row(
-                      children: [
+                      children: const [
                         Icon(
                           Icons.info_outline,
                           color: AppColors.info,
                           size: 20,
                         ),
-                        const SizedBox(width: 12),
-                        const Expanded(
+                        SizedBox(width: 12),
+                        Expanded(
                           child: Text(
                             'Students scan this QR to mark attendance',
                             style: TextStyle(
