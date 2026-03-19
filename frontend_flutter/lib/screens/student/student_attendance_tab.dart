@@ -15,9 +15,9 @@ class StudentAttendanceTab extends StatefulWidget {
 
 class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
   List<AttendanceRecord> _records = [];
+  List<Map<String, dynamic>> _rawRecords = [];
   bool _isLoading = true;
-  String _filterBy = 'all'; // 'all', 'present', 'absent'
-  String? _selectedSubject;
+  String _filterBy = 'all';
 
   @override
   void initState() {
@@ -34,10 +34,18 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
       );
 
       setState(() {
-        _records = data
-            .map<AttendanceRecord>((json) => AttendanceRecord.fromJson(json))
-            .toList();
-
+        _rawRecords = List<Map<String, dynamic>>.from(data);
+        _records = data.map<AttendanceRecord>((json) {
+          return AttendanceRecord(
+            id: json['id'],
+            sessionId: json['id'] ?? 0,
+            studentId: SessionManager.studentId ?? 0,
+            status: json['status'] ?? 'absent',
+            timestamp:
+                DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
+            remarks: json['subject'],
+          );
+        }).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -167,7 +175,7 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  record.timestamp.toString().substring(0, 16),
+                  record.timestamp.toString().substring(0, 10),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -176,7 +184,7 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Subject Name Here', // Will be fetched from session data
+                  record.remarks ?? '',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.6),
                     fontSize: 14,

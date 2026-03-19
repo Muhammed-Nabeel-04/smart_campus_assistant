@@ -479,7 +479,12 @@ class ApiService {
             headers: _authHeadersGet,
           )
           .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
+      final data = _handleResponse(response);
+      if (data is Map && data.containsKey('records')) {
+        return List<dynamic>.from(data['records']);
+      }
+      if (data is List) return List<dynamic>.from(data);
+      return [];
     } catch (e) {
       throw _handleError(e);
     }

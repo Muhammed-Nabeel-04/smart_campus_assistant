@@ -486,7 +486,7 @@ def get_student_attendance_history(student_id: int, db: Session = Depends(get_db
 
     result = []
 
-    # Get all ENDED sessions for this class
+  # Get all ENDED sessions for this class
     if cls:
         all_sessions = db.query(AttendanceSession).filter(
             AttendanceSession.class_id == cls.id,
@@ -515,5 +515,24 @@ def get_student_attendance_history(student_id: int, db: Session = Depends(get_db
                 "remarks": attendance.remarks if attendance else None,
                 "timestamp": attendance.timestamp.isoformat() if attendance and attendance.timestamp else session.started_at.isoformat(),
             })
+
+    # Also include manual entries (session_id=0)
+    manual_records = db.query(Attendance).filter(
+        Attendance.student_id == student_id,
+        Attendance.session_id == 0,
+    ).all()
+
+    for r in manual_records:
+        result.append({
+            "id": r.id,
+            "subject": "Manual Entry",
+            "date": str(r.date),
+            "status": r.status,
+            "remarks": r.remarks,
+            "timestamp": r.timestamp.isoformat() if r.timestamp else str(r.date),
+        })
+
+    # Sort by date descending
+    result.sort(key=lambda x: x['timestamp'], reverse=True)
 
     return {"records": result}
