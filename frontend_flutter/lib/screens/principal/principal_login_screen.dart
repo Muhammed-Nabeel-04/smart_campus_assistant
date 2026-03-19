@@ -55,10 +55,14 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
       );
 
       if (mounted) {
-        // ✅ Use local flag — no network call needed
-        final prefs = await SharedPreferences.getInstance();
         final uid = response['user_id'] as int;
-        final setupDone = prefs.getBool('principal_setup_done_$uid') ?? false;
+
+        // ✅ Check from backend — departments exist = setup done
+        bool setupDone = false;
+        try {
+          final status = await ApiService.checkPrincipalSetupStatus();
+          setupDone = status['departments_added'] == true;
+        } catch (_) {}
 
         if (!mounted) return;
 

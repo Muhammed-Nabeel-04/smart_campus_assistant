@@ -348,6 +348,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
         builder: (ctx, setSheet) {
           String _sortBy = 'name';
           String _filterDept = 'All';
+          String _searchQuery = '';
 
           return DraggableScrollableSheet(
             expand: false,
@@ -401,6 +402,22 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                   .where((s) => s['department'] == _filterDept)
                                   .toList();
 
+                        if (_searchQuery.isNotEmpty) {
+                          filtered = filtered
+                              .where(
+                                (s) =>
+                                    (s['full_name'] ?? '')
+                                        .toString()
+                                        .toLowerCase()
+                                        .contains(_searchQuery.toLowerCase()) ||
+                                    (s['register_number'] ?? '')
+                                        .toString()
+                                        .toLowerCase()
+                                        .contains(_searchQuery.toLowerCase()),
+                              )
+                              .toList();
+                        }
+
                         // Sort
                         filtered.sort((a, b) {
                           if (_sortBy == 'name') {
@@ -437,6 +454,35 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                     ),
                                   ),
                                 ],
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Search
+                              TextField(
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Search by name or register no...',
+                                  hintStyle: const TextStyle(
+                                    color: AppColors.textHint,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.search,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  filled: true,
+                                  fillColor: AppColors.bgDark,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                ),
+                                onChanged: (v) =>
+                                    setInner(() => _searchQuery = v),
                               ),
                               const SizedBox(height: 12),
 

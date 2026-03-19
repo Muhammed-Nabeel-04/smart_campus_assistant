@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
+import '../../core/session.dart';
 
 class PrincipalInitialSetupScreen extends StatefulWidget {
   final int? userId;
@@ -98,7 +99,8 @@ class _PrincipalInitialSetupScreenState
             .toList(),
       );
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('principal_setup_done_${widget.userId}', true);
+      final uid = widget.userId ?? SessionManager.userId;
+      await prefs.setBool('principal_setup_done_$uid', true);
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/principalDashboard');
       }
