@@ -183,13 +183,15 @@ def get_all_faculty(
     # Filter by department if found
     if hod_dept:
         faculty_list = db.query(Faculty).filter(
-            Faculty.department == hod_dept
+            Faculty.department.ilike(hod_dept)
         ).all()
     else:
         faculty_list = db.query(Faculty).all()
     
     result = []
     for fac in faculty_list:
+        if fac.user_id == current_user['user_id']:
+            continue
         user = db.query(User).filter(User.id == fac.user_id).first()
         assignments = []
         # ✅ FIX: Direct SQL query to bypass SQLAlchemy model cache

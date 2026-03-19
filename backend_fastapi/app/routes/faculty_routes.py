@@ -7,6 +7,8 @@ from app.services.deps import get_db, get_current_user
 from app.models.attendance_session import AttendanceSession
 from app.models.attendance import Attendance
 from app.models.student import Student
+from app.models.subject import Subject
+from app.models.class_model import ClassModel
 from app.models.user import User
 from app.models.faculty import Faculty
 from app.models.department import Department
@@ -21,6 +23,25 @@ router = APIRouter(prefix="/faculty", tags=["Faculty"])
 # ============================================================================
 # MY ASSIGNMENTS — returns ONLY what this faculty is assigned to teach
 # ============================================================================
+
+@router.get("/me")
+def get_my_profile(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    faculty = db.query(Faculty).filter(Faculty.user_id == current_user['user_id']).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+    dept = db.query(Department).filter(Department.code == faculty.department).first()
+    return {
+        "faculty_id": faculty.id,
+        "full_name": faculty.full_name,
+        "employee_id": faculty.employee_id,
+        "department": dept.name if dept else faculty.department,
+        "phone_number": faculty.phone_number,
+        "email": faculty.email,
+    }
+
 
 @router.get("/my-departments")
 def get_my_departments(
@@ -196,13 +217,16 @@ def validate_faculty_qr(payload: dict, db: Session = Depends(get_db)):
     if not faculty:
         raise HTTPException(status_code=404, detail="Faculty not found")
 
+    dept = db.query(Department).filter(
+        Department.code.ilike(faculty.department)
+    ).first()
     return {
         "faculty_id": faculty.id,
         "full_name": faculty.full_name,
         "employee_id": faculty.employee_id,
-        "department": faculty.department,
+        "department": dept.name if dept else faculty.department,
+        "phone_number": faculty.phone_number,
         "email": faculty.email,
-        "token": token,
     }
 
 
@@ -281,17 +305,52 @@ def get_faculty_stats(
         func.date(AttendanceSession.started_at) == today
     ).count()
 
-    total_students = db.query(Student).count()
+    from sqlalchemy import text
+    raw = db.execute(
+        text("SELECT assigned_classes FROM faculty WHERE id = :id"),
+        {"id": faculty_id}
+    ).fetchone()
 
-    total_present = db.query(Attendance).filter(
-        Attendance.status == "present"
-    ).count()
+    total_students = 0
+    if raw and raw[0]:
+        try:
+            assignments = json.loads(raw[0])
+            for a in assignments:
+                dept = db.query(Department).filter(
+                    Department.code == a.get("department")
+                ).first()
+                if dept:
+                    total_students += db.query(Student).filter(
+                        Student.department.ilike(a.get("department")),
+                        Student.year == a.get("year"),
+                        Student.section == a.get("section"),
+                    ).count()
+        except Exception:
+            total_students = 0
 
-    total_records = db.query(Attendance).count()
+    # Only count attendance for THIS faculty's sessions
+    faculty_session_ids = [
+        s.id for s in db.query(AttendanceSession).filter(
+            AttendanceSession.faculty_id == faculty_id,
+            AttendanceSession.status == "ended",
+        ).all()
+    ]
 
+    total_present = 0
+    total_records = 0
     avg_attendance = 0
-    if total_records > 0:
-        avg_attendance = round((total_present / total_records) * 100, 2)
+
+    if faculty_session_ids:
+        total_present = db.query(Attendance).filter(
+            Attendance.session_id.in_(faculty_session_ids),
+            Attendance.status == "present"
+        ).count()
+
+        ended_sessions_count = len(faculty_session_ids)
+        total_possible = ended_sessions_count * total_students
+
+        if total_possible > 0:
+            avg_attendance = round((total_present / total_possible) * 100, 2)
 
     return {
         "total_sessions": total_sessions,
@@ -299,6 +358,65 @@ def get_faculty_stats(
         "total_students": total_students,
         "average_attendance": avg_attendance,
     }
+
+@router.get("/{faculty_id}/active-sessions")
+def get_active_sessions(faculty_id: int, db: Session = Depends(get_db)):
+    sessions = db.query(AttendanceSession).filter(
+        AttendanceSession.faculty_id == faculty_id,
+        AttendanceSession.status == "active"
+    ).all()
+
+    result = []
+    for s in sessions:
+        count = db.query(Attendance).filter(Attendance.session_id == s.id).count()
+        subject = db.query(Subject).filter(Subject.id == s.subject_id).first()
+        cls = db.query(ClassModel).filter(ClassModel.id == s.class_id).first()
+        result.append({
+            "session_id": s.id,
+            "subject_name": subject.name if subject else "Unknown",
+            "class_name": f"{cls.year} Sec {cls.section}" if cls else "Unknown",
+            "started_at": s.started_at.isoformat(),
+            "students_present": count,
+        })
+    return result
+
+
+@router.get("/{faculty_id}/sessions-by-period")
+def get_sessions_by_period(
+    faculty_id: int,
+    period: str = "all",
+    db: Session = Depends(get_db)
+):
+    from datetime import timedelta
+    today = datetime.utcnow().date()
+    yesterday = today - timedelta(days=1)
+
+    query = db.query(AttendanceSession).filter(
+        AttendanceSession.faculty_id == faculty_id
+    )
+
+    if period == "today":
+        query = query.filter(func.date(AttendanceSession.started_at) == today)
+    elif period == "yesterday":
+        query = query.filter(func.date(AttendanceSession.started_at) == yesterday)
+
+    sessions = query.order_by(AttendanceSession.started_at.desc()).all()
+
+    result = []
+    for s in sessions:
+        count = db.query(Attendance).filter(Attendance.session_id == s.id).count()
+        subject = db.query(Subject).filter(Subject.id == s.subject_id).first()
+        cls = db.query(ClassModel).filter(ClassModel.id == s.class_id).first()
+        result.append({
+            "session_id": s.id,
+            "subject_name": subject.name if subject else "Unknown",
+            "class_name": f"{cls.year} Sec {cls.section}" if cls else "Unknown",
+            "status": s.status,
+            "started_at": s.started_at.isoformat(),
+            "ended_at": s.ended_at.isoformat() if s.ended_at else None,
+            "students_present": count,
+        })
+    return result
 
 
 @router.get("/{faculty_id}/recent-sessions")

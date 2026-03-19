@@ -7,9 +7,12 @@ from app.services.deps import get_db, get_current_user
 from app.models.attendance_session import AttendanceSession
 from app.models.attendance import Attendance
 from app.models.student import Student
-from app.models.subject import Subject
 from app.models.faculty import Faculty
+from app.models.subject import Subject
+from app.models.department import Department
+from app.models.class_model import ClassModel
 import secrets
+
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
@@ -17,7 +20,8 @@ router = APIRouter(prefix="/attendance", tags=["Attendance"])
 class StartSessionRequest(BaseModel):
     class_id: int
     subject_id: int
-    faculty_id: Optional[int] = None  # Optional — extracted from JWT if not provided
+    faculty_id: Optional[int] = None
+    duration_minutes: Optional[int] = None  # Auto-end after this many minutes
 
 
 class ManualAttendanceRecord(BaseModel):
@@ -57,12 +61,33 @@ def start_session(
     ).first()
 
     if existing:
-        raise HTTPException(
-            status_code=400,
-            detail="An active session already exists for this class and subject"
-        )
+        # Get faculty name who started this session
+        existing_faculty = db.query(Faculty).filter(
+            Faculty.id == existing.faculty_id
+        ).first()
+        faculty_name = existing_faculty.full_name if existing_faculty else "Another faculty"
+
+        # Check if it's the SAME faculty rejoining
+        is_same_faculty = existing.faculty_id == faculty_id
+
+        return {
+            "session_id": existing.id,
+            "token": existing.token,
+            "class_id": existing.class_id,
+            "subject_id": existing.subject_id,
+            "started_at": existing.started_at.isoformat(),
+            "status": "active",
+            "is_existing": True,
+            "is_same_faculty": is_same_faculty,
+            "started_by": faculty_name,
+        }
 
     token = secrets.token_urlsafe(16)
+
+    from datetime import timedelta
+    auto_end_at = None
+    if payload.duration_minutes:
+        auto_end_at = datetime.utcnow() + timedelta(minutes=payload.duration_minutes)
 
     session = AttendanceSession(
         class_id=payload.class_id,
@@ -85,6 +110,19 @@ def start_session(
         "started_at": session.started_at.isoformat(),
         "status": session.status,
     }
+
+
+@router.post("/sessions/{session_id}/refresh-token/")
+def refresh_session_token(session_id: int, db: Session = Depends(get_db)):
+    session = db.query(AttendanceSession).filter(
+        AttendanceSession.id == session_id,
+        AttendanceSession.status == "active",
+    ).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found or ended")
+    session.token = secrets.token_urlsafe(16)
+    db.commit()
+    return {"token": session.token}
 
 
 @router.post("/sessions/{session_id}/end/")
@@ -159,6 +197,47 @@ def get_session_attendance(session_id: int, db: Session = Depends(get_db)):
 # STUDENT MARKS ATTENDANCE BY QR SCAN
 # ============================================================================
 
+@router.get("/active-for-student/{student_id}")
+def get_active_session_for_student(student_id: int, db: Session = Depends(get_db)):
+    """Check if there's an active session for the student's class"""
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        return {"active": False}
+
+    dept = db.query(Department).filter(
+        Department.code.ilike(student.department)
+    ).first()
+    if not dept:
+        return {"active": False}
+
+    cls = db.query(ClassModel).filter(
+        ClassModel.department_id == dept.id,
+        ClassModel.year == student.year,
+        ClassModel.section == student.section,
+    ).first()
+    if not cls:
+        return {"active": False}
+
+    session = db.query(AttendanceSession).filter(
+        AttendanceSession.class_id == cls.id,
+        AttendanceSession.status == "active",
+    ).first()
+
+    if not session:
+        return {"active": False}
+
+    subject = db.query(Subject).filter(Subject.id == session.subject_id).first()
+    faculty = db.query(Faculty).filter(Faculty.id == session.faculty_id).first()
+
+    return {
+        "active": True,
+        "session_id": session.id,
+        "token": session.token,
+        "subject_name": subject.name if subject else "Unknown",
+        "faculty_name": faculty.full_name if faculty else "Faculty",
+    }
+
+
 @router.post("/mark/")
 def mark_attendance(payload: dict, db: Session = Depends(get_db)):
     """Student scans QR to mark attendance"""
@@ -193,15 +272,14 @@ def mark_attendance(payload: dict, db: Session = Depends(get_db)):
                 detail="Account no longer exists. Please log in again."
             )
 
-    # ✅ Check student belongs to the correct class for this session
-    from app.models.department import Department
+   # ✅ Check student belongs to the correct class for this session
     dept = db.query(Department).filter(
         Department.code == student.department
     ).first()
     if not dept:
         raise HTTPException(status_code=403, detail="Student department not found")
 
-    from app.models.class_model import ClassModel
+   
     cls = db.query(ClassModel).filter(
         ClassModel.id == session.class_id
     ).first()
@@ -339,17 +417,42 @@ def submit_manual_attendance(
 @router.get("/student/{student_id}")
 def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db)):
 
+    # Get student to find their class
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Get department
+    dept = db.query(Department).filter(
+        Department.code.ilike(student.department)
+    ).first()
+
+    # Get class
+    cls = None
+    if dept:
+        cls = db.query(ClassModel).filter(
+            ClassModel.department_id == dept.id,
+            ClassModel.year == student.year,
+            ClassModel.section == student.section,
+        ).first()
+
+    # Count total ENDED sessions for this class
+    total_sessions = 0
+    if cls:
+        total_sessions = db.query(AttendanceSession).filter(
+            AttendanceSession.class_id == cls.id,
+            AttendanceSession.status == "ended",
+        ).count()
+
+    # Count present
     present = db.query(Attendance).filter(
         Attendance.student_id == student_id,
         Attendance.status == "present",
     ).count()
 
-    absent = db.query(Attendance).filter(
-        Attendance.student_id == student_id,
-        Attendance.status == "absent",
-    ).count()
-
-    total = present + absent
+    # Absent = total ended sessions - present
+    absent = max(total_sessions - present, 0)
+    total = total_sessions
     percentage = round((present / total * 100), 1) if total > 0 else 0
 
     return {
@@ -364,32 +467,53 @@ def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db))
 @router.get("/student/{student_id}/history")
 def get_student_attendance_history(student_id: int, db: Session = Depends(get_db)):
 
-    records = db.query(Attendance).filter(
-        Attendance.student_id == student_id
-    ).order_by(Attendance.date.desc()).limit(50).all()
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        return {"records": []}
+
+    # Get student's class
+    dept = db.query(Department).filter(
+        Department.code.ilike(student.department)
+    ).first()
+
+    cls = None
+    if dept:
+        cls = db.query(ClassModel).filter(
+            ClassModel.department_id == dept.id,
+            ClassModel.year == student.year,
+            ClassModel.section == student.section,
+        ).first()
 
     result = []
-    for r in records:
-        subject_name = "Manual Entry"
 
-        if r.session_id and r.session_id != 0:
-            session = db.query(AttendanceSession).filter(
-                AttendanceSession.id == r.session_id
+    # Get all ENDED sessions for this class
+    if cls:
+        all_sessions = db.query(AttendanceSession).filter(
+            AttendanceSession.class_id == cls.id,
+            AttendanceSession.status == "ended",
+        ).order_by(AttendanceSession.started_at.desc()).limit(50).all()
+
+        for session in all_sessions:
+            subject = db.query(Subject).filter(
+                Subject.id == session.subject_id
             ).first()
-            if session:
-                subject = db.query(Subject).filter(
-                    Subject.id == session.subject_id
-                ).first()
-                if subject:
-                    subject_name = subject.name
+            subject_name = subject.name if subject else "Unknown"
 
-        result.append({
-            "id": r.id,
-            "subject": subject_name,
-            "date": str(r.date),
-            "status": r.status,
-            "remarks": r.remarks,
-            "timestamp": r.timestamp.isoformat() if r.timestamp else None,
-        })
+            # Check if student was present
+            attendance = db.query(Attendance).filter(
+                Attendance.session_id == session.id,
+                Attendance.student_id == student_id,
+            ).first()
+
+            status = attendance.status if attendance else "absent"
+
+            result.append({
+                "id": session.id,
+                "subject": subject_name,
+                "date": str(session.started_at.date()),
+                "status": status,
+                "remarks": attendance.remarks if attendance else None,
+                "timestamp": attendance.timestamp.isoformat() if attendance and attendance.timestamp else session.started_at.isoformat(),
+            })
 
     return {"records": result}

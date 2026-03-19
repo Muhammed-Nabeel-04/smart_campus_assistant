@@ -260,13 +260,23 @@ def student_qr_login(payload: dict, db: Session = Depends(get_db)):
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    # Get or check user account
-    user = db.query(User).filter(User.id == student.user_id).first()
+   # Get or auto-create user account
+    user = db.query(User).filter(User.id == student.user_id).first() if student.user_id else None
     if not user:
-        raise HTTPException(
-            status_code=400,
-            detail="Account not set up. Please complete registration first."
+        import secrets as _secrets
+        from passlib.hash import bcrypt as _bcrypt
+        new_user = User(
+            name=student.full_name,
+            email=student.register_number,
+            password=_bcrypt.hash(_secrets.token_urlsafe(16)),
+            role="student",
         )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        student.user_id = new_user.id
+        db.commit()
+        user = new_user
 
     # Mark token as used
     onboarding.used = True

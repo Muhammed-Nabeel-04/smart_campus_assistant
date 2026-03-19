@@ -2,9 +2,12 @@
 // COMPLETE Student Dashboard with 4 Tabs
 
 import 'package:flutter/material.dart';
+import '../../core/app_colors.dart';
+import 'dart:async';
 import '../../core/session.dart';
+
 import '../../services/api_service.dart';
-import '../../models/complete_models.dart';
+
 import 'student_attendance_tab.dart'; // Ensure these paths match your folder structure
 import 'student_notifications_tab.dart';
 import 'student_complaints_tab.dart';
@@ -186,14 +189,44 @@ class _HomeTab extends StatefulWidget {
   State<_HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTabState extends State<_HomeTab> {
+class _HomeTabState extends State<_HomeTab>
+    with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _stats;
+  Map<String, dynamic>? _activeSession;
   bool _isLoading = true;
+  late AnimationController _blinkController;
+  late Animation<double> _blinkAnim;
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
+    _blinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+    _blinkAnim = Tween<double>(begin: 0.3, end: 1.0).animate(_blinkController);
     _loadStats();
+    // Poll for active sessions every 10 seconds
+    _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) _checkActiveSession();
+    });
+  }
+
+  @override
+  void dispose() {
+    _blinkController.dispose();
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _checkActiveSession() async {
+    try {
+      final data = await ApiService.getActiveSessionForStudent(
+        SessionManager.studentId!,
+      );
+      if (mounted) setState(() => _activeSession = data);
+    } catch (_) {}
   }
 
   Future<void> _loadStats() async {
@@ -201,6 +234,7 @@ class _HomeTabState extends State<_HomeTab> {
       final stats = await ApiService.getStudentAttendance(
         SessionManager.studentId!,
       );
+      await _checkActiveSession();
       if (mounted) {
         setState(() {
           _stats = stats;
@@ -230,6 +264,64 @@ class _HomeTabState extends State<_HomeTab> {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // Active Session Banner
+          if (_activeSession?['active'] == true)
+            GestureDetector(
+              onTap: () =>
+                  Navigator.pushNamed(context, '/studentMarkAttendance'),
+              child: AnimatedBuilder(
+                animation: _blinkAnim,
+                builder: (context, child) => Opacity(
+                  opacity: _blinkAnim.value,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.success),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.radio_button_checked,
+                          color: AppColors.success,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${_activeSession!['subject_name']} class is ongoing!',
+                                style: const TextStyle(
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                'by ${_activeSession!['faculty_name']} — Tap to mark attendance',
+                                style: const TextStyle(
+                                  color: AppColors.success,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: AppColors.success,
+                          size: 14,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
           // Overall Attendance Card
           Container(
             padding: const EdgeInsets.all(24),

@@ -63,15 +63,15 @@ def get_students(
 ):
     query = db.query(Student)
 
-    # Filter using department_id
+   # Filter using department_id
     if department_id:
         dept = db.query(Department).filter(Department.id == department_id).first()
         if dept:
-            query = query.filter(Student.department == dept.code)
+            query = query.filter(Student.department.ilike(dept.code))
 
     # Filter using department code
     if department:
-        query = query.filter(Student.department == department)
+        query = query.filter(Student.department.ilike(department))
 
     if year:
         query = query.filter(Student.year == year)

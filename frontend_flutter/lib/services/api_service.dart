@@ -437,6 +437,22 @@ class ApiService {
   // ATTENDANCE APIs
   // ============================================================================
 
+  static Future<Map<String, dynamic>> getActiveSessionForStudent(
+    int studentId,
+  ) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/attendance/active-for-student/$studentId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   static Future<Map<String, dynamic>> getStudentAttendance(
     int studentId,
   ) async {

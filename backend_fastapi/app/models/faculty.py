@@ -15,5 +15,6 @@ class Faculty(Base):
     phone_number = Column(String, nullable=True)
     email = Column(String, nullable=True)
 
+    assigned_classes = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../services/api_service.dart';
 import '../../core/app_colors.dart';
+import '../../core/session.dart';
 
 class StudentOnboardingScanScreen extends StatefulWidget {
   const StudentOnboardingScanScreen({super.key});
@@ -33,23 +34,24 @@ class _StudentOnboardingScanScreenState
         token = rawValue;
       }
 
-      // Call correct endpoint with POST JSON body
       final data = await ApiService.validateStudentQR(token: token);
 
+      // Save session
+      await SessionManager.saveSession(
+        userId: data['user_id'],
+        name: data['name'],
+        email: data['email'] ?? data['register_number'],
+        role: 'student',
+        token: data['token'],
+        studentId: data['student_id'],
+        department: data['department'],
+        year: data['year'],
+        section: data['section'],
+        registerNumber: data['register_number'],
+      );
+
       if (mounted) {
-        Navigator.pushReplacementNamed(
-          context,
-          '/studentPasswordSetup',
-          arguments: {
-            'token': data['token'],
-            'name': data['full_name'],
-            'register_number': data['register_number'],
-            'department': data['department'],
-            'year': data['year'],
-            'section': data['section'],
-            'student_id': data['student_id'],
-          },
-        );
+        Navigator.pushReplacementNamed(context, '/studentDashboard');
       }
     } on ApiException catch (e) {
       if (mounted) {
@@ -80,7 +82,43 @@ class _StudentOnboardingScanScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgDark,
-      appBar: AppBar(title: const Text('Student Login')),
+      appBar: AppBar(
+        title: const Text('Student Login'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.keyboard),
+            onPressed: () {
+              final ctrl = TextEditingController();
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: AppColors.bgCard,
+                  title: const Text(
+                    'Enter QR Token',
+                    style: TextStyle(color: AppColors.textPrimary),
+                  ),
+                  content: TextField(
+                    controller: ctrl,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: const InputDecoration(
+                      hintText: 'Paste token here',
+                    ),
+                  ),
+                  actions: [
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        if (ctrl.text.isNotEmpty) _validateQR(ctrl.text);
+                      },
+                      child: const Text('Submit'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           MobileScanner(
