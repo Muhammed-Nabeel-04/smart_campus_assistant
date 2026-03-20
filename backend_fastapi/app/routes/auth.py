@@ -9,6 +9,7 @@ from app.services.deps import get_db, create_access_token, get_current_user
 from app.models.user import User
 from app.models.student import Student
 from app.models.faculty import Faculty
+from app.models.department import Department
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -157,7 +158,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         student = db.query(Student).filter(Student.user_id == user.id).first()
         if student:
             student_id = student.id
-            department = student.department
+            dept = db.query(Department).filter(Department.code.ilike(student.department)).first()
+            department = dept.name if dept else student.department
             year = student.year
             section = student.section
             register_number = student.register_number
@@ -167,7 +169,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         faculty = db.query(Faculty).filter(Faculty.user_id == user.id).first()
         if faculty:
             faculty_id = faculty.id
-            department = faculty.department
+            dept = db.query(Department).filter(Department.code.ilike(faculty.department)).first()
+            department = dept.name if dept else faculty.department
             token_data["faculty_id"] = faculty_id
 
     token = create_access_token(token_data)
@@ -306,6 +309,7 @@ def student_qr_login(payload: dict, db: Session = Depends(get_db)):
         ))
     db.commit()
 
+    dept_qr = db.query(Department).filter(Department.code.ilike(student.department)).first()
     return {
         "message": "Login successful",
         "token": jwt_token,
@@ -314,7 +318,7 @@ def student_qr_login(payload: dict, db: Session = Depends(get_db)):
         "name": student.full_name,
         "email": student.email or student.register_number,
         "role": "student",
-        "department": student.department,
+        "department": dept_qr.name if dept_qr else student.department,
         "year": student.year,
         "section": student.section,
         "register_number": student.register_number,

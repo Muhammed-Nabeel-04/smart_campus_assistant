@@ -114,7 +114,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     ),
                   ),
                   Text(
-                    SessionManager.department ?? '',
+                    SessionManager.department ??
+                        SessionManager.registerNumber ??
+                        '',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF00D9FF),
@@ -225,7 +227,7 @@ class _HomeTabState extends State<_HomeTab>
     super.dispose();
   }
 
-  int _lastNotificationCount = 0;
+  int _lastNotificationCount = -1; // -1 means not yet initialized
 
   Future<void> _checkNewNotifications() async {
     try {
@@ -233,13 +235,23 @@ class _HomeTabState extends State<_HomeTab>
         studentId: SessionManager.studentId!,
       );
       final count = (data as List).length;
-      if (count > _lastNotificationCount && _lastNotificationCount > 0) {
-        final latest = data.first;
-        await NotificationService.showNotification(
-          id: latest['id'] ?? 0,
-          title: latest['title'] ?? 'New Notification',
-          body: latest['message'] ?? '',
-        );
+
+      if (_lastNotificationCount == -1) {
+        // First load — just set baseline, don't notify
+        _lastNotificationCount = count;
+        return;
+      }
+
+      if (count > _lastNotificationCount) {
+        // New notifications arrived — notify only for new ones
+        final newOnes = data.take(count - _lastNotificationCount);
+        for (final n in newOnes) {
+          await NotificationService.showNotification(
+            id: n['id'] ?? DateTime.now().millisecondsSinceEpoch,
+            title: n['title'] ?? 'New Notification',
+            body: n['message'] ?? '',
+          );
+        }
       }
       _lastNotificationCount = count;
     } catch (_) {}
@@ -259,6 +271,15 @@ class _HomeTabState extends State<_HomeTab>
       final stats = await ApiService.getStudentAttendance(
         SessionManager.studentId!,
       );
+      // ✅ Refresh department name from profile
+      try {
+        final profile = await ApiService.getStudentProfile(
+          SessionManager.studentId!,
+        );
+        if (profile['department'] != null) {
+          await SessionManager.updateProfile(department: profile['department']);
+        }
+      } catch (_) {}
       await _checkActiveSession();
       if (mounted) {
         setState(() {

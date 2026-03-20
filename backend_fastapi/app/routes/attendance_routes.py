@@ -239,7 +239,11 @@ def get_active_session_for_student(student_id: int, db: Session = Depends(get_db
 
 
 @router.post("/mark/")
-def mark_attendance(payload: dict, db: Session = Depends(get_db)):
+def mark_attendance(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     """Student scans QR to mark attendance"""
 
     token = payload.get("token")
@@ -247,6 +251,15 @@ def mark_attendance(payload: dict, db: Session = Depends(get_db)):
 
     if not token or not student_id:
         raise HTTPException(status_code=400, detail="token and student_id are required")
+
+    # ✅ Students can only mark their own attendance
+    if current_user['role'] == 'student':
+        own_student_id = current_user.get('student_id')
+        if own_student_id and int(student_id) != int(own_student_id):
+            raise HTTPException(
+                status_code=403,
+                detail="You can only mark your own attendance."
+            )
 
     # Find active session with this token
     session = db.query(AttendanceSession).filter(

@@ -7,6 +7,9 @@ from app.database import SessionLocal
 import os
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_key")
+if SECRET_KEY == "dev_secret_key":
+    import warnings
+    warnings.warn("⚠️  Using default SECRET_KEY. Set SECRET_KEY env variable in production!")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 
@@ -88,6 +91,14 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Logged in on another device. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # ✅ Check session token not expired
+    if session.expires_at and datetime.utcnow() > session.expires_at:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired. Please log in again.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

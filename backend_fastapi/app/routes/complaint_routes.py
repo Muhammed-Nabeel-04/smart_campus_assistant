@@ -79,13 +79,16 @@ def get_student_complaints(student_id: int, db: Session = Depends(get_db)):
     return [
         {
             "id": c.id,
+            "student_id": c.student_id,
             "category": c.category,
             "priority": c.priority,
             "title": c.title,
             "description": c.description,
             "status": c.status,
             "admin_response": c.admin_response,
+            "handled_by": None,
             "created_at": c.created_at.isoformat(),
+            "updated_at": c.updated_at.isoformat() if c.updated_at else None,
             "resolved_at": c.resolved_at.isoformat() if c.resolved_at else None,
         }
         for c in complaints

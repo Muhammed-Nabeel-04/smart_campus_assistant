@@ -216,7 +216,7 @@ def get_all_faculty(
             "name": fac.full_name,
             "email": fac.email or (user.email if user else None),
             "employee_id": fac.employee_id,
-            "department": fac.department,
+            "department": db.query(Department).filter(Department.code.ilike(fac.department)).first().name if db.query(Department).filter(Department.code.ilike(fac.department)).first() else fac.department,
             "phone": fac.phone_number,
             "teaching_assignments": assignments,
             "created_at": fac.created_at.isoformat() if fac.created_at else None,

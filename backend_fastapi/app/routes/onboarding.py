@@ -7,6 +7,11 @@ from app.models.onboarding_token import OnboardingToken
 from app.models.faculty import Faculty
 from app.models.student import Student
 from app.models.user import User
+from app.models.department import Department
+
+def _dept_name(db, code):
+    d = db.query(Department).filter(Department.code.ilike(code)).first()
+    return d.name if d else code
 
 router = APIRouter(prefix="/onboarding", tags=["Onboarding"])
 
@@ -46,7 +51,7 @@ def validate_faculty_qr(payload: dict, db: Session = Depends(get_db)):
         "faculty_id": faculty.id,
         "full_name": faculty.full_name,
         "employee_id": faculty.employee_id,
-        "department": faculty.department,
+        "department": db.query(Department).filter(Department.code.ilike(faculty.department)).first().name if db.query(Department).filter(Department.code.ilike(faculty.department)).first() else faculty.department,
         "email": faculty.email,
         "token": token,
     }
@@ -131,7 +136,7 @@ def set_faculty_password(payload: dict, db: Session = Depends(get_db)):
         "user_id": user_id,
         "faculty_id": faculty.id,
         "full_name": faculty.full_name,
-        "department": faculty.department,
+        "department": _dept_name(db, faculty.department),
         "email": faculty.email,
         "role": "faculty",
     }
@@ -172,7 +177,7 @@ def validate_student_qr(payload: dict, db: Session = Depends(get_db)):
         "student_id": student.id,
         "full_name": student.full_name,
         "register_number": student.register_number,
-        "department": student.department,
+        "department": _dept_name(db, student.department),
         "year": student.year,
         "section": student.section,
         "token": token,
@@ -268,7 +273,7 @@ def complete_student_registration(payload: dict, db: Session = Depends(get_db)):
         "student_id": student.id,
         "full_name": student.full_name,
         "register_number": student.register_number,
-        "department": student.department,
+        "department": _dept_name(db, student.department),
         "year": student.year,
         "section": student.section,
         "role": "student",

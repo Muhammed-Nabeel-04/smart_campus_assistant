@@ -132,7 +132,9 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
             _buildInfoTile(
               Icons.cake,
               'Date of Birth',
-              _profileData?['date_of_birth'] ?? 'Not set',
+              _profileData?['date_of_birth'] != null
+                  ? _profileData!['date_of_birth'].toString().split('T')[0]
+                  : 'Not set',
             ),
             _buildInfoTile(
               Icons.bloodtype,
@@ -317,7 +319,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              SessionManager.classDisplay ?? 'Student',
+              '${_profileData?['department'] ?? SessionManager.department ?? ''} - ${_profileData?['year'] ?? SessionManager.year ?? ''} - Section ${_profileData?['section'] ?? SessionManager.section ?? ''}',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,

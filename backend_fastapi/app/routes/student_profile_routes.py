@@ -13,11 +13,16 @@ def get_student_profile(student_id: int, db: Session = Depends(get_db)):
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
+    from app.models.department import Department
+    dept = db.query(Department).filter(
+        Department.code.ilike(student.department)
+    ).first()
+
     return {
         "id": student.id,
         "full_name": student.full_name,
         "register_number": student.register_number,
-        "department": student.department,
+        "department": dept.name if dept else student.department,
         "year": student.year,
         "section": student.section,
         "email": student.email,
