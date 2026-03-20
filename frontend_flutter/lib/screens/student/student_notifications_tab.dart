@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
 import '../../models/complete_models.dart';
+import '../../core/notification_service.dart';
 
 class StudentNotificationsTab extends StatefulWidget {
   const StudentNotificationsTab({super.key});
@@ -31,13 +32,36 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
       final data = await ApiService.getStudentNotifications(
         studentId: SessionManager.studentId!,
       );
+      // Check for new notifications
+      final oldCount = _notifications.length;
+
       setState(() {
-        // ✅ Changed to CampusNotification
-        _notifications = (data as List)
-            .map((json) => CampusNotification.fromJson(json))
-            .toList();
+        _notifications = (data as List).map((json) {
+          // Add missing fields with defaults to prevent crash
+          final safeJson = {
+            'sent_by': null,
+            'target_role': 'all',
+            'target_class_id': null,
+            'target_department_id': null,
+            'expires_at': null,
+            ...Map<String, dynamic>.from(json),
+          };
+          return CampusNotification.fromJson(safeJson);
+        }).toList();
         _isLoading = false;
       });
+
+      // Show phone notification for each new one
+      if (_notifications.length > oldCount) {
+        for (int i = oldCount; i < _notifications.length; i++) {
+          final n = _notifications[i];
+          await NotificationService.showNotification(
+            id: n.id ?? i,
+            title: n.title,
+            body: n.message,
+          );
+        }
+      }
     } catch (e) {
       setState(() => _isLoading = false);
     }

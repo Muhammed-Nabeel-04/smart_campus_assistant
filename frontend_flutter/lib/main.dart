@@ -17,6 +17,7 @@ import 'screens/auth/student_register_screen.dart';
 import 'screens/faculty/student_onboarding_qr_screen.dart';
 import 'screens/student/student_onboarding_scan_screen.dart';
 import 'core/app_config.dart';
+import 'core/notification_service.dart';
 import 'screens/settings/backend_settings_screen.dart';
 import 'screens/student/student_mark_attendance_screen.dart';
 import 'screens/student/student_password_setup_screen.dart';
@@ -68,6 +69,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SessionManager.initialize();
   await AppConfig.load();
+  await NotificationService.initialize();
   runApp(const SmartCampusApp());
 }
 

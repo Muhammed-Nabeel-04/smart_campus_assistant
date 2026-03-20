@@ -30,9 +30,16 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
         SessionManager.studentId!,
       );
       setState(() {
-        _complaints = (data as List)
-            .map((json) => Complaint.fromJson(json))
-            .toList();
+        _complaints = (data as List).map((json) {
+          final safeJson = {
+            'student_id': 0,
+            'handled_by': null,
+            'updated_at': null,
+            'resolved_at': null,
+            ...Map<String, dynamic>.from(json),
+          };
+          return Complaint.fromJson(safeJson);
+        }).toList();
         _isLoading = false;
       });
     } catch (e) {

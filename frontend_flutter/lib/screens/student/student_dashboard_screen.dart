@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_colors.dart';
 import 'dart:async';
 import '../../core/session.dart';
+import '../../core/notification_service.dart';
 
 import '../../services/api_service.dart';
 
@@ -211,6 +212,10 @@ class _HomeTabState extends State<_HomeTab>
     _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (mounted) _checkActiveSession();
     });
+    // Poll notifications every 30 seconds
+    Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _checkNewNotifications();
+    });
   }
 
   @override
@@ -218,6 +223,26 @@ class _HomeTabState extends State<_HomeTab>
     _blinkController.dispose();
     _pollTimer?.cancel();
     super.dispose();
+  }
+
+  int _lastNotificationCount = 0;
+
+  Future<void> _checkNewNotifications() async {
+    try {
+      final data = await ApiService.getStudentNotifications(
+        studentId: SessionManager.studentId!,
+      );
+      final count = (data as List).length;
+      if (count > _lastNotificationCount && _lastNotificationCount > 0) {
+        final latest = data.first;
+        await NotificationService.showNotification(
+          id: latest['id'] ?? 0,
+          title: latest['title'] ?? 'New Notification',
+          body: latest['message'] ?? '',
+        );
+      }
+      _lastNotificationCount = count;
+    } catch (_) {}
   }
 
   Future<void> _checkActiveSession() async {

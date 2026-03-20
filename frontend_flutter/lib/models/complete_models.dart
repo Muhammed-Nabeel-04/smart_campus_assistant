@@ -454,7 +454,7 @@ class CampusNotification {
   final int? targetClassId;
   final int? targetDepartmentId;
   final String type;
-  final int sentBy;
+  final int? sentBy;
   final DateTime createdAt;
   final DateTime? expiresAt;
 
@@ -467,7 +467,7 @@ class CampusNotification {
     this.targetClassId,
     this.targetDepartmentId,
     this.type = 'info',
-    required this.sentBy,
+    this.sentBy,
     required this.createdAt,
     this.expiresAt,
   });

@@ -61,16 +61,19 @@ class _AdminComplaintsManagementScreenState
       body: Column(
         children: [
           // Filter Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                _buildFilterChip('All', 'all'),
-                _buildFilterChip('Pending', 'pending'),
-                _buildFilterChip('In Progress', 'in_progress'),
-                _buildFilterChip('Resolved', 'resolved'),
-              ],
+          Container(
+            color: AppColors.bgDark,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  _buildFilterChip('All', 'all'),
+                  _buildFilterChip('Pending', 'pending'),
+                  _buildFilterChip('In Progress', 'in_progress'),
+                  _buildFilterChip('Resolved', 'resolved'),
+                ],
+              ),
             ),
           ),
 
