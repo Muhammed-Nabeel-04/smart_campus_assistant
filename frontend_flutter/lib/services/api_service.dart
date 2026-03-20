@@ -669,6 +669,52 @@ class ApiService {
   // COMPLAINTS APIs
   // ============================================================================
 
+  static Future<List<dynamic>> getHODComplaints({String? status}) async {
+    try {
+      String url = "$_baseUrl/complaints/department";
+      if (status != null) url += "?status=$status";
+      final response = await http
+          .get(Uri.parse(url), headers: _authHeadersGet)
+          .timeout(_timeout);
+      return _handleResponse(response) as List<dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<List<dynamic>> getPrincipalComplaints({
+    String? status,
+    int? departmentId,
+  }) async {
+    try {
+      String url = "$_baseUrl/complaints/principal";
+      final params = <String>[];
+      if (status != null) params.add("status=$status");
+      if (departmentId != null) params.add("department_id=$departmentId");
+      if (params.isNotEmpty) url += "?${params.join('&')}";
+      final response = await http
+          .get(Uri.parse(url), headers: _authHeadersGet)
+          .timeout(_timeout);
+      return _handleResponse(response) as List<dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<void> escalateComplaint(int complaintId) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/complaints/$complaintId/escalate"),
+            headers: _authHeaders,
+          )
+          .timeout(_timeout);
+      _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   static Future<dynamic> getStudentComplaints(int studentId) async {
     try {
       final response = await http
@@ -878,7 +924,7 @@ class ApiService {
     try {
       final response = await http
           .put(
-            Uri.parse("$_baseUrl/admin/complaints/$complaintId"),
+            Uri.parse("$_baseUrl/complaints/$complaintId"),
             headers: _authHeaders,
             body: jsonEncode(data),
           )

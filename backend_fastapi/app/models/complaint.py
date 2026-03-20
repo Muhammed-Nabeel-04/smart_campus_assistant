@@ -13,9 +13,12 @@ class Complaint(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
 
-    status = Column(String, default="pending")  # pending, in_progress, resolved, rejected
+    status = Column(String, default="pending")  # pending, in_progress, resolved, rejected, escalated
     admin_response = Column(String, nullable=True)
     resolved_at = Column(DateTime, nullable=True)
+    escalated_to_principal = Column(Integer, default=0)  # 0=no, 1=yes
+    escalated_at = Column(DateTime, nullable=True)
+    escalated_by = Column(Integer, nullable=True)  # HOD user_id
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

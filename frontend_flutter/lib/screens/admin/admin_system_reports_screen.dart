@@ -40,6 +40,93 @@ class _AdminSystemReportsScreenState extends State<AdminSystemReportsScreen> {
     _loadReports();
   }
 
+  void _exportReport() {
+    if (_reportData.isEmpty) return;
+
+    final period = _selectedPeriod == 'today'
+        ? 'Today'
+        : _selectedPeriod == 'week'
+        ? 'This Week'
+        : 'This Month';
+
+    final dept = _selectedDeptId == null
+        ? 'All Departments'
+        : _departments.firstWhere(
+            (d) => d['id'] == _selectedDeptId,
+            orElse: () => {'name': 'Unknown'},
+          )['name'];
+
+    final report =
+        '''
+SMART CAMPUS ASSISTANT - SYSTEM REPORT
+=======================================
+Period       : $period
+Department   : $dept
+Generated At : ${DateTime.now().toString().substring(0, 16)}
+
+ATTENDANCE OVERVIEW
+-------------------
+Total Sessions     : ${_reportData['total_attendance_sessions'] ?? 0}
+Average Attendance : ${_reportData['avg_attendance_percentage'] ?? 0}%
+
+STUDENT STATISTICS
+------------------
+Present : ${_reportData['total_students_present'] ?? 0}
+Absent  : ${_reportData['total_students_absent'] ?? 0}
+
+PERFORMANCE INSIGHTS
+--------------------
+Best Department   : ${_reportData['top_department'] ?? 'N/A'}
+Needs Attention   : ${_reportData['lowest_attendance_class'] ?? 'N/A'}
+
+COMPLAINTS SUMMARY
+------------------
+Resolved : ${_reportData['complaints_resolved'] ?? 0}
+Pending  : ${_reportData['complaints_pending'] ?? 0}
+''';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgCard,
+        title: const Text(
+          'Export Report',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: SingleChildScrollView(
+          child: SelectableText(
+            report,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 12,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Select all text and copy to share'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            },
+            icon: const Icon(Icons.copy),
+            label: const Text('Copy'),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _loadReports() async {
     setState(() => _isLoading = true);
     try {
@@ -74,11 +161,7 @@ class _AdminSystemReportsScreenState extends State<AdminSystemReportsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.download),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Export feature coming soon')),
-              );
-            },
+            onPressed: _exportReport,
             tooltip: 'Export Report',
           ),
         ],

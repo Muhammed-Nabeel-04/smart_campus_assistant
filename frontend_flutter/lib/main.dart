@@ -57,6 +57,7 @@ import 'screens/principal/principal_login_screen.dart';
 import 'screens/principal/principal_initial_setup_screen.dart';
 import 'screens/principal/principal_dashboard_screen.dart';
 import 'screens/principal/principal_department_management_screen.dart';
+import 'screens/principal/principal_complaints_screen.dart';
 import 'screens/principal/principal_add_department_screen.dart';
 import 'screens/principal/principal_hod_management_screen.dart';
 import 'screens/principal/principal_add_hod_screen.dart';
@@ -381,6 +382,7 @@ class SmartCampusApp extends StatelessWidget {
           return PrincipalGenerateHODQRScreen(hod: hod);
         },
         '/principalProfile': (context) => const PrincipalProfileScreen(),
+        '/principalComplaints': (context) => const PrincipalComplaintsScreen(),
       },
     );
   }

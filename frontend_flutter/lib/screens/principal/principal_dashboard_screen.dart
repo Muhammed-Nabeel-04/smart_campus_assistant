@@ -185,12 +185,12 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: _ActionCard(
-                              title: 'Profile',
-                              icon: Icons.person,
-                              color: AppColors.warning,
+                              title: 'Complaints',
+                              icon: Icons.report_problem,
+                              color: AppColors.danger,
                               onTap: () => Navigator.pushNamed(
                                 context,
-                                '/principalProfile',
+                                '/principalComplaints',
                               ),
                             ),
                           ),

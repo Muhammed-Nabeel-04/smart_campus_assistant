@@ -96,8 +96,8 @@ class AppColors {
   }
 
   /// Color for a priority string
-  static Color priorityColor(String priority) {
-    switch (priority.toLowerCase()) {
+  static Color priorityColor(String? priority) {
+    switch ((priority ?? '').toLowerCase()) {
       case 'critical':
         return priorityCritical;
       case 'high':
@@ -112,8 +112,8 @@ class AppColors {
   }
 
   /// Color for a complaint status string
-  static Color complaintStatusColor(String status) {
-    switch (status) {
+  static Color complaintStatusColor(String? status) {
+    switch (status ?? '') {
       case 'pending':
         return statusPending;
       case 'in_progress':
