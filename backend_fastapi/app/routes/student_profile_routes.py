@@ -1,13 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.services.deps import get_db
+from app.services.deps import get_db, get_current_user
 from app.models.student import Student
+from fastapi import HTTPException
 
 router = APIRouter(prefix="/student", tags=["Student Profile"])
 
 
 @router.get("/profile/{student_id}")
-def get_student_profile(student_id: int, db: Session = Depends(get_db)):
+def get_student_profile(student_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] == 'student':
+        own = db.query(Student).filter(Student.user_id == current_user['user_id']).first()
+        if not own or own.id != student_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+    elif current_user['role'] not in ['faculty', 'admin', 'principal']:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:

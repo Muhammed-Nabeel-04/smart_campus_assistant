@@ -126,7 +126,9 @@ def refresh_session_token(session_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/sessions/{session_id}/end/")
-def end_session(session_id: int, db: Session = Depends(get_db)):
+def end_session(session_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in ['faculty', 'admin']:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     session = db.query(AttendanceSession).filter(
         AttendanceSession.id == session_id
@@ -398,6 +400,36 @@ def submit_manual_attendance(
 ):
     if current_user['role'] not in ['faculty', 'admin']:
         raise HTTPException(status_code=403, detail="Faculty access required")
+
+    # ✅ Check active session exists for the class
+    # Get session_id from first record if provided
+    session_id = getattr(payload, 'session_id', None)
+    if not session_id and payload.records:
+        # Try to find active session via student's class
+        first_student = db.query(Student).filter(
+            Student.id == payload.records[0].student_id
+        ).first()
+        if first_student:
+            dept = db.query(Department).filter(
+                Department.code.ilike(first_student.department)
+            ).first()
+            if dept:
+                cls = db.query(ClassModel).filter(
+                    ClassModel.department_id == dept.id,
+                    ClassModel.year == first_student.year,
+                    ClassModel.section == first_student.section,
+                ).first()
+                if cls:
+                    active = db.query(AttendanceSession).filter(
+                        AttendanceSession.class_id == cls.id,
+                        AttendanceSession.status == "active",
+                    ).first()
+                    if not active:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="No active session for this class. Start a session first before marking attendance."
+                        )
+
     added = 0
 
     for record in payload.records:
@@ -428,7 +460,11 @@ def submit_manual_attendance(
 # ============================================================================
 
 @router.get("/student/{student_id}")
-def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db)):
+def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] == 'student':
+        own = db.query(Student).filter(Student.user_id == current_user['user_id']).first()
+        if not own or own.id != student_id:
+            raise HTTPException(status_code=403, detail="Access denied")
 
     # Get student to find their class
     student = db.query(Student).filter(Student.id == student_id).first()
@@ -478,7 +514,11 @@ def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db))
 
 
 @router.get("/student/{student_id}/history")
-def get_student_attendance_history(student_id: int, db: Session = Depends(get_db)):
+def get_student_attendance_history(student_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] == 'student':
+        own = db.query(Student).filter(Student.user_id == current_user['user_id']).first()
+        if not own or own.id != student_id:
+            raise HTTPException(status_code=403, detail="Access denied")
 
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:

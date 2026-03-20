@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-from app.services.deps import get_db
+from app.services.deps import get_db, get_current_user
+from app.models.student import Student
 from app.models.complaint import Complaint
 from app.models.student import Student
 
@@ -65,7 +66,11 @@ def submit_complaint(
 # ============================================================================
 
 @router.get("/student/{student_id}")
-def get_student_complaints(student_id: int, db: Session = Depends(get_db)):
+def get_student_complaints(student_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] == 'student':
+        own = db.query(Student).filter(Student.user_id == current_user['user_id']).first()
+        if not own or own.id != student_id:
+            raise HTTPException(status_code=403, detail="Access denied")
 
     # Check student exists
     student = db.query(Student).filter(Student.id == student_id).first()
@@ -133,8 +138,11 @@ def get_all_complaints(
 def update_complaint(
     complaint_id: int,
     payload: UpdateComplaintRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
+    if current_user['role'] not in ['admin', 'principal']:
+        raise HTTPException(status_code=403, detail="Access denied")
     complaint = db.query(Complaint).filter(
         Complaint.id == complaint_id
     ).first()

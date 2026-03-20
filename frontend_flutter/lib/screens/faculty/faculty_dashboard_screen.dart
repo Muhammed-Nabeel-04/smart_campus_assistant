@@ -44,8 +44,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
       final facultyId = SessionManager.facultyId!;
       final data = await ApiService.getFacultyStats(facultyId);
       final active = await ApiService.getActiveSessions(facultyId);
+      final recent = await ApiService.getSessionsByPeriod(
+        facultyId,
+        period: 'all',
+      );
       setState(() {
-        _stats = data;
+        _stats = {...data, 'recent_sessions': recent};
         _activeSessions = List<Map<String, dynamic>>.from(active);
         _isLoading = false;
       });
@@ -1115,22 +1119,32 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
 
   List<Widget> _buildRecentSessions(List<dynamic> sessions) {
     return sessions.take(5).map((session) {
+      final isActive = session['status'] == 'active';
       return Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.bgCard,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isActive
+                ? AppColors.danger.withOpacity(0.4)
+                : AppColors.bgSeparator,
+          ),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF1565C0).withOpacity(0.2),
+                color: (isActive ? AppColors.danger : const Color(0xFF1565C0))
+                    .withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.schedule, color: Color(0xFF1565C0)),
+              child: Icon(
+                isActive ? Icons.radio_button_checked : Icons.schedule,
+                color: isActive ? AppColors.danger : const Color(0xFF1565C0),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1154,6 +1168,10 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                   ),
                 ],
               ),
+            ),
+            Text(
+              session['started_at']?.toString().substring(11, 16) ?? '',
+              style: const TextStyle(color: AppColors.textHint, fontSize: 11),
             ),
           ],
         ),

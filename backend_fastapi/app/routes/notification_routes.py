@@ -6,6 +6,7 @@ from app.services.deps import get_db
 from app.models.notification import Notification
 from app.models.student import Student
 from app.services.deps import get_db, get_current_user
+from app.models.student import Student
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
@@ -59,7 +60,11 @@ def post_notification(
 # ============================================================================
 
 @router.get("/student/{student_id}")
-def get_student_notifications(student_id: int, db: Session = Depends(get_db)):
+def get_student_notifications(student_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] == 'student':
+        own = db.query(Student).filter(Student.user_id == current_user['user_id']).first()
+        if not own or own.id != student_id:
+            raise HTTPException(status_code=403, detail="Access denied")
 
     # Check student exists
     student = db.query(Student).filter(Student.id == student_id).first()

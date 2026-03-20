@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timedelta
-from app.services.deps import get_db
+from app.services.deps import get_db, get_current_user
 from app.models.student import Student
 from app.models.onboarding_token import OnboardingToken
 from app.models.department import Department
@@ -59,8 +59,11 @@ def get_students(
     year: Optional[str] = None,
     section: Optional[str] = None,
     department: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
+    if current_user['role'] not in ['faculty', 'admin', 'principal']:
+        raise HTTPException(status_code=403, detail="Access denied")
     query = db.query(Student)
 
    # Filter using department_id
@@ -104,7 +107,9 @@ def get_students(
 # ===============================
 
 @router.post("/")
-def add_student(payload: AddStudentRequest, db: Session = Depends(get_db)):
+def add_student(payload: AddStudentRequest, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in ['faculty', 'admin']:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     existing = db.query(Student).filter(
         Student.register_number == payload.register_number
@@ -150,13 +155,15 @@ def add_student(payload: AddStudentRequest, db: Session = Depends(get_db)):
 # UPDATE STUDENT
 # ===============================
 
-# ✅ Updated Endpoint using UpdateStudentRequest
 @router.put("/{student_id}")
 def update_student(
     student_id: int,
     payload: UpdateStudentRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
+    if current_user['role'] not in ['faculty', 'admin']:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     student = db.query(Student).filter(Student.id == student_id).first()
 
@@ -193,7 +200,9 @@ def update_student(
 # ===============================
 
 @router.get("/{student_id}")
-def get_student(student_id: int, db: Session = Depends(get_db)):
+def get_student(student_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in ['faculty', 'admin', 'student']:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     student = db.query(Student).filter(Student.id == student_id).first()
 
@@ -228,7 +237,9 @@ def get_student(student_id: int, db: Session = Depends(get_db)):
 # ===============================
 
 @router.post("/{student_id}/generate-qr/")
-def generate_student_qr(student_id: int, db: Session = Depends(get_db)):
+def generate_student_qr(student_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in ['faculty', 'admin']:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     student = db.query(Student).filter(Student.id == student_id).first()
 
