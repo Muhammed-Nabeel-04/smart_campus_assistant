@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/app_colors.dart';
+import '../../core/session.dart';
 
 class FacultyManualAttendanceScreen extends StatefulWidget {
   final Map<String, dynamic> department;
@@ -28,12 +29,39 @@ class _FacultyManualAttendanceScreenState
   Map<int, bool> _attendance = {}; // student_id -> present/absent
   bool _isLoading = true;
   bool _isSubmitting = false;
-  DateTime _selectedDate = DateTime.now();
+  final DateTime _selectedDate = DateTime.now();
+
+  String? _noSessionMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadStudents();
+    _checkSessionAndLoad();
+  }
+
+  Future<void> _checkSessionAndLoad() async {
+    setState(() => _isLoading = true);
+    try {
+      final sessions = await ApiService.getActiveSessions(
+        SessionManager.facultyId!,
+      );
+      // Find active session for this class+subject
+      final match = sessions.firstWhere(
+        (s) => s['subject_name'] == widget.subject['name'],
+        orElse: () => {},
+      );
+      if (match.isEmpty) {
+        setState(() {
+          _noSessionMessage =
+              'No active session for ${widget.subject['name']}.\nStart a session first to mark attendance.';
+          _isLoading = false;
+        });
+        return;
+      }
+      _loadStudents();
+    } catch (e) {
+      _loadStudents(); // fallback
+    }
   }
 
   Future<void> _loadStudents() async {
@@ -56,30 +84,6 @@ class _FacultyManualAttendanceScreenState
       });
     } catch (e) {
       setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _selectDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 90)),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF1565C0),
-              surface: AppColors.bgCard,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
     }
   }
 
@@ -208,56 +212,7 @@ class _FacultyManualAttendanceScreenState
             color: AppColors.bgCard,
             child: Column(
               children: [
-                // Date Selector
-                InkWell(
-                  onTap: _selectDate,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.bgInput,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF1565C0)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today,
-                          color: Color(0xFF1565C0),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Attendance Date',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.arrow_drop_down,
-                          color: Color(0xFF1565C0),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
 
                 // Stats
                 Row(
@@ -369,6 +324,31 @@ class _FacultyManualAttendanceScreenState
             child: _isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFF1565C0)),
+                  )
+                : _noSessionMessage != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.block,
+                            size: 64,
+                            color: AppColors.warning.withOpacity(0.6),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _noSessionMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),

@@ -20,7 +20,9 @@ class _PrincipalInitialSetupScreenState
   int _currentPage = 0;
 
   // Step 1 — Change password
-  // Step 1 — Change password
+  // Step 2 — Change email
+  final _emailCtrl = TextEditingController();
+  bool _isChangingEmail = false;
   final _passFormKey = GlobalKey<FormState>();
   final _currentPassCtrl = TextEditingController();
   final _newPassCtrl = TextEditingController();
@@ -147,7 +149,7 @@ class _PrincipalInitialSetupScreenState
                       ),
                       const Spacer(),
                       Text(
-                        'Step ${_currentPage + 1}/2',
+                        'Step ${_currentPage + 1}/3',
                         style: const TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 14,
@@ -184,6 +186,7 @@ class _PrincipalInitialSetupScreenState
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _buildChangePasswordPage(),
+                  _buildChangeEmailPage(),
                   _buildAddDepartmentsPage(),
                 ],
               ),
@@ -192,6 +195,109 @@ class _PrincipalInitialSetupScreenState
         ),
       ),
     );
+  }
+
+  Widget _buildChangeEmailPage() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Update Email',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Change your default email to your official email address.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          ),
+          const SizedBox(height: 32),
+          TextFormField(
+            controller: _emailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(
+              labelText: 'New Email',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isChangingEmail ? null : _submitEmail,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: _isChangingEmail
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Save & Continue',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => _pageCtrl.nextPage(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              ),
+              child: const Text(
+                'Skip for now',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitEmail() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      _showSnack('Enter a valid email', AppColors.warning);
+      return;
+    }
+    setState(() => _isChangingEmail = true);
+    try {
+      await ApiService.changePrincipalEmail(
+        newEmail: email,
+        password: _newPassCtrl.text.isNotEmpty
+            ? _newPassCtrl.text
+            : 'principal@123',
+      );
+      if (mounted) {
+        _pageCtrl.nextPage(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+        setState(() => _currentPage++);
+      }
+    } on ApiException catch (e) {
+      if (mounted) _showSnack(e.message, AppColors.danger);
+    } finally {
+      if (mounted) setState(() => _isChangingEmail = false);
+    }
   }
 
   Widget _buildChangePasswordPage() {

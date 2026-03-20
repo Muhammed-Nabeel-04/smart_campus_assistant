@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, time
 from typing import Optional
 from app.services.deps import get_db, get_current_user
 from app.models.attendance_session import AttendanceSession
@@ -298,11 +298,13 @@ def get_faculty_stats(
         AttendanceSession.faculty_id == faculty_id
     ).count()
 
+    from datetime import timedelta
     today = datetime.utcnow().date()
+    week_start = today - timedelta(days=today.weekday())  # Monday
 
-    sessions_today = db.query(AttendanceSession).filter(
+    sessions_this_week = db.query(AttendanceSession).filter(
         AttendanceSession.faculty_id == faculty_id,
-        func.date(AttendanceSession.started_at) == today
+        AttendanceSession.started_at >= datetime.combine(week_start, time.min),
     ).count()
 
     from sqlalchemy import text
@@ -354,7 +356,7 @@ def get_faculty_stats(
 
     return {
         "total_sessions": total_sessions,
-        "sessions_today": sessions_today,
+        "this_week_sessions": sessions_this_week,
         "total_students": total_students,
         "average_attendance": avg_attendance,
     }

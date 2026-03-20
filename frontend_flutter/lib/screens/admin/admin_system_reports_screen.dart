@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
+import '../../core/session.dart';
 
 class AdminSystemReportsScreen extends StatefulWidget {
   const AdminSystemReportsScreen({super.key});
@@ -15,10 +16,27 @@ class _AdminSystemReportsScreenState extends State<AdminSystemReportsScreen> {
   String _selectedPeriod = 'today';
   bool _isLoading = true;
   Map<String, dynamic> _reportData = {};
+  List<Map<String, dynamic>> _departments = [];
+  int? _selectedDeptId;
+  bool _isPrincipal = false;
 
   @override
   void initState() {
     super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final role = SessionManager.role;
+    _isPrincipal = role == 'principal';
+    if (_isPrincipal) {
+      try {
+        final depts = await ApiService.getPrincipalDepartments();
+        setState(() {
+          _departments = List<Map<String, dynamic>>.from(depts);
+        });
+      } catch (_) {}
+    }
     _loadReports();
   }
 
@@ -26,8 +44,8 @@ class _AdminSystemReportsScreenState extends State<AdminSystemReportsScreen> {
     setState(() => _isLoading = true);
     try {
       final data = await ApiService.getSystemReports(
-        // ✅ Real API
         period: _selectedPeriod,
+        departmentId: _selectedDeptId,
       );
       if (mounted) {
         setState(() {
@@ -69,7 +87,7 @@ class _AdminSystemReportsScreenState extends State<AdminSystemReportsScreen> {
         children: [
           // Period Selector
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Row(
               children: [
                 _buildPeriodChip('Today', 'today'),
@@ -78,6 +96,47 @@ class _AdminSystemReportsScreenState extends State<AdminSystemReportsScreen> {
               ],
             ),
           ),
+
+          // Department selector (principal only)
+          if (_isPrincipal && _departments.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: DropdownButtonFormField<int?>(
+                value: _selectedDeptId,
+                dropdownColor: AppColors.bgCard,
+                decoration: InputDecoration(
+                  labelText: 'Department',
+                  labelStyle: const TextStyle(color: AppColors.textSecondary),
+                  filled: true,
+                  fillColor: AppColors.bgCard,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+                style: const TextStyle(color: AppColors.textPrimary),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('All Departments'),
+                  ),
+                  ..._departments.map(
+                    (d) => DropdownMenuItem<int?>(
+                      value: d['id'],
+                      child: Text(d['name'] ?? ''),
+                    ),
+                  ),
+                ],
+                onChanged: (val) {
+                  setState(() => _selectedDeptId = val);
+                  _loadReports();
+                },
+              ),
+            ),
 
           // Reports Content
           Expanded(
@@ -131,33 +190,36 @@ class _AdminSystemReportsScreenState extends State<AdminSystemReportsScreen> {
 
                         const SizedBox(height: 24),
 
-                        // Performance Insights
-                        _buildSectionTitle('Performance Insights'),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.bgCard,
-                            borderRadius: BorderRadius.circular(12),
+                        // Performance Insights — only for All Departments
+                        if (_selectedDeptId == null) ...[
+                          _buildSectionTitle('Performance Insights'),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.bgCard,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildInsightRow(
+                                  'Best Department',
+                                  _reportData['top_department'] ?? 'N/A',
+                                  Icons.emoji_events,
+                                  AppColors.warning,
+                                ),
+                                const Divider(height: 24),
+                                _buildInsightRow(
+                                  'Needs Attention',
+                                  _reportData['lowest_attendance_class'] ??
+                                      'N/A',
+                                  Icons.warning,
+                                  AppColors.danger,
+                                ),
+                              ],
+                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildInsightRow(
-                                'Best Department',
-                                _reportData['top_department'],
-                                Icons.emoji_events,
-                                AppColors.warning,
-                              ),
-                              const Divider(height: 24),
-                              _buildInsightRow(
-                                'Needs Attention',
-                                _reportData['lowest_attendance_class'],
-                                Icons.warning,
-                                AppColors.danger,
-                              ),
-                            ],
-                          ),
-                        ),
+                        ], // end performance insights
 
                         const SizedBox(height: 24),
 
@@ -279,7 +341,7 @@ class _AdminSystemReportsScreenState extends State<AdminSystemReportsScreen> {
 
   Widget _buildInsightRow(
     String label,
-    String value,
+    dynamic value,
     IconData icon,
     Color color,
   ) {

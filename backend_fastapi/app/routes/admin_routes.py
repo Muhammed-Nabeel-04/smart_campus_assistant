@@ -578,6 +578,7 @@ def update_complaint(
 @router.get("/reports")
 def get_system_reports(
     period: str = "today",
+    department_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -585,45 +586,125 @@ def get_system_reports(
     
     if current_user['role'] not in ['admin', 'principal']:
         raise HTTPException(status_code=403, detail="Admin access required")
-    
+
+    # ✅ HOD sees only their department
+    if current_user['role'] == 'admin':
+        hod_dept = db.query(Department).filter(
+            Department.hod_user_id == current_user['user_id']
+        ).first()
+        if hod_dept:
+            department_id = hod_dept.id
+
     # Calculate date range based on period
+    from datetime import timedelta
     today = date.today()
     if period == "today":
         start_date = today
     elif period == "week":
-        from datetime import timedelta
         start_date = today - timedelta(days=7)
     else:  # month
-        from datetime import timedelta
         start_date = today - timedelta(days=30)
+
+    start_datetime = datetime(start_date.year, start_date.month, start_date.day, 0, 0, 0)
+
+    # ✅ Get class IDs for the department filter
+    if department_id:
+        dept_classes = db.query(ClassModel).filter(
+            ClassModel.department_id == department_id
+        ).all()
+        filtered_class_ids = [c.id for c in dept_classes]
+        dept_obj = db.query(Department).filter(Department.id == department_id).first()
+        dept_code = dept_obj.code if dept_obj else None
+    else:
+        filtered_class_ids = None
+        dept_code = None
     
     # Attendance sessions count
-    total_sessions = db.query(AttendanceSession).filter(
-        func.date(AttendanceSession.started_at) >= start_date
-    ).count()
+    session_query = db.query(AttendanceSession).filter(
+        AttendanceSession.started_at >= start_datetime.isoformat()
+    )
+    if filtered_class_ids:
+        session_query = session_query.filter(
+            AttendanceSession.class_id.in_(filtered_class_ids)
+        )
+    total_sessions = session_query.count()
     
     # Attendance stats
-    total_present = db.query(Attendance).filter(
-        func.date(Attendance.timestamp) >= start_date,
-        Attendance.status == 'present'
-    ).count()
+    ended_query = db.query(AttendanceSession).filter(
+        AttendanceSession.started_at >= start_datetime.isoformat(),
+        AttendanceSession.status == 'ended'
+    )
+    if filtered_class_ids is not None:
+        ended_query = ended_query.filter(
+            AttendanceSession.class_id.in_(filtered_class_ids)
+        )
+    ended_sessions = ended_query.all()
+    ended_session_ids = [s.id for s in ended_sessions]
+
+    if ended_session_ids:
+        total_present = db.query(Attendance).filter(
+            Attendance.session_id.in_(ended_session_ids),
+            Attendance.status == 'present'
+        ).count()
+    else:
+        total_present = 0
+
+    # Also count manual entries (session_id=0)
+    if dept_code:
+        dept_student_ids = [
+            s.id for s in db.query(Student).filter(
+                Student.department.ilike(dept_code)
+            ).all()
+        ]
+    else:
+        dept_student_ids = [s.id for s in db.query(Student).all()]
+
+    manual_present = db.query(Attendance).filter(
+        Attendance.session_id == 0,
+        Attendance.status == 'present',
+        Attendance.student_id.in_(dept_student_ids),
+        Attendance.timestamp >= start_datetime.isoformat(),
+    ).count() if dept_student_ids else 0
+
+    total_present += manual_present
+
+    total_possible = 0
+    for s in ended_sessions:
+        cls = db.query(ClassModel).filter(ClassModel.id == s.class_id).first()
+        if cls:
+            dept = db.query(Department).filter(Department.id == cls.department_id).first()
+            if dept:
+                count = db.query(Student).filter(
+                    Student.department.ilike(dept.code),
+                    Student.year == cls.year,
+                    Student.section == cls.section,
+                ).count()
+                total_possible += count
+
+    total_absent = max(total_possible - total_present, 0)
+    avg_attendance = round((total_present / total_possible * 100), 1) if total_possible > 0 else 0
+
+    total_absent = max(total_possible - total_present, 0)
+    avg_attendance = (total_present / total_possible * 100) if total_possible > 0 else 0
     
-    total_absent = db.query(Attendance).filter(
-        func.date(Attendance.timestamp) >= start_date,
-        Attendance.status == 'absent'
-    ).count()
-    
-    total_attendance = total_present + total_absent
-    avg_attendance = (total_present / total_attendance * 100) if total_attendance > 0 else 0
-    
-    # Complaints stats
-    complaints_resolved = db.query(Complaint).filter(
-        func.date(Complaint.created_at) >= start_date,
+    # Complaints stats — filter by dept students if needed
+    complaint_query_base = db.query(Complaint).filter(
+        Complaint.created_at >= start_datetime
+    )
+    if dept_code:
+        dept_student_ids = [
+            s.id for s in db.query(Student).filter(
+                Student.department.ilike(dept_code)
+            ).all()
+        ]
+        complaint_query_base = complaint_query_base.filter(
+            Complaint.student_id.in_(dept_student_ids)
+        ) if dept_student_ids else complaint_query_base.filter(False)
+
+    complaints_resolved = complaint_query_base.filter(
         Complaint.status == 'resolved'
     ).count()
-    
-    complaints_pending = db.query(Complaint).filter(
-        func.date(Complaint.created_at) >= start_date,
+    complaints_pending = complaint_query_base.filter(
         Complaint.status == 'pending'
     ).count()
     
@@ -645,7 +726,8 @@ def get_system_reports(
 
             dept_sessions = db.query(AttendanceSession).filter(
                 AttendanceSession.class_id.in_(class_ids),
-                func.date(AttendanceSession.started_at) >= start_date
+                AttendanceSession.started_at >= start_datetime.isoformat(),
+                AttendanceSession.status == 'ended'
             ).all()
             session_ids = [s.id for s in dept_sessions]
             if not session_ids:
@@ -655,18 +737,31 @@ def get_system_reports(
                 Attendance.session_id.in_(session_ids),
                 Attendance.status == 'present'
             ).count()
-            total = db.query(Attendance).filter(
-                Attendance.session_id.in_(session_ids)
-            ).count()
 
-            if total > 0:
-                dept_attendance[dept.name] = round(present / total * 100, 1)
+            # Total possible = sessions × students in each class
+            total_possible_dept = 0
+            for cls in classes:
+                if cls.id not in [s.class_id for s in dept_sessions]:
+                    continue
+                cls_student_count = db.query(Student).filter(
+                    Student.department.ilike(dept.code),
+                    Student.year == cls.year,
+                    Student.section == cls.section,
+                ).count()
+                cls_session_count = sum(1 for s in dept_sessions if s.class_id == cls.id)
+                total_possible_dept += cls_student_count * cls_session_count
+
+            if total_possible_dept > 0:
+                dept_attendance[dept.name] = round(present / total_possible_dept * 100, 1)
 
         if dept_attendance:
-            top_department = max(dept_attendance, key=dept_attendance.get)
+            max_pct = max(dept_attendance.values())
+            top_depts = [d for d, p in dept_attendance.items() if p == max_pct]
+            top_department = ", ".join(top_depts)
 
-            # Lowest attendance class
-            lowest_pct = 100
+           # Lowest attendance classes
+            lowest_pct = 101
+            lowest_classes = []
             for dept in all_depts:
                 classes = db.query(ClassModel).filter(
                     ClassModel.department_id == dept.id
@@ -674,7 +769,8 @@ def get_system_reports(
                 for cls in classes:
                     cls_sessions = db.query(AttendanceSession).filter(
                         AttendanceSession.class_id == cls.id,
-                        func.date(AttendanceSession.started_at) >= start_date
+                        AttendanceSession.started_at >= start_datetime.isoformat(),
+                        AttendanceSession.status == 'ended'
                     ).all()
                     cls_session_ids = [s.id for s in cls_sessions]
                     if not cls_session_ids:
@@ -683,14 +779,23 @@ def get_system_reports(
                         Attendance.session_id.in_(cls_session_ids),
                         Attendance.status == 'present'
                     ).count()
-                    t = db.query(Attendance).filter(
-                        Attendance.session_id.in_(cls_session_ids)
+                    student_count = db.query(Student).filter(
+                        Student.department.ilike(dept.code),
+                        Student.year == cls.year,
+                        Student.section == cls.section,
                     ).count()
+                    t = len(cls_session_ids) * student_count
                     if t > 0:
                         pct = round(p / t * 100, 1)
                         if pct < lowest_pct:
                             lowest_pct = pct
-                            lowest_class = f"{dept.code} {cls.year} Sec {cls.section} ({pct}%)"
+                            lowest_classes = [f"{dept.name} {cls.year} Sec {cls.section} ({pct}%)"]
+                        elif pct == lowest_pct:
+                            lowest_classes.append(f"{dept.name} {cls.year} Sec {cls.section} ({pct}%)")
+
+            # Strip percentage from display
+            lowest_classes_clean = [c.rsplit(' (', 1)[0] for c in lowest_classes]
+            lowest_class = ", ".join(lowest_classes_clean) if lowest_classes_clean else "N/A"
     except Exception:
         pass
 

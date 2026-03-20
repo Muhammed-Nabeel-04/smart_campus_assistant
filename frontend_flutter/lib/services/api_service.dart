@@ -891,13 +891,13 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getSystemReports({
     String period = 'today',
+    int? departmentId,
   }) async {
     try {
+      String url = "$_baseUrl/admin/reports?period=$period";
+      if (departmentId != null) url += "&department_id=$departmentId";
       final response = await http
-          .get(
-            Uri.parse("$_baseUrl/admin/reports?period=$period"),
-            headers: _authHeadersGet,
-          )
+          .get(Uri.parse(url), headers: _authHeadersGet)
           .timeout(_timeout);
       return _handleResponse(response) as Map<String, dynamic>;
     } catch (e) {
