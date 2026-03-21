@@ -177,8 +177,43 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                // Admin response preview
+                if (complaint.adminResponse != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: complaint.statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: complaint.statusColor.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.admin_panel_settings,
+                          color: complaint.statusColor,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            complaint.adminResponse!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: complaint.statusColor,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
+                const SizedBox(height: 12),
                 // Footer row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -321,31 +356,78 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
 
                   const SizedBox(height: 24),
 
+                  // Escalated to principal banner
+                  if (complaint.escalatedToPrincipal) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF9C27B0).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFF9C27B0).withOpacity(0.4),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.escalator_warning,
+                            color: Color(0xFF9C27B0),
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'This complaint has been forwarded to the Principal',
+                              style: TextStyle(
+                                color: Color(0xFF9C27B0),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   // Admin response
                   if (complaint.adminResponse != null) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF00D9FF).withOpacity(0.1),
+                        color: complaint.escalatedToPrincipal
+                            ? const Color(0xFF9C27B0).withOpacity(0.1)
+                            : const Color(0xFF00D9FF).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: const Color(0xFF00D9FF).withOpacity(0.3),
+                          color: complaint.escalatedToPrincipal
+                              ? const Color(0xFF9C27B0).withOpacity(0.3)
+                              : const Color(0xFF00D9FF).withOpacity(0.3),
                         ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
                               Icon(
-                                Icons.admin_panel_settings,
-                                color: Color(0xFF00D9FF),
+                                complaint.escalatedToPrincipal
+                                    ? Icons.account_balance
+                                    : Icons.admin_panel_settings,
+                                color: complaint.escalatedToPrincipal
+                                    ? const Color(0xFF9C27B0)
+                                    : const Color(0xFF00D9FF),
                               ),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Text(
-                                'Admin Response',
+                                complaint.escalatedToPrincipal
+                                    ? 'Principal Response'
+                                    : 'HOD Response',
                                 style: TextStyle(
-                                  color: Color(0xFF00D9FF),
+                                  color: complaint.escalatedToPrincipal
+                                      ? const Color(0xFF9C27B0)
+                                      : const Color(0xFF00D9FF),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),

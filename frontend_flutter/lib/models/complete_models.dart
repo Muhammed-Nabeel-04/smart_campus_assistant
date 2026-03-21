@@ -353,9 +353,10 @@ class Complaint {
   final String priority; // 'Low', 'Medium', 'High', 'Critical'
   final String title;
   final String description;
-  final String status; // 'pending', 'in_progress', 'resolved', 'rejected'
+  final String status;
   final String? adminResponse;
-  final int? handledBy; // Admin ID who handled it
+  final int? handledBy;
+  final bool escalatedToPrincipal;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final DateTime? resolvedAt;
@@ -370,12 +371,16 @@ class Complaint {
     this.status = 'pending',
     this.adminResponse,
     this.handledBy,
+    this.escalatedToPrincipal = false,
     required this.createdAt,
     this.updatedAt,
     this.resolvedAt,
   });
 
   String get statusDisplay {
+    if (escalatedToPrincipal && status == 'in_progress') {
+      return 'Forwarded to Principal';
+    }
     switch (status) {
       case 'pending':
         return 'Pending';
@@ -391,6 +396,9 @@ class Complaint {
   }
 
   Color get statusColor {
+    if (escalatedToPrincipal && status == 'in_progress') {
+      return const Color(0xFF9C27B0);
+    }
     switch (status) {
       case 'pending':
         return const Color(0xFFFFA726);
@@ -408,14 +416,17 @@ class Complaint {
   factory Complaint.fromJson(Map<String, dynamic> json) {
     return Complaint(
       id: json['id'],
-      studentId: json['student_id'],
-      category: json['category'],
-      priority: json['priority'],
-      title: json['title'],
-      description: json['description'],
+      studentId: json['student_id'] ?? 0,
+      category: json['category'] ?? 'General',
+      priority: json['priority'] ?? 'Medium',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
       status: json['status'] ?? 'pending',
       adminResponse: json['admin_response'],
       handledBy: json['handled_by'],
+      escalatedToPrincipal:
+          json['escalated_to_principal'] == true ||
+          json['escalated_to_principal'] == 1,
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])

@@ -20,5 +20,6 @@ class Complaint(Base):
     escalated_at = Column(DateTime, nullable=True)
     escalated_by = Column(Integer, nullable=True)  # HOD user_id
 
+    escalated_to_principal = Column(Integer, default=0)  # 0=No, 1=Yes
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -27,7 +27,9 @@ class _AdminComplaintsManagementScreenState
     setState(() => _isLoading = true);
     try {
       final data = await ApiService.getHODComplaints(
-        status: _filterStatus == 'all' ? null : _filterStatus,
+        status: _filterStatus == 'all' || _filterStatus == 'escalated'
+            ? null
+            : _filterStatus,
       );
       if (mounted) {
         setState(() {
@@ -49,6 +51,11 @@ class _AdminComplaintsManagementScreenState
 
   List<Map<String, dynamic>> get _filteredComplaints {
     if (_filterStatus == 'all') return _complaints;
+    if (_filterStatus == 'escalated') {
+      return _complaints
+          .where((c) => c['escalated_to_principal'] == true)
+          .toList();
+    }
     return _complaints.where((c) => c['status'] == _filterStatus).toList();
   }
 
@@ -71,6 +78,8 @@ class _AdminComplaintsManagementScreenState
                   _buildFilterChip('Pending', 'pending'),
                   _buildFilterChip('In Progress', 'in_progress'),
                   _buildFilterChip('Resolved', 'resolved'),
+                  _buildFilterChip('Rejected', 'rejected'),
+                  _buildFilterChip('Escalated', 'escalated'),
                 ],
               ),
             ),

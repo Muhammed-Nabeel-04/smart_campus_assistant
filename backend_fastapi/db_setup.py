@@ -23,6 +23,7 @@ MIGRATIONS = [
     ('subjects',       'ALTER TABLE subjects ADD COLUMN year TEXT'),
     ('subjects',       'ALTER TABLE subjects ADD COLUMN semester TEXT'),
     ('session_tokens', 'ALTER TABLE session_tokens ADD COLUMN user_id INTEGER'),
+    ('complaints', 'ALTER TABLE complaints ADD COLUMN escalated_to_principal INTEGER DEFAULT 0'),
 ]
 
 for label, sql in MIGRATIONS:

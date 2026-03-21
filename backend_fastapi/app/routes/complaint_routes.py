@@ -244,3 +244,37 @@ def update_complaint(
         "id": complaint.id,
         "status": complaint.status,
     }
+
+
+
+# ============================================================================
+# ESCALATE TO PRINCIPAL
+# ============================================================================
+
+@router.post("/{complaint_id}/escalate")
+def escalate_complaint(
+    complaint_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    complaint = db.query(Complaint).filter(
+        Complaint.id == complaint_id
+    ).first()
+
+    if not complaint:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+
+    if complaint.escalated_to_principal:
+        raise HTTPException(
+            status_code=400, detail="Already escalated to Principal"
+        )
+
+    complaint.escalated_to_principal = 1
+    complaint.status = "in_progress"
+    complaint.updated_at = datetime.utcnow()
+    db.commit()
+
+    return {"message": "Complaint escalated to Principal successfully"}
