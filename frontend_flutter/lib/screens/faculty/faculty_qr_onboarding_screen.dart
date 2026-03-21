@@ -199,7 +199,7 @@ class _FacultyQROnboardingScreenState extends State<FacultyQROnboardingScreen> {
                             Text(
                               'Secure Setup',
                               style: TextStyle(
-                                color: AppColors.success.withOpacity(0.2),
+                                color: AppColors.success,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),

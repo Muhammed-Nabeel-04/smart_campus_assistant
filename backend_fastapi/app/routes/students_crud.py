@@ -263,11 +263,11 @@ def generate_student_qr(student_id: int, db: Session = Depends(get_db), current_
 
     token = secrets.token_urlsafe(32)
 
-    qr_token = OnboardingToken(
+    qqr_token = OnboardingToken(
         token=token,
         role="student",
         target_id=student_id,
-        expiry_time=datetime.utcnow() + timedelta(minutes=5),
+        expiry_time=datetime.utcnow() + timedelta(minutes=1),
         used=False
     )
 
@@ -287,5 +287,5 @@ def generate_student_qr(student_id: int, db: Session = Depends(get_db), current_
         "student_id": student_id,
         "full_name": student.full_name,
         "register_number": student.register_number,
-        "expires_in_minutes": 10,
+        "expires_in_minutes": 1,
     }

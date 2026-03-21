@@ -24,7 +24,7 @@ class _FacultyGenerateStudentQRScreenState
   String? _token;
   bool _isLoading = true;
   bool _isExpired = false;
-  int _remainingSeconds = 300; // 5 minutes
+  int _remainingSeconds = 60; // 5 minutes
   Timer? _timer;
 
   @override
@@ -43,7 +43,7 @@ class _FacultyGenerateStudentQRScreenState
     setState(() {
       _isLoading = true;
       _isExpired = false;
-      _remainingSeconds = 300;
+      _remainingSeconds = 60;
     });
 
     _timer?.cancel();
@@ -187,12 +187,12 @@ class _FacultyGenerateStudentQRScreenState
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: _remainingSeconds < 60
+                        color: _remainingSeconds < 30
                             ? AppColors.danger.withOpacity(0.1)
                             : AppColors.success.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _remainingSeconds < 60
+                          color: _remainingSeconds < 30
                               ? AppColors.danger
                               : AppColors.success,
                           width: 2,
@@ -203,7 +203,7 @@ class _FacultyGenerateStudentQRScreenState
                         children: [
                           Icon(
                             Icons.timer,
-                            color: _remainingSeconds < 60
+                            color: _remainingSeconds < 30
                                 ? AppColors.danger
                                 : AppColors.success,
                           ),
@@ -211,7 +211,7 @@ class _FacultyGenerateStudentQRScreenState
                           Text(
                             'Expires in: $_timeDisplay',
                             style: TextStyle(
-                              color: _remainingSeconds < 60
+                              color: _remainingSeconds < 30
                                   ? AppColors.danger
                                   : AppColors.success,
                               fontSize: 18,
@@ -259,7 +259,7 @@ class _FacultyGenerateStudentQRScreenState
                         _buildInstruction('1', 'Student opens the app'),
                         _buildInstruction('2', 'Scans this QR code'),
                         _buildInstruction('3', 'Sets up password (first time)'),
-                        _buildInstruction('4', 'QR expires in 5 minutes'),
+                        _buildInstruction('4', 'QR expires in 1 minute'),
                       ],
                     ),
                   ),

@@ -42,9 +42,17 @@ class _StudentMarkAttendanceScreenState
     setState(() => _isProcessing = true);
 
     try {
-      // ✅ QR is now just a plain token string — no JSON parsing needed
+      // Parse JSON QR to extract token
+      String token;
+      try {
+        final qrJson = jsonDecode(qrData);
+        token = qrJson['token'];
+      } catch (_) {
+        token = qrData;
+      }
+
       final response = await ApiService.markAttendance(
-        token: qrData,
+        token: token,
         studentId: SessionManager.studentId!,
       );
 

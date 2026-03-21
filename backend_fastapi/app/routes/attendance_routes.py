@@ -326,12 +326,15 @@ def mark_attendance(
     db.add(attendance)
     db.commit()
 
+    subject = db.query(Subject).filter(Subject.id == session.subject_id).first()
+
     return {
         "message": "Attendance marked successfully",
         "student_id": student_id,
         "full_name": student.full_name,
         "status": "present",
         "time": datetime.utcnow().strftime("%H:%M"),
+        "subject_name": subject.name if subject else "",
     }
 
 
@@ -356,9 +359,19 @@ def get_attendance_reports(
     session_ids = [s.id for s in sessions]
     total_sessions = len(session_ids)
 
-    # Get all students in this class
+    # Get only students belonging to this class
+    cls = db.query(ClassModel).filter(ClassModel.id == class_id).first()
+    if not cls:
+        return {"total_sessions": total_sessions, "reports": []}
+
+    dept = db.query(Department).filter(Department.id == cls.department_id).first()
+    if not dept:
+        return {"total_sessions": total_sessions, "reports": []}
+
     students = db.query(Student).filter(
-        Student.year != None
+        Student.department.ilike(dept.code),
+        Student.year == cls.year,
+        Student.section == cls.section,
     ).all()
 
     reports = []
@@ -433,16 +446,45 @@ def submit_manual_attendance(
     added = 0
 
     for record in payload.records:
-        try:
-            attendance_date = datetime.fromisoformat(record.date).date() if record.date else date.today()
-        except:
-            attendance_date = date.today()
+        # Find the active session for this student's class
+        student = db.query(Student).filter(Student.id == record.student_id).first()
+        if not student:
+            continue
+
+        dept = db.query(Department).filter(
+            Department.code.ilike(student.department)
+        ).first()
+        if not dept:
+            continue
+
+        cls = db.query(ClassModel).filter(
+            ClassModel.department_id == dept.id,
+            ClassModel.year == student.year,
+            ClassModel.section == student.section,
+        ).first()
+        if not cls:
+            continue
+
+        active_session = db.query(AttendanceSession).filter(
+            AttendanceSession.class_id == cls.id,
+            AttendanceSession.status == "active",
+        ).first()
+        if not active_session:
+            continue
+
+        # Check not already marked for this session (same as QR)
+        already_marked = db.query(Attendance).filter(
+            Attendance.session_id == active_session.id,
+            Attendance.student_id == record.student_id,
+        ).first()
+        if already_marked:
+            continue
 
         attendance = Attendance(
-            session_id=0,
+            session_id=active_session.id,
             student_id=record.student_id,
             status=record.status,
-            date=attendance_date,
+            date=datetime.utcnow().date(),
             timestamp=datetime.utcnow(),
             remarks="Manual entry",
         )
@@ -493,11 +535,20 @@ def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db),
             AttendanceSession.status == "ended",
         ).count()
 
-    # Count present
+    # Count present — only from this class's ended sessions (excludes manual entries)
+    ended_session_ids = []
+    if cls:
+        ended_session_ids = [
+            s.id for s in db.query(AttendanceSession).filter(
+                AttendanceSession.class_id == cls.id,
+                AttendanceSession.status == "ended",
+            ).all()
+        ]
     present = db.query(Attendance).filter(
         Attendance.student_id == student_id,
         Attendance.status == "present",
-    ).count()
+        Attendance.session_id.in_(ended_session_ids),
+    ).count() if ended_session_ids else 0
 
     # Absent = total ended sessions - present
     absent = max(total_sessions - present, 0)

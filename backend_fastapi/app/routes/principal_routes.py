@@ -381,7 +381,15 @@ def delete_hod(
     faculty = db.query(Faculty).filter(Faculty.user_id == hod_id).first()
     if faculty:
         db.delete(faculty)
-    
+
+    # Delete session token
+    from app.models.session_token import SessionToken
+    session = db.query(SessionToken).filter(
+        SessionToken.user_id == hod_id
+    ).first()
+    if session:
+        db.delete(session)
+
     # Delete user
     db.delete(user)
     db.commit()
@@ -406,7 +414,7 @@ def generate_hod_qr(
     
     # Generate token
     token = str(uuid.uuid4())
-    expiry = datetime.utcnow() + timedelta(minutes=5)
+    expiry = datetime.utcnow() + timedelta(minutes=1)
     
     onboarding_token = OnboardingToken(
         token=token,
@@ -423,5 +431,5 @@ def generate_hod_qr(
         "hod_id": hod_id,
         "hod_name": user.name,
         "expires_at": expiry.isoformat(),
-        "expires_in_minutes": 5
+        "expires_in_minutes": 1
     }

@@ -428,6 +428,15 @@ def delete_faculty(
     if active_sessions:
         db.commit()
 
+    # Delete session token
+    from app.models.session_token import SessionToken
+    if faculty.user_id:
+        session = db.query(SessionToken).filter(
+            SessionToken.user_id == faculty.user_id
+        ).first()
+        if session:
+            db.delete(session)
+
     # Delete associated user account
     user = db.query(User).filter(User.id == faculty.user_id).first()
     if user:
@@ -492,7 +501,7 @@ def generate_faculty_qr(
     return {
         "token": token,
         "faculty_id": faculty_id,
-        "expires_in": 300  # seconds
+        "expires_in": 60  # seconds
     }
 
 
@@ -683,9 +692,6 @@ def get_system_reports(
 
     total_absent = max(total_possible - total_present, 0)
     avg_attendance = round((total_present / total_possible * 100), 1) if total_possible > 0 else 0
-
-    total_absent = max(total_possible - total_present, 0)
-    avg_attendance = (total_present / total_possible * 100) if total_possible > 0 else 0
     
     # Complaints stats — filter by dept students if needed
     complaint_query_base = db.query(Complaint).filter(

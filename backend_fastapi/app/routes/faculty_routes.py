@@ -170,7 +170,7 @@ def generate_faculty_qr(payload: dict, db: Session = Depends(get_db)):
         token=token,
         role="faculty",
         target_id=faculty_id,
-        expiry_time=datetime.utcnow() + timedelta(minutes=10),
+        expiry_time=datetime.utcnow() + timedelta(minutes=1),
         used=False,
     )
 
@@ -186,7 +186,7 @@ def generate_faculty_qr(payload: dict, db: Session = Depends(get_db)):
         "qr_data": qr_data,
         "token": token,
         "faculty_id": faculty_id,
-        "expires_in_minutes": 10,
+        "expires_in_minutes": 1,
     }
 
 
