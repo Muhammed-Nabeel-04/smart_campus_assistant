@@ -36,6 +36,14 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
   String? _pickerSection;
   final List<Map<String, String>> _assignments = [];
 
+  // CC
+  bool _isCc = false;
+  String? _ccYear;
+  String? _ccSection;
+  int? _ccClassId;
+
+  Map<String, List<String>> _sectionsByYear = {};
+
   @override
   void initState() {
     super.initState();
@@ -53,18 +61,24 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
       // Load all departments for assignment picker
       final data = await ApiService.getDepartments();
       // Load sections for HOD's department
-      List<String> sections = [];
+      Map<String, List<String>> sectionsByYear = {};
       try {
-        sections = await ApiService.getHODSections();
+        sectionsByYear = await ApiService.getHODSections();
       } catch (_) {}
 
       if (mounted) {
         setState(() {
+          _sectionsByYear = sectionsByYear;
           _selectedDepartment = deptCode;
           _hodDepartmentName = deptName;
           _pickerDept = deptCode;
           _departments = List<Map<String, dynamic>>.from(data);
-          _sections = sections.isNotEmpty ? sections : ['A', 'B', 'C'];
+          // Flatten all sections across all years for assignment picker
+          final allSections = sectionsByYear.values
+              .expand((s) => s)
+              .toSet()
+              .toList();
+          _sections = allSections.isNotEmpty ? allSections : ['A', 'B', 'C'];
           _loadingDepts = false;
         });
       }
@@ -119,17 +133,32 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
 
   Future<void> _loadSectionsForDept(String deptCode) async {
     try {
-      final depts = await ApiService.getPrincipalDepartments();
-      final dept = depts.firstWhere(
-        (d) => d['code'].toString().toLowerCase() == deptCode.toLowerCase(),
-        orElse: () => {},
-      );
-      if (dept.isEmpty) return;
-      final sections = await ApiService.getDepartmentSections(dept['id']);
-      if (mounted && sections.isNotEmpty) {
-        setState(() => _sections = sections);
+      // Load per-year sections from HOD
+      final sectionsByYear = await ApiService.getHODSections();
+      // Use sections for currently selected year, or flatten all
+      final yearSections = _pickerYear != null
+          ? (sectionsByYear[_pickerYear] ?? [])
+          : sectionsByYear.values.expand((s) => s).toSet().toList();
+      if (mounted && yearSections.isNotEmpty) {
+        setState(() => _sections = yearSections);
       }
     } catch (_) {}
+  }
+
+  Future<int?> _findClassId(String year, String section) async {
+    try {
+      final hodDept = await ApiService.getHODDepartment();
+      final deptId = hodDept['department_id'];
+      if (deptId == null) return null;
+      final classes = await ApiService.getClassesByDepartment(deptId);
+      final cls = (classes as List).firstWhere(
+        (c) => c['year'] == year && c['section'] == section,
+        orElse: () => {},
+      );
+      return cls.isEmpty ? null : cls['id'];
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _handleSubmit() async {
@@ -142,7 +171,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      await ApiService.createFaculty({
+      final result = await ApiService.createFaculty({
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'employee_id': _employeeIdController.text.trim(),
@@ -150,6 +179,17 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
         'phone': _phoneController.text.trim(),
         'teaching_assignments': _assignments,
       });
+      // Set CC if enabled
+      if (_isCc && _ccClassId != null) {
+        final facultyId = result['id'] ?? result['faculty_id'];
+        if (facultyId != null) {
+          await ApiService.setCCFaculty(
+            facultyId: facultyId,
+            isCc: true,
+            ccClassId: _ccClassId,
+          );
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -510,6 +550,99 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                         )
                         .toList(),
                   ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            _card(
+              title: 'Class Coordinator (CC)',
+              icon: Icons.stars_outlined,
+              cs: cs,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Assign as Class Coordinator',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                          Text(
+                            'CC can manage timetable for their class',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: cs.onSurface.withOpacity(0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _isCc,
+                      onChanged: (v) => setState(() {
+                        _isCc = v;
+                        if (!v) {
+                          _ccYear = null;
+                          _ccSection = null;
+                          _ccClassId = null;
+                        }
+                      }),
+                    ),
+                  ],
+                ),
+                if (_isCc) ...[
+                  const SizedBox(height: 16),
+                  _secLabel('CC YEAR', cs),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _years
+                        .map(
+                          (y) => _selChip(
+                            y,
+                            _ccYear == y,
+                            () => setState(() {
+                              _ccYear = y;
+                              _ccSection = null;
+                              _ccClassId = null;
+                            }),
+                            cs,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  if (_ccYear != null) ...[
+                    _secLabel('CC SECTION', cs),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: (_sectionsByYear[_ccYear] ?? [])
+                          .map(
+                            (
+                              s,
+                            ) => _selChip('Sec $s', _ccSection == s, () async {
+                              setState(() => _ccSection = s);
+                              final classId = await _findClassId(_ccYear!, s);
+                              if (mounted) setState(() => _ccClassId = classId);
+                            }, cs),
+                          )
+                          .toList(),
+                    ),
+                    if (_ccClassId == null && _ccSection != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          '⚠ This class has no students yet. CC will be set after class is created.',
+                          style: TextStyle(color: cs.error, fontSize: 12),
+                        ),
+                      ),
+                  ],
                 ],
               ],
             ),

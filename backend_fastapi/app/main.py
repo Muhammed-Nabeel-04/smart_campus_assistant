@@ -57,6 +57,9 @@ from app.routes.hod_setup_routes import router as hod_router
 from app.routes.principal_setup_routes import router as principal_setup_router
 from app.routes.principal_routes import router as principal_router
 
+from app.models.timetable import TimetableSlot, TimetablePDF
+from app.routes.timetable_routes import router as timetable_router
+
 # ── Auth dependency ──
 from app.services.deps import get_current_user
 
@@ -108,6 +111,7 @@ app.include_router(
     principal_router,
     dependencies=[Depends(get_current_user)]
 )
+app.include_router(timetable_router)
 
 # ── Root route ──
 @app.get("/")

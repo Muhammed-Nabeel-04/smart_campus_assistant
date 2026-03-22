@@ -301,9 +301,9 @@ def get_faculty_stats(
         AttendanceSession.status == "ended"
     ).count()
 
-    from datetime import timedelta
+    from datetime import timedelta, time
     today = datetime.utcnow().date()
-    week_start = today - timedelta(days=today.weekday())  # Monday
+    week_start = today - timedelta(days=today.weekday())
 
     sessions_this_week = db.query(AttendanceSession).filter(
         AttendanceSession.faculty_id == faculty_id,
@@ -319,21 +319,17 @@ def get_faculty_stats(
     total_students = 0
     if raw and raw[0]:
         try:
+            import json
             assignments = json.loads(raw[0])
             for a in assignments:
-                dept = db.query(Department).filter(
-                    Department.code == a.get("department")
-                ).first()
-                if dept:
-                    total_students += db.query(Student).filter(
-                        Student.department.ilike(a.get("department")),
-                        Student.year == a.get("year"),
-                        Student.section == a.get("section"),
-                    ).count()
+                total_students += db.query(Student).filter(
+                    Student.department.ilike(a.get("department")),
+                    Student.year == a.get("year"),
+                    Student.section == a.get("section"),
+                ).count()
         except Exception:
             total_students = 0
 
-    # Get all ended sessions for this faculty
     ended_sessions = db.query(AttendanceSession).filter(
         AttendanceSession.faculty_id == faculty_id,
         AttendanceSession.status == "ended",
@@ -344,45 +340,44 @@ def get_faculty_stats(
     avg_attendance = 0
 
     for session in ended_sessions:
-        # Get student count for THIS specific class
-        cls = db.query(ClassModel).filter(
-            ClassModel.id == session.class_id
-        ).first()
+        cls = db.query(ClassModel).filter(ClassModel.id == session.class_id).first()
         if not cls:
             continue
-
-        dept = db.query(Department).filter(
-            Department.id == cls.department_id
-        ).first()
+        dept = db.query(Department).filter(Department.id == cls.department_id).first()
         if not dept:
             continue
-
         class_student_count = db.query(Student).filter(
             Student.department.ilike(dept.code),
             Student.year == cls.year,
             Student.section == cls.section,
         ).count()
-
         if class_student_count == 0:
             continue
-
         present_in_session = db.query(Attendance).filter(
             Attendance.session_id == session.id,
             Attendance.status == "present"
         ).count()
-
         total_present += present_in_session
         total_possible += class_student_count
 
     if total_possible > 0:
         avg_attendance = round((total_present / total_possible) * 100, 2)
 
+    # CC info
+    faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
+    is_cc = faculty.is_cc if faculty else False
+    cc_class_id = faculty.cc_class_id if faculty else None
+
     return {
         "total_sessions": total_sessions,
         "this_week_sessions": sessions_this_week,
         "total_students": total_students,
         "average_attendance": avg_attendance,
+        "is_cc": is_cc,
+        "cc_class_id": cc_class_id,
     }
+
+
 @router.get("/{faculty_id}/active-sessions")
 def get_active_sessions(faculty_id: int, db: Session = Depends(get_db)):
     sessions = db.query(AttendanceSession).filter(

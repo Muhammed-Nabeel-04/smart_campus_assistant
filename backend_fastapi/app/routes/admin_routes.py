@@ -901,3 +901,38 @@ def change_hod_email(
     user.email = payload.new_email
     db.commit()
     return {"message": "Email updated successfully"}
+
+# ── Set/Unset CC ──────────────────────────────────────────────
+class SetCCPayload(BaseModel):
+    is_cc: bool
+    cc_class_id: Optional[int] = None
+
+@router.put("/faculty/{faculty_id}/set-cc")
+def set_faculty_cc(
+    faculty_id: int,
+    payload: SetCCPayload,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="HOD access required")
+
+    faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+
+    # If assigning CC, unset any existing CC for this class
+    if payload.is_cc and payload.cc_class_id:
+        existing_cc = db.query(Faculty).filter(
+            Faculty.cc_class_id == payload.cc_class_id,
+            Faculty.is_cc == True,
+            Faculty.id != faculty_id,
+        ).first()
+        if existing_cc:
+            existing_cc.is_cc = False
+            existing_cc.cc_class_id = None
+
+    faculty.is_cc = payload.is_cc
+    faculty.cc_class_id = payload.cc_class_id if payload.is_cc else None
+    db.commit()
+    return {"message": "CC status updated", "is_cc": faculty.is_cc}

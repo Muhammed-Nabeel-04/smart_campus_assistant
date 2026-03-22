@@ -185,7 +185,9 @@ def get_hod_department(
 
     return {
         "department": department,
+        "department_code": department,
         "department_name": dept_name,
+        "department_id": dept.id if dept else None,
         "email": user.email,
         "name": user.name
     }
@@ -401,7 +403,7 @@ def update_class_semester(
         "semester": payload.semester,
     }
 
-# ── Get HOD department sections ───────────────────────────────
+# ── Get HOD department sections (per year) ────────────────────
 @router.get("/sections")
 def get_hod_sections(
     current_user: dict = Depends(get_current_user),
@@ -416,18 +418,22 @@ def get_hod_sections(
         raise HTTPException(status_code=404, detail="Department not found")
     import json
     try:
-        sections = json.loads(dept.sections or "[]")
+        data = json.loads(dept.sections or "{}")
+        # Handle old format (list) — migrate to per-year
+        if isinstance(data, list):
+            years = ["1st Year", "2nd Year", "3rd Year", "4th Year"]
+            data = {year: data for year in years}
     except Exception:
-        sections = []
-    return {"sections": sections}
+        data = {}
+    return {"sections_by_year": data}
 
-# ── Update HOD department sections ────────────────────────────
-class SectionsPayload(BaseModel):
-    sections: List[str]
+# ── Update HOD department sections (per year) ─────────────────
+class SectionsByYearPayload(BaseModel):
+    sections_by_year: dict
 
 @router.put("/sections")
 def update_hod_sections(
-    payload: SectionsPayload,
+    payload: SectionsByYearPayload,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -439,9 +445,9 @@ def update_hod_sections(
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
     import json
-    dept.sections = json.dumps(payload.sections)
+    dept.sections = json.dumps(payload.sections_by_year)
     db.commit()
-    return {"message": "Sections updated", "sections": payload.sections}
+    return {"message": "Sections updated", "sections_by_year": payload.sections_by_year}
 
 class UpdateSubjectPayload(BaseModel):
     name: Optional[str] = None
@@ -471,3 +477,54 @@ def update_hod_subject(
 
     db.commit()
     return {"message": "Subject updated successfully"}
+
+# ── Get period timings ────────────────────────────────────────
+@router.get("/period-timings")
+def get_period_timings(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="HOD access required")
+    dept = db.query(Department).filter(
+        Department.hod_user_id == current_user["user_id"]
+    ).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    import json
+    try:
+        timings = json.loads(dept.period_timings or "[]")
+    except Exception:
+        timings = []
+    # Default 5 periods if none set
+    if not timings:
+        timings = [
+            {"period": 1, "start": "09:00", "end": "10:00"},
+            {"period": 2, "start": "10:00", "end": "11:00"},
+            {"period": 3, "start": "11:00", "end": "12:00"},
+            {"period": 4, "start": "13:00", "end": "14:00"},
+            {"period": 5, "start": "14:00", "end": "15:00"},
+        ]
+    return {"period_timings": timings}
+
+# ── Update period timings ─────────────────────────────────────
+class PeriodTimingsPayload(BaseModel):
+    period_timings: list
+
+@router.put("/period-timings")
+def update_period_timings(
+    payload: PeriodTimingsPayload,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="HOD access required")
+    dept = db.query(Department).filter(
+        Department.hod_user_id == current_user["user_id"]
+    ).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    import json
+    dept.period_timings = json.dumps(payload.period_timings)
+    db.commit()
+    return {"message": "Period timings updated", "period_timings": payload.period_timings}

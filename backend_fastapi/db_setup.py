@@ -1,4 +1,7 @@
 from app.database import engine, Base
+from app.models.onboarding_token import OnboardingToken
+from app.models.session_token import SessionToken
+from app.models.timetable import TimetableSlot, TimetablePDF
 import app.models.user, app.models.student, app.models.faculty
 import app.models.subject, app.models.department, app.models.class_model
 import app.models.class_subject, app.models.attendance, app.models.attendance_session
@@ -23,7 +26,11 @@ MIGRATIONS = [
     ('subjects',       'ALTER TABLE subjects ADD COLUMN year TEXT'),
     ('subjects',       'ALTER TABLE subjects ADD COLUMN semester TEXT'),
     ('session_tokens', 'ALTER TABLE session_tokens ADD COLUMN user_id INTEGER'),
-    ('complaints', 'ALTER TABLE complaints ADD COLUMN escalated_to_principal INTEGER DEFAULT 0'),
+    ('complaints',     'ALTER TABLE complaints ADD COLUMN escalated_to_principal INTEGER DEFAULT 0'),
+    ('departments',    'ALTER TABLE departments ADD COLUMN sections TEXT'),
+    ('faculty',        'ALTER TABLE faculty ADD COLUMN is_cc INTEGER DEFAULT 0'),
+    ('faculty',        'ALTER TABLE faculty ADD COLUMN cc_class_id INTEGER'),
+    ('departments',    'ALTER TABLE departments ADD COLUMN period_timings TEXT'),
 ]
 
 for label, sql in MIGRATIONS:

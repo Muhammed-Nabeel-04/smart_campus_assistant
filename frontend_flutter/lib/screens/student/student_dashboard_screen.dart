@@ -38,7 +38,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           setState(() => _currentIndex = 0);
           return false;
         }
-
         final exitApp = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -56,7 +55,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ],
           ),
         );
-
         if (exitApp == true) exit(0);
         return false;
       },
@@ -163,12 +161,15 @@ class _HomeTabState extends State<_HomeTab>
     with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _stats;
   Map<String, dynamic>? _activeSession;
+  Map<String, dynamic>? _nextSlot;
   bool _isLoading = true;
   late AnimationController _blinkController;
   late Animation<double> _blinkAnim;
   Timer? _pollTimer;
   Timer? _notificationTimer;
+  Timer? _nextSlotTimer;
   int _lastNotificationCount = -1;
+  bool _alertSent = false;
 
   @override
   void initState() {
@@ -185,6 +186,9 @@ class _HomeTabState extends State<_HomeTab>
     _notificationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) _checkNewNotifications();
     });
+    _nextSlotTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      if (mounted) _loadNextSlot();
+    });
   }
 
   @override
@@ -192,6 +196,7 @@ class _HomeTabState extends State<_HomeTab>
     _blinkController.dispose();
     _pollTimer?.cancel();
     _notificationTimer?.cancel();
+    _nextSlotTimer?.cancel();
     super.dispose();
   }
 
@@ -228,6 +233,33 @@ class _HomeTabState extends State<_HomeTab>
     } catch (_) {}
   }
 
+  Future<void> _loadNextSlot() async {
+    try {
+      final slot = await ApiService.getNextSlotStudent(
+        SessionManager.studentId!,
+      );
+      if (mounted) {
+        setState(() => _nextSlot = slot.isNotEmpty ? slot : null);
+        _checkAndAlert(slot);
+      }
+    } catch (_) {}
+  }
+
+  void _checkAndAlert(Map<String, dynamic> slot) {
+    if (slot.isEmpty) return;
+    final minutesUntil = slot['minutes_until'] as int? ?? 999;
+    if (minutesUntil <= 15 && minutesUntil > 0 && !_alertSent) {
+      _alertSent = true;
+      NotificationService.showNotification(
+        id: DateTime.now().millisecondsSinceEpoch,
+        title: '📚 Class Starting Soon',
+        body:
+            '${slot['subject_name']} by ${slot['faculty_name']} in $minutesUntil min',
+      );
+    }
+    if (minutesUntil <= 0) _alertSent = false;
+  }
+
   Future<void> _loadStats() async {
     try {
       final stats = await ApiService.getStudentAttendance(
@@ -242,6 +274,7 @@ class _HomeTabState extends State<_HomeTab>
         }
       } catch (_) {}
       await _checkActiveSession();
+      await _loadNextSlot();
       if (mounted) {
         setState(() {
           _stats = stats;
@@ -264,7 +297,6 @@ class _HomeTabState extends State<_HomeTab>
 
     final overallPercentage = (_stats?['overall_percentage'] ?? 0.0) as num;
     final isGood = overallPercentage >= 75;
-    final attendanceColor = isGood ? const Color(0xFF4CAF50) : cs.error;
 
     return RefreshIndicator(
       onRefresh: _loadStats,
@@ -272,6 +304,9 @@ class _HomeTabState extends State<_HomeTab>
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // ── Next Class Card ───────────────────────────────
+          if (_nextSlot != null) _buildNextClassCard(cs),
+
           // ── Active Session Banner ─────────────────────────
           if (_activeSession?['active'] == true)
             GestureDetector(
@@ -466,7 +501,481 @@ class _HomeTabState extends State<_HomeTab>
             ],
           ),
 
-          const SizedBox(height: 80), // Space for FAB
+          const SizedBox(height: 80),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNextClassCard(ColorScheme cs) {
+    final slot = _nextSlot!;
+    final minutesUntil = slot['minutes_until'] as int? ?? 0;
+    final isUrgent = minutesUntil <= 15;
+    final isBlinking = minutesUntil <= 5 && minutesUntil > 0;
+    final color = isUrgent ? const Color(0xFFF44336) : cs.primary;
+
+    String timeLabel;
+    if (minutesUntil <= 0) {
+      timeLabel = 'Now';
+    } else if (minutesUntil < 60) {
+      timeLabel = 'In ${minutesUntil}m';
+    } else {
+      final h = minutesUntil ~/ 60;
+      final m = minutesUntil % 60;
+      timeLabel = m > 0 ? 'In ${h}h ${m}m' : 'In ${h}h';
+    }
+
+    final card = Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.4)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.school_outlined, color: color, size: 26),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Next Class',
+                      style: TextStyle(
+                        color: cs.onSurface.withOpacity(0.5),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        timeLabel,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  slot['subject_name'] ?? 'Unknown',
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${slot['faculty_name']} • ${slot['day_of_week']} ${slot['start_time']}',
+                  style: TextStyle(
+                    color: cs.onSurface.withOpacity(0.6),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // Wrap in GestureDetector to open timetable sheet
+    final tappable = GestureDetector(
+      onTap: () => _showTimetableSheet(cs),
+      child: card,
+    );
+
+    if (isBlinking) {
+      return AnimatedBuilder(
+        animation: _blinkAnim,
+        builder: (context, child) =>
+            Opacity(opacity: _blinkAnim.value, child: tappable),
+      );
+    }
+    return tappable;
+  }
+
+  String _todayName() {
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    return days[DateTime.now().weekday - 1];
+  }
+
+  void _showTimetableSheet(ColorScheme cs) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: cs.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          bool showWeekly = false;
+
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.6,
+            maxChildSize: 0.92,
+            builder: (ctx, scroll) => Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Header ──────────────────────────────
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today, color: cs.primary, size: 22),
+                      const SizedBox(width: 10),
+                      Text(
+                        'My Timetable',
+                        style: TextStyle(
+                          color: cs.onSurface,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(
+                            value: false,
+                            label: Text(
+                              'Today',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          ButtonSegment(
+                            value: true,
+                            label: Text(
+                              'Weekly',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                        selected: {showWeekly},
+                        onSelectionChanged: (v) =>
+                            setSheet(() => showWeekly = v.first),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ── Next class highlight ─────────────────
+                  if (_nextSlot != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: cs.primary.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: cs.primary.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.schedule,
+                              color: cs.primary,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _nextSlot!['subject_name'] ?? '',
+                                  style: TextStyle(
+                                    color: cs.onSurface,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                Text(
+                                  '${_nextSlot!['faculty_name']} • ${_nextSlot!['day_of_week']} ${_nextSlot!['start_time']}',
+                                  style: TextStyle(
+                                    color: cs.onSurface.withOpacity(0.6),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Minutes until badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: cs.primary.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              _nextSlot!['minutes_until'] <= 0
+                                  ? 'Now'
+                                  : 'In ${_nextSlot!['minutes_until']}m',
+                              style: TextStyle(
+                                color: cs.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // ── Timetable list ───────────────────────
+                  Expanded(
+                    child: FutureBuilder<Map<String, dynamic>>(
+                      future:
+                          ApiService.getNextSlotStudent(
+                            SessionManager.studentId!,
+                          ).then((_) async {
+                            // Get student's class timetable
+                            // First find class_id from student profile
+                            try {
+                              final profile =
+                                  await ApiService.getStudentProfile(
+                                    SessionManager.studentId!,
+                                  );
+                              final depts =
+                                  await ApiService.getPrincipalDepartments();
+                              final dept = depts.firstWhere(
+                                (d) =>
+                                    d['code'].toString().toLowerCase() ==
+                                    (profile['department'] ?? '').toLowerCase(),
+                                orElse: () => {},
+                              );
+                              if (dept.isEmpty) return {};
+                              final classes =
+                                  await ApiService.getClassesByDepartment(
+                                    dept['id'],
+                                  );
+                              final cls = (classes as List).firstWhere(
+                                (c) =>
+                                    c['year'] == profile['year'] &&
+                                    c['section'] == profile['section'],
+                                orElse: () => {},
+                              );
+                              if (cls.isEmpty) return {};
+                              return await ApiService.getClassTimetable(
+                                cls['id'],
+                              );
+                            } catch (_) {
+                              return {};
+                            }
+                          }),
+                      builder: (ctx, snap) {
+                        if (snap.connectionState == ConnectionState.waiting) {
+                          return Center(
+                            child: CircularProgressIndicator(color: cs.primary),
+                          );
+                        }
+
+                        final slots =
+                            (snap.data?['slots'] as Map<String, dynamic>?) ??
+                            {};
+                        final today = _todayName();
+                        final days = showWeekly
+                            ? [
+                                'Monday',
+                                'Tuesday',
+                                'Wednesday',
+                                'Thursday',
+                                'Friday',
+                                'Saturday',
+                              ]
+                            : [today];
+
+                        final hasAny = days.any(
+                          (d) => (slots[d] as List?)?.isNotEmpty == true,
+                        );
+
+                        if (snap.data == null ||
+                            snap.data!.isEmpty ||
+                            !hasAny) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.event_busy_outlined,
+                                  size: 60,
+                                  color: cs.onSurface.withOpacity(0.2),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  showWeekly
+                                      ? 'No classes this week'
+                                      : 'No classes today',
+                                  style: TextStyle(
+                                    color: cs.onSurface.withOpacity(0.5),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        return ListView(
+                          controller: scroll,
+                          children: days.map((day) {
+                            final daySlots = (slots[day] as List?) ?? [];
+                            if (daySlots.isEmpty) {
+                              return const SizedBox();
+                            }
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Day label
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: 8,
+                                    top: 4,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: day == today
+                                          ? cs.primary
+                                          : cs.onSurface.withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      day == today ? 'Today' : day,
+                                      style: TextStyle(
+                                        color: day == today
+                                            ? cs.onPrimary
+                                            : cs.onSurface.withOpacity(0.6),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Slots
+                                ...daySlots.map(
+                                  (slot) => _buildStudentSlotTile(slot, cs),
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStudentSlotTile(Map<String, dynamic> slot, ColorScheme cs) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.onSurface.withOpacity(0.08)),
+      ),
+      child: Row(
+        children: [
+          // Time
+          Column(
+            children: [
+              Text(
+                slot['start_time'] ?? '',
+                style: TextStyle(
+                  color: cs.primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                slot['end_time'] ?? '',
+                style: TextStyle(
+                  color: cs.onSurface.withOpacity(0.4),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Container(width: 1, height: 36, color: cs.onSurface.withOpacity(0.1)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  slot['subject_name'] ?? '',
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  '${slot['faculty_name']}${slot['room'] != null ? ' • ${slot['room']}' : ''}',
+                  style: TextStyle(
+                    color: cs.onSurface.withOpacity(0.5),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -279,7 +279,6 @@ class _PrincipalDepartmentManagementScreenState
                         ),
                         onSelected: (val) {
                           if (val == 'edit') _showEditDialog(dept);
-                          if (val == 'sections') _showEditSectionsDialog(dept);
                           if (val == 'delete') _deleteDepartment(dept);
                         },
                         itemBuilder: (ctx) => [
@@ -293,16 +292,7 @@ class _PrincipalDepartmentManagementScreenState
                               ],
                             ),
                           ),
-                          const PopupMenuItem(
-                            value: 'sections',
-                            child: Row(
-                              children: [
-                                Icon(Icons.grid_view_outlined, size: 20),
-                                SizedBox(width: 10),
-                                Text('Edit Sections'),
-                              ],
-                            ),
-                          ),
+
                           PopupMenuItem(
                             value: 'delete',
                             child: Row(

@@ -60,6 +60,7 @@ import 'screens/principal/principal_add_hod_screen.dart';
 import 'screens/principal/principal_hod_details_screen.dart';
 import 'screens/principal/principal_generate_hod_qr_screen.dart';
 import 'screens/principal/principal_profile_screen.dart';
+import 'screens/faculty/cc_timetable_editor_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -377,6 +378,15 @@ class _SmartCampusAppState extends State<SmartCampusApp> {
 
         '/principalProfile': (context) => const PrincipalProfileScreen(),
         '/principalComplaints': (context) => const PrincipalComplaintsScreen(),
+        '/ccTimetableEditor': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return CCTimetableEditorScreen(
+            classId: args['class_id'],
+            facultyId: args['faculty_id'],
+          );
+        },
       },
     );
   }

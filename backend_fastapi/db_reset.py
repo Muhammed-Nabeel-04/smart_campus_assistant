@@ -1,6 +1,9 @@
 import os
 import shutil
 import sqlite3
+from app.models.onboarding_token import OnboardingToken
+from app.models.session_token import SessionToken
+from app.models.timetable import TimetableSlot, TimetablePDF
 
 # ── 1. Clear pycache ──────────────────────────────────────────────
 for root, dirs, files in os.walk('.'):
@@ -26,6 +29,8 @@ if os.path.exists('campus.db'):
         conn.execute("DELETE FROM attendance_sessions")
         conn.execute("DELETE FROM notifications")
         conn.execute("DELETE FROM complaints")
+        conn.execute("DELETE FROM timetable_slots")
+        conn.execute("DELETE FROM timetable_pdfs")
         conn.commit()
         conn.close()
         print('✅ All data cleaned!')

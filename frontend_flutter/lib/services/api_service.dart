@@ -1523,33 +1523,41 @@ class ApiService {
     }
   }
 
-  // ── Get HOD sections ──────────────────────────────────────────
-  static Future<List<String>> getHODSections() async {
+  // Returns {"1st Year": ["A","B"], "2nd Year": ["A","B","C"], ...}
+  static Future<Map<String, List<String>>> getHODSections() async {
     try {
       final response = await http
           .get(Uri.parse("$_baseUrl/hod/sections"), headers: _authHeadersGet)
           .timeout(_timeout);
       final data = _handleResponse(response) as Map<String, dynamic>;
-      return List<String>.from(data['sections'] ?? []);
+      final raw = data['sections_by_year'] as Map<String, dynamic>? ?? {};
+      return raw.map((k, v) => MapEntry(k, List<String>.from(v ?? [])));
     } catch (e) {
-      throw _handleError(e);
+      return {};
     }
   }
 
-  // ── Update HOD sections ───────────────────────────────────────
-  static Future<void> updateHODSections(List<String> sections) async {
+  static Future<void> updateHODSections(
+    Map<String, List<String>> sectionsByYear,
+  ) async {
     try {
       final response = await http
           .put(
             Uri.parse("$_baseUrl/hod/sections"),
             headers: _authHeaders,
-            body: jsonEncode({'sections': sections}),
+            body: jsonEncode({'sections_by_year': sectionsByYear}),
           )
           .timeout(_timeout);
       _handleResponse(response);
     } catch (e) {
       throw _handleError(e);
     }
+  }
+
+  // Get sections for a specific year
+  static Future<List<String>> getSectionsForYear(String year) async {
+    final all = await getHODSections();
+    return all[year] ?? [];
   }
 
   // ── Get sections for any department (by code) ─────────────────
@@ -1630,6 +1638,245 @@ class ApiService {
       return _handleResponse(response) as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
+    }
+  }
+
+  // ── Timetable ─────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getClassTimetable(int classId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/timetable/class/$classId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> getFacultyTimetable(int facultyId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/timetable/faculty/$facultyId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> getNextSlotFaculty(int facultyId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/timetable/next-slot/faculty/$facultyId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getNextSlotStudent(int studentId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/timetable/next-slot/student/$studentId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  static Future<void> createTimetableSlot({
+    required int classId,
+    required int subjectId,
+    required int facultyId,
+    required String dayOfWeek,
+    required String startTime,
+    required String endTime,
+    String? room,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/timetable/slots"),
+            headers: _authHeaders,
+            body: jsonEncode({
+              'class_id': classId,
+              'subject_id': subjectId,
+              'faculty_id': facultyId,
+              'day_of_week': dayOfWeek,
+              'start_time': startTime,
+              'end_time': endTime,
+              if (room != null) 'room': room,
+            }),
+          )
+          .timeout(_timeout);
+      _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<void> deleteTimetableSlot(int slotId) async {
+    try {
+      final response = await http
+          .delete(
+            Uri.parse("$_baseUrl/timetable/slots/$slotId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<void> uploadTimetablePDF({
+    required int classId,
+    required String fileData,
+    required String fileName,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/timetable/pdf"),
+            headers: _authHeaders,
+            body: jsonEncode({
+              'class_id': classId,
+              'file_data': fileData,
+              'file_name': fileName,
+            }),
+          )
+          .timeout(_timeout);
+      _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> getTimetablePDF(int classId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/timetable/pdf/$classId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<void> deleteTimetablePDF(int classId) async {
+    try {
+      final response = await http
+          .delete(
+            Uri.parse("$_baseUrl/timetable/pdf/$classId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ── Period Timings ────────────────────────────────────────────
+  static Future<List<Map<String, dynamic>>> getPeriodTimings() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/hod/period-timings"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      final data = _handleResponse(response) as Map<String, dynamic>;
+      return List<Map<String, dynamic>>.from(data['period_timings'] ?? []);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<void> updatePeriodTimings(
+    List<Map<String, dynamic>> timings,
+  ) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse("$_baseUrl/hod/period-timings"),
+            headers: _authHeaders,
+            body: jsonEncode({'period_timings': timings}),
+          )
+          .timeout(_timeout);
+      _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ── CC ────────────────────────────────────────────────────────
+  static Future<Map<String, dynamic>> setCCFaculty({
+    required int facultyId,
+    required bool isCc,
+    int? ccClassId,
+  }) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse("$_baseUrl/admin/faculty/$facultyId/set-cc"),
+            headers: _authHeaders,
+            body: jsonEncode({
+              'is_cc': isCc,
+              if (ccClassId != null) 'cc_class_id': ccClassId,
+            }),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> getCCClass(int facultyId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/timetable/faculty/$facultyId/cc-class"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      return {'is_cc': false};
+    }
+  }
+
+  // ── Timetable Grid ────────────────────────────────────────────
+  static Future<Map<String, dynamic>> getClassTimetableGrid(int classId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/timetable/class/$classId/grid"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      return {};
     }
   }
 }

@@ -13,3 +13,4 @@ class Department(Base):
     sections = Column(Text, nullable=True)  # JSON array e.g. ["A","B","C"]
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    period_timings = Column(Text, nullable=True)  # JSON: [{"period":1,"start":"09:00","end":"10:00"}]

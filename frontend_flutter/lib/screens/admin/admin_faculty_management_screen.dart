@@ -146,9 +146,35 @@ class _AdminFacultyManagementScreenState
             ),
           ),
         ),
-        title: Text(
-          faculty['name'],
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            Text(
+              faculty['name'],
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            if (faculty['is_cc'] == true) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00BCD4).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: const Color(0xFF00BCD4).withOpacity(0.5),
+                  ),
+                ),
+                child: const Text(
+                  'CC',
+                  style: TextStyle(
+                    color: Color(0xFF00BCD4),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
