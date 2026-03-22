@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from passlib.hash import bcrypt
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, date
@@ -96,13 +97,40 @@ def get_admin_stats(
     if current_user['role'] not in ['admin', 'principal']:
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    # Count totals
-    total_faculty = db.query(Faculty).count()
-    total_students = db.query(Student).count()
-    total_departments = db.query(Department).count()
-    pending_complaints = db.query(Complaint).filter(
-        Complaint.status == 'pending'
-    ).count()
+    # Count totals — HOD sees only their department
+    hod_dept = None
+    if current_user['role'] == 'admin':
+        dept = db.query(Department).filter(
+            Department.hod_user_id == current_user['user_id']
+        ).first()
+        if dept:
+            hod_dept = dept
+
+    if hod_dept:
+        # HOD — filter by their department
+        total_faculty = db.query(Faculty).filter(
+            Faculty.department.ilike(hod_dept.code)
+        ).count()
+        total_students = db.query(Student).filter(
+            Student.department.ilike(hod_dept.code)
+        ).count()
+        total_departments = 1
+        pending_complaints = db.query(Complaint).filter(
+            Complaint.status == 'pending',
+            Complaint.student_id.in_([
+                s.id for s in db.query(Student).filter(
+                    Student.department.ilike(hod_dept.code)
+                ).all()
+            ])
+        ).count()
+    else:
+        # Principal — all departments
+        total_faculty = db.query(Faculty).count()
+        total_students = db.query(Student).count()
+        total_departments = db.query(Department).count()
+        pending_complaints = db.query(Complaint).filter(
+            Complaint.status == 'pending'
+        ).count()
     
     # Active sessions today
     today = date.today()
@@ -816,3 +844,60 @@ def get_system_reports(
         "top_department": top_department,
         "lowest_attendance_class": lowest_class,
     }
+
+    # ── Change HOD Password (with current password verification) ──
+class HODChangePasswordPayload(BaseModel):
+    current_password: str
+    new_password: str
+
+@router.post("/admin/hod/change-password-verified")
+def change_hod_password_verified(
+    payload: HODChangePasswordPayload,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="HOD access required")
+
+    user = db.query(User).filter(User.id == current_user["user_id"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not user.password or not bcrypt.verify(payload.current_password, user.password):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    user.password = bcrypt.hash(payload.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
+# ── Change HOD Email ──────────────────────────────────────────
+class HODChangeEmailPayload(BaseModel):
+    new_email: str
+    password: str
+
+@router.post("/admin/hod/change-email")
+def change_hod_email(
+    payload: HODChangeEmailPayload,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="HOD access required")
+
+    user = db.query(User).filter(User.id == current_user["user_id"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not user.password or not bcrypt.verify(payload.password, user.password):
+        raise HTTPException(status_code=401, detail="Incorrect password")
+
+    existing = db.query(User).filter(
+        User.email == payload.new_email,
+        User.id != user.id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already in use")
+
+    user.email = payload.new_email
+    db.commit()
+    return {"message": "Email updated successfully"}

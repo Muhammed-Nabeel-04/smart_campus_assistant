@@ -222,7 +222,7 @@ class _AdminFacultyManagementScreenState
           context,
           '/adminFacultyDetails',
           arguments: faculty,
-        ),
+        ).then((_) => _loadFaculty()),
       ),
     );
   }
@@ -234,7 +234,7 @@ class _AdminFacultyManagementScreenState
           context,
           '/adminFacultyDetails',
           arguments: faculty,
-        );
+        ).then((_) => _loadFaculty());
         break;
       case 'edit':
         Navigator.pushNamed(

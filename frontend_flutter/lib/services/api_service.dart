@@ -1403,6 +1403,235 @@ class ApiService {
       // Ignore errors — clear session regardless
     }
   }
+
+  // ── Get Principal Profile ─────────────────────────────────────
+  static Future<Map<String, dynamic>> getPrincipalProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse("$_baseUrl/principal/profile"),
+        headers: _authHeadersGet,
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) return data;
+      throw ApiException(data['detail'] ?? 'Failed to load profile');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Connection error');
+    }
+  }
+
+  // ── Update Principal Profile ──────────────────────────────────
+  static Future<Map<String, dynamic>> updatePrincipalProfile({
+    String? name,
+    String? phone,
+    String? collegeName,
+    String? collegeCode,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse("$_baseUrl/principal/profile"),
+        headers: _authHeaders,
+        body: jsonEncode({
+          if (name != null) 'name': name,
+          if (phone != null) 'phone': phone,
+          if (collegeName != null) 'college_name': collegeName,
+          if (collegeCode != null) 'college_code': collegeCode,
+        }),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) return data;
+      throw ApiException(data['detail'] ?? 'Failed to update profile');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Connection error');
+    }
+  }
+
+  // ── Change HOD Password (verified) ───────────────────────────
+  static Future<Map<String, dynamic>> changeHODPassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/hod/change-password-verified"),
+            headers: _authHeaders,
+            body: jsonEncode({
+              'current_password': currentPassword,
+              'new_password': newPassword,
+            }),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ── Change HOD Email ──────────────────────────────────────────
+  static Future<Map<String, dynamic>> changeHODEmail({
+    required String newEmail,
+    required String password,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/hod/change-email"),
+            headers: _authHeaders,
+            body: jsonEncode({'new_email': newEmail, 'password': password}),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ── Get department sections (principal) ───────────────────────
+  static Future<List<String>> getDepartmentSections(int deptId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/principal/departments/$deptId/sections"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      final data = _handleResponse(response) as Map<String, dynamic>;
+      return List<String>.from(data['sections'] ?? []);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ── Update department sections (principal) ────────────────────
+  static Future<void> updateDepartmentSections(
+    int deptId,
+    List<String> sections,
+  ) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse("$_baseUrl/principal/departments/$deptId/sections"),
+            headers: _authHeaders,
+            body: jsonEncode({'sections': sections}),
+          )
+          .timeout(_timeout);
+      _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ── Get HOD sections ──────────────────────────────────────────
+  static Future<List<String>> getHODSections() async {
+    try {
+      final response = await http
+          .get(Uri.parse("$_baseUrl/hod/sections"), headers: _authHeadersGet)
+          .timeout(_timeout);
+      final data = _handleResponse(response) as Map<String, dynamic>;
+      return List<String>.from(data['sections'] ?? []);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ── Update HOD sections ───────────────────────────────────────
+  static Future<void> updateHODSections(List<String> sections) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse("$_baseUrl/hod/sections"),
+            headers: _authHeaders,
+            body: jsonEncode({'sections': sections}),
+          )
+          .timeout(_timeout);
+      _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ── Get sections for any department (by code) ─────────────────
+  static Future<List<String>> getSectionsByDeptCode(String deptCode) async {
+    try {
+      final depts = await getPrincipalDepartments();
+      final dept = depts.firstWhere(
+        (d) => d['code'].toString().toLowerCase() == deptCode.toLowerCase(),
+        orElse: () => {},
+      );
+      if (dept.isEmpty || dept['id'] == null) return [];
+      return await getDepartmentSections(dept['id']);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // ── Update HOD Subject ────────────────────────────────────────
+  static Future<Map<String, dynamic>> updateHODSubject({
+    required int subjectId,
+    required String name,
+    required int credits,
+    required String subjectType,
+  }) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse("$_baseUrl/hod/subjects/$subjectId"),
+            headers: _authHeaders,
+            body: jsonEncode({
+              'name': name,
+              'credits': credits,
+              'subject_type': subjectType,
+            }),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ── Change Faculty Password ───────────────────────────────────
+  static Future<Map<String, dynamic>> changeFacultyPassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/faculty/change-password"),
+            headers: _authHeaders,
+            body: jsonEncode({
+              'current_password': currentPassword,
+              'new_password': newPassword,
+            }),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ── Change Faculty Email ──────────────────────────────────────
+  static Future<Map<String, dynamic>> changeFacultyEmail({
+    required String newEmail,
+    required String password,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/faculty/change-email"),
+            headers: _authHeaders,
+            body: jsonEncode({'new_email': newEmail, 'password': password}),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
 }
 
 class ApiException implements Exception {

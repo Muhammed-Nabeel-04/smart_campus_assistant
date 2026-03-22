@@ -16,6 +16,8 @@ from app.models.class_model import ClassModel
 from app.models.onboarding_token import OnboardingToken
 import secrets
 import json
+from passlib.hash import bcrypt
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/faculty", tags=["Faculty"])
 
@@ -295,7 +297,8 @@ def get_faculty_stats(
         raise HTTPException(status_code=403, detail="Access denied")
 
     total_sessions = db.query(AttendanceSession).filter(
-        AttendanceSession.faculty_id == faculty_id
+        AttendanceSession.faculty_id == faculty_id,
+        AttendanceSession.status == "ended"
     ).count()
 
     from datetime import timedelta
@@ -330,29 +333,49 @@ def get_faculty_stats(
         except Exception:
             total_students = 0
 
-    # Only count attendance for THIS faculty's sessions
-    faculty_session_ids = [
-        s.id for s in db.query(AttendanceSession).filter(
-            AttendanceSession.faculty_id == faculty_id,
-            AttendanceSession.status == "ended",
-        ).all()
-    ]
+    # Get all ended sessions for this faculty
+    ended_sessions = db.query(AttendanceSession).filter(
+        AttendanceSession.faculty_id == faculty_id,
+        AttendanceSession.status == "ended",
+    ).all()
 
     total_present = 0
-    total_records = 0
+    total_possible = 0
     avg_attendance = 0
 
-    if faculty_session_ids:
-        total_present = db.query(Attendance).filter(
-            Attendance.session_id.in_(faculty_session_ids),
+    for session in ended_sessions:
+        # Get student count for THIS specific class
+        cls = db.query(ClassModel).filter(
+            ClassModel.id == session.class_id
+        ).first()
+        if not cls:
+            continue
+
+        dept = db.query(Department).filter(
+            Department.id == cls.department_id
+        ).first()
+        if not dept:
+            continue
+
+        class_student_count = db.query(Student).filter(
+            Student.department.ilike(dept.code),
+            Student.year == cls.year,
+            Student.section == cls.section,
+        ).count()
+
+        if class_student_count == 0:
+            continue
+
+        present_in_session = db.query(Attendance).filter(
+            Attendance.session_id == session.id,
             Attendance.status == "present"
         ).count()
 
-        ended_sessions_count = len(faculty_session_ids)
-        total_possible = ended_sessions_count * total_students
+        total_present += present_in_session
+        total_possible += class_student_count
 
-        if total_possible > 0:
-            avg_attendance = round((total_present / total_possible) * 100, 2)
+    if total_possible > 0:
+        avg_attendance = round((total_present / total_possible) * 100, 2)
 
     return {
         "total_sessions": total_sessions,
@@ -360,7 +383,6 @@ def get_faculty_stats(
         "total_students": total_students,
         "average_attendance": avg_attendance,
     }
-
 @router.get("/{faculty_id}/active-sessions")
 def get_active_sessions(faculty_id: int, db: Session = Depends(get_db)):
     sessions = db.query(AttendanceSession).filter(
@@ -447,3 +469,64 @@ def get_recent_sessions(faculty_id: int, db: Session = Depends(get_db)):
         })
 
     return result
+
+# ── Change Faculty Password ───────────────────────────────────
+class FacultyChangePasswordPayload(BaseModel):
+    current_password: str
+    new_password: str
+
+@router.post("/change-password")
+def change_faculty_password(
+    payload: FacultyChangePasswordPayload,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "faculty":
+        raise HTTPException(status_code=403, detail="Faculty access required")
+
+    user = db.query(User).filter(User.id == current_user["user_id"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not user.password or not bcrypt.verify(payload.current_password, user.password):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    user.password = bcrypt.hash(payload.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
+# ── Change Faculty Email ──────────────────────────────────────
+class FacultyChangeEmailPayload(BaseModel):
+    new_email: str
+    password: str
+
+@router.post("/change-email")
+def change_faculty_email(
+    payload: FacultyChangeEmailPayload,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "faculty":
+        raise HTTPException(status_code=403, detail="Faculty access required")
+
+    user = db.query(User).filter(User.id == current_user["user_id"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not user.password or not bcrypt.verify(payload.password, user.password):
+        raise HTTPException(status_code=401, detail="Incorrect password")
+
+    existing = db.query(User).filter(
+        User.email == payload.new_email,
+        User.id != user.id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already in use")
+
+    user.email = payload.new_email
+    # Also update faculty table email
+    faculty = db.query(Faculty).filter(Faculty.user_id == user.id).first()
+    if faculty:
+        faculty.email = payload.new_email
+    db.commit()
+    return {"message": "Email updated successfully"}

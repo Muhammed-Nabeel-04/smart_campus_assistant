@@ -162,7 +162,7 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
                       labelText: 'Principal Email',
-                      hintText: 'principal@college.edu',
+                      hintText: 'Enter your Email',
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (v) {

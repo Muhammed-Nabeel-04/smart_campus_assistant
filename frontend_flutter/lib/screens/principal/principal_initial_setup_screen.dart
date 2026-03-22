@@ -108,11 +108,131 @@ class _PrincipalInitialSetupScreenState
       _showSnack('Code already exists', isError: true);
       return;
     }
-    setState(() {
-      _departments.add({'name': name, 'code': code});
-      _deptNameCtrl.clear();
-      _deptCodeCtrl.clear();
-    });
+    // Show sections dialog before adding
+    _showSectionsDialog(name, code);
+  }
+
+  void _showSectionsDialog(String name, String code) {
+    final cs = Theme.of(context).colorScheme;
+    final List<String> allSections = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    final List<String> selected = ['A', 'B'];
+    final customCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: Text('Sections for $code'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Select sections for $name department:',
+                  style: TextStyle(
+                    color: cs.onSurface.withOpacity(0.6),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: allSections.map((s) {
+                    final isSelected = selected.contains(s);
+                    return GestureDetector(
+                      onTap: () => setD(() {
+                        isSelected ? selected.remove(s) : selected.add(s);
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? cs.primary.withOpacity(0.15)
+                              : cs.surfaceVariant.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isSelected
+                                ? cs.primary
+                                : cs.onSurface.withOpacity(0.1),
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Text(
+                          'Sec $s',
+                          style: TextStyle(
+                            color: isSelected
+                                ? cs.primary
+                                : cs.onSurface.withOpacity(0.7),
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                // Custom section input
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: customCtrl,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: const InputDecoration(
+                          labelText: 'Custom section',
+                          hintText: 'e.g. Z',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () {
+                        final s = customCtrl.text.trim().toUpperCase();
+                        if (s.isNotEmpty && !selected.contains(s)) {
+                          setD(() {
+                            selected.add(s);
+                            customCtrl.clear();
+                          });
+                        }
+                      },
+                      icon: Icon(Icons.add_circle_outline, color: cs.primary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                setState(() {
+                  _departments.add({
+                    'name': name,
+                    'code': code,
+                    'sections': selected.join(','),
+                  });
+                  _deptNameCtrl.clear();
+                  _deptCodeCtrl.clear();
+                });
+              },
+              child: const Text('Add Department'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _handleFinish() async {
@@ -124,7 +244,13 @@ class _PrincipalInitialSetupScreenState
     try {
       await ApiService.createDepartmentsBatch(
         _departments
-            .map((d) => {'name': d['name']!, 'code': d['code']!})
+            .map(
+              (d) => {
+                'name': d['name']!,
+                'code': d['code']!,
+                'sections': d['sections'] ?? 'A,B',
+              },
+            )
             .toList(),
       );
       final prefs = await SharedPreferences.getInstance();
@@ -452,9 +578,23 @@ class _PrincipalInitialSetupScreenState
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              d['name']!,
-              style: const TextStyle(fontWeight: FontWeight.w500),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  d['name']!,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  'Sections: ${d['sections'] ?? 'A,B'}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.5),
+                  ),
+                ),
+              ],
             ),
           ),
           IconButton(

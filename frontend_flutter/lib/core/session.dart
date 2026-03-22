@@ -2,7 +2,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SessionManager {
-  // Keys
+  // ── Keys ──────────────────────────────────────────────────────
   static const String _keyUserId = 'user_id';
   static const String _keyName = 'name';
   static const String _keyEmail = 'email';
@@ -18,7 +18,12 @@ class SessionManager {
   static const String _keyIsLoggedIn = 'is_logged_in';
   static const String _keyLoginTime = 'login_time';
 
-  // In-memory cache
+  // ── Principal extra fields keys ───────────────────────────────
+  static const String _keyPrincipalPhone = 'principal_phone';
+  static const String _keyPrincipalCollegeName = 'principal_college_name';
+  static const String _keyPrincipalCollegeCode = 'principal_college_code';
+
+  // ── In-memory cache ───────────────────────────────────────────
   static int? _userId;
   static String? _name;
   static String? _email;
@@ -32,6 +37,11 @@ class SessionManager {
   static String? _section;
   static String? _registerNumber;
   static DateTime? _loginTime;
+
+  // ── Principal extra fields (in-memory) ───────────────────────
+  static String _principalPhone = '';
+  static String _principalCollegeName = '';
+  static String _principalCollegeCode = '';
 
   // ============================================================================
   // INITIALIZATION
@@ -53,12 +63,17 @@ class SessionManager {
     _section = prefs.getString(_keySection);
     _registerNumber = prefs.getString(_keyRegisterNumber);
 
+    // Principal extra fields
+    _principalPhone = prefs.getString(_keyPrincipalPhone) ?? '';
+    _principalCollegeName = prefs.getString(_keyPrincipalCollegeName) ?? '';
+    _principalCollegeCode = prefs.getString(_keyPrincipalCollegeCode) ?? '';
+
     final loginTimeStr = prefs.getString(_keyLoginTime);
     if (loginTimeStr != null) {
       _loginTime = DateTime.parse(loginTimeStr);
     }
 
-    // ✅ CRITICAL FIX: If user is logged in but has no token, clear session — forces re-login
+    // If user is logged in but has no token → force re-login
     if (_userId != null && _token == null) {
       await clearSession();
     }
@@ -84,7 +99,6 @@ class SessionManager {
   }) async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Update memory
     _userId = userId;
     _name = name;
     _email = email;
@@ -99,7 +113,6 @@ class SessionManager {
     _registerNumber = registerNumber;
     _loginTime = DateTime.now();
 
-    // Save to storage
     await prefs.setInt(_keyUserId, userId);
     await prefs.setString(_keyName, name);
     await prefs.setString(_keyEmail, email);
@@ -107,30 +120,15 @@ class SessionManager {
     await prefs.setBool(_keyIsLoggedIn, true);
     await prefs.setString(_keyLoginTime, _loginTime!.toIso8601String());
 
-    if (token != null) {
-      await prefs.setString(_keyToken, token);
-    }
-    if (studentId != null) {
-      await prefs.setInt(_keyStudentId, studentId);
-    }
-    if (facultyId != null) {
-      await prefs.setInt(_keyFacultyId, facultyId);
-    }
-    if (adminId != null) {
-      await prefs.setInt(_keyAdminId, adminId);
-    }
-    if (department != null) {
-      await prefs.setString(_keyDepartment, department);
-    }
-    if (year != null) {
-      await prefs.setString(_keyYear, year);
-    }
-    if (section != null) {
-      await prefs.setString(_keySection, section);
-    }
-    if (registerNumber != null) {
+    if (token != null) await prefs.setString(_keyToken, token);
+    if (studentId != null) await prefs.setInt(_keyStudentId, studentId);
+    if (facultyId != null) await prefs.setInt(_keyFacultyId, facultyId);
+    if (adminId != null) await prefs.setInt(_keyAdminId, adminId);
+    if (department != null) await prefs.setString(_keyDepartment, department);
+    if (year != null) await prefs.setString(_keyYear, year);
+    if (section != null) await prefs.setString(_keySection, section);
+    if (registerNumber != null)
       await prefs.setString(_keyRegisterNumber, registerNumber);
-    }
   }
 
   // ============================================================================
@@ -140,7 +138,6 @@ class SessionManager {
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Clear memory
     _userId = null;
     _name = null;
     _email = null;
@@ -155,7 +152,8 @@ class SessionManager {
     _registerNumber = null;
     _loginTime = null;
 
-    // ✅ Clear only session keys — preserve hod_setup_done_ flags
+    // Clear session keys — preserve hod_setup_done_ flags
+    // Also preserve principal meta fields (they are profile data, not session)
     await prefs.remove(_keyUserId);
     await prefs.remove(_keyName);
     await prefs.remove(_keyEmail);
@@ -177,7 +175,6 @@ class SessionManager {
   // ============================================================================
 
   static bool isLoggedIn() => _userId != null && _role != null;
-
   static int? get userId => _userId;
   static String? get name => _name;
   static String? get email => _email;
@@ -192,18 +189,21 @@ class SessionManager {
   static String? get registerNumber => _registerNumber;
   static DateTime? get loginTime => _loginTime;
 
+  // Principal extra fields getters
+  static String get principalPhone => _principalPhone;
+  static String get principalCollegeName => _principalCollegeName;
+  static String get principalCollegeCode => _principalCollegeCode;
+
   // Role checks
   static bool isStudent() => _role?.toLowerCase() == 'student';
   static bool isFaculty() => _role?.toLowerCase() == 'faculty';
   static bool isAdmin() => _role?.toLowerCase() == 'admin';
+  static bool isPrincipal() => _role?.toLowerCase() == 'principal';
 
-  // Get display name
+  // Display helpers
   static String get displayName => _name ?? 'Guest';
-
-  // Get role badge
   static String get roleBadge => _role?.toUpperCase() ?? '';
 
-  // Get class display for students
   static String? get classDisplay {
     if (_department == null || _year == null || _section == null) return null;
     return '$_department - $_year - Section $_section';
@@ -213,7 +213,6 @@ class SessionManager {
   // SESSION VALIDATION
   // ============================================================================
 
-  /// Token lasts 30 days — matches backend JWT expiry
   static bool isSessionValid() {
     if (_loginTime == null || _token == null) return false;
     final difference = DateTime.now().difference(_loginTime!);
@@ -254,27 +253,8 @@ class SessionManager {
   }
 
   // ============================================================================
-  // UTILITIES
+  // UPDATE PROFILE
   // ============================================================================
-
-  static Map<String, dynamic> getSessionInfo() {
-    return {
-      'user_id': _userId,
-      'name': _name,
-      'email': _email,
-      'role': _role,
-      'token': _token != null ? '${_token!.substring(0, 20)}...' : null,
-      'student_id': _studentId,
-      'faculty_id': _facultyId,
-      'department': _department,
-      'year': _year,
-      'section': _section,
-      'register_number': _registerNumber,
-      'login_time': _loginTime?.toIso8601String(),
-      'is_logged_in': isLoggedIn(),
-      'is_valid': isSessionValid(),
-    };
-  }
 
   static Future<void> updateProfile({
     String? name,
@@ -282,8 +262,12 @@ class SessionManager {
     String? department,
     String? year,
     String? section,
+    String? phone,
+    String? collegeName,
+    String? collegeCode,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+
     if (name != null) {
       _name = name;
       await prefs.setString(_keyName, name);
@@ -304,5 +288,52 @@ class SessionManager {
       _section = section;
       await prefs.setString(_keySection, section);
     }
+
+    // ── Principal extra fields ─────────────────────────────────
+    if (phone != null) {
+      _principalPhone = phone;
+      await prefs.setString(_keyPrincipalPhone, phone);
+    }
+    if (collegeName != null) {
+      _principalCollegeName = collegeName;
+      await prefs.setString(_keyPrincipalCollegeName, collegeName);
+    }
+    if (collegeCode != null) {
+      _principalCollegeCode = collegeCode;
+      await prefs.setString(_keyPrincipalCollegeCode, collegeCode);
+    }
+  }
+
+  // ── Load principal meta (for profile screen init) ─────────────
+  static Future<Map<String, String>> loadPrincipalMeta() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      'phone': prefs.getString(_keyPrincipalPhone) ?? '',
+      'college_name': prefs.getString(_keyPrincipalCollegeName) ?? '',
+      'college_code': prefs.getString(_keyPrincipalCollegeCode) ?? '',
+    };
+  }
+
+  // ============================================================================
+  // UTILITIES
+  // ============================================================================
+
+  static Map<String, dynamic> getSessionInfo() {
+    return {
+      'user_id': _userId,
+      'name': _name,
+      'email': _email,
+      'role': _role,
+      'token': _token != null ? '${_token!.substring(0, 20)}...' : null,
+      'student_id': _studentId,
+      'faculty_id': _facultyId,
+      'department': _department,
+      'year': _year,
+      'section': _section,
+      'register_number': _registerNumber,
+      'login_time': _loginTime?.toIso8601String(),
+      'is_logged_in': isLoggedIn(),
+      'is_valid': isSessionValid(),
+    };
   }
 }

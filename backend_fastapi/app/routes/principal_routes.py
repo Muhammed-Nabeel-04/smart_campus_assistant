@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.department import Department
 from app.models.faculty import Faculty
 from app.models.onboarding_token import OnboardingToken
+from typing import Optional, List
 
 router = APIRouter(prefix="/principal", tags=["Principal Management"])
 
@@ -450,3 +451,119 @@ def generate_hod_qr(
         "expires_at": expiry.isoformat(),
         "expires_in_minutes": 1
     }
+
+# ── Update Principal Profile ──────────────────────────────────
+class PrincipalProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    college_name: Optional[str] = None
+    college_code: Optional[str] = None
+
+@router.put("/profile")
+def update_principal_profile(
+    payload: PrincipalProfileUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "principal":
+        raise HTTPException(status_code=403, detail="Principal access required")
+
+    user = db.query(User).filter(User.id == current_user["user_id"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if payload.name:
+        user.name = payload.name
+
+    # Store extra fields in a JSON column or as separate — we use user.name
+    # For phone/college we store in a dedicated table or reuse notice/meta
+    # Simplest: store in user table extra fields via JSON in existing text column
+    import json
+    try:
+        meta = json.loads(user.employee_id or '{}')
+    except Exception:
+        meta = {}
+
+    if payload.phone is not None:
+        meta['phone'] = payload.phone
+    if payload.college_name is not None:
+        meta['college_name'] = payload.college_name
+    if payload.college_code is not None:
+        meta['college_code'] = payload.college_code
+
+    user.employee_id = json.dumps(meta)
+    db.commit()
+
+    return {
+        "message": "Profile updated successfully",
+        "name": user.name,
+        "phone": meta.get('phone', ''),
+        "college_name": meta.get('college_name', ''),
+        "college_code": meta.get('college_code', ''),
+    }
+
+@router.get("/profile")
+def get_principal_profile(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "principal":
+        raise HTTPException(status_code=403, detail="Principal access required")
+
+    user = db.query(User).filter(User.id == current_user["user_id"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    import json
+    try:
+        meta = json.loads(user.employee_id or '{}')
+    except Exception:
+        meta = {}
+
+    return {
+        "name": user.name,
+        "email": user.email,
+        "phone": meta.get('phone', ''),
+        "college_name": meta.get('college_name', ''),
+        "college_code": meta.get('college_code', ''),
+    }    
+
+# ── Get department sections ───────────────────────────────────
+@router.get("/departments/{dept_id}/sections")
+def get_department_sections(
+    dept_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "principal":
+        raise HTTPException(status_code=403, detail="Principal access required")
+    dept = db.query(Department).filter(Department.id == dept_id).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    import json
+    try:
+        sections = json.loads(dept.sections or "[]")
+    except Exception:
+        sections = []
+    return {"dept_id": dept_id, "sections": sections}
+
+# ── Update department sections ────────────────────────────────
+class DeptSectionsPayload(BaseModel):
+    sections: List[str]
+
+@router.put("/departments/{dept_id}/sections")
+def update_department_sections(
+    dept_id: int,
+    payload: DeptSectionsPayload,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "principal":
+        raise HTTPException(status_code=403, detail="Principal access required")
+    dept = db.query(Department).filter(Department.id == dept_id).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    import json
+    dept.sections = json.dumps(payload.sections)
+    db.commit()
+    return {"message": "Sections updated", "sections": payload.sections}

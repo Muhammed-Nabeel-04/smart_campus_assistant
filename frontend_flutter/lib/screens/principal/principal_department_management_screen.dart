@@ -279,6 +279,7 @@ class _PrincipalDepartmentManagementScreenState
                         ),
                         onSelected: (val) {
                           if (val == 'edit') _showEditDialog(dept);
+                          if (val == 'sections') _showEditSectionsDialog(dept);
                           if (val == 'delete') _deleteDepartment(dept);
                         },
                         itemBuilder: (ctx) => [
@@ -289,6 +290,16 @@ class _PrincipalDepartmentManagementScreenState
                                 Icon(Icons.edit_outlined, size: 20),
                                 SizedBox(width: 10),
                                 Text('Edit Name'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'sections',
+                            child: Row(
+                              children: [
+                                Icon(Icons.grid_view_outlined, size: 20),
+                                SizedBox(width: 10),
+                                Text('Edit Sections'),
                               ],
                             ),
                           ),
@@ -316,6 +327,160 @@ class _PrincipalDepartmentManagementScreenState
                 },
               ),
             ),
+    );
+  }
+
+  void _showEditSectionsDialog(Map<String, dynamic> dept) async {
+    final cs = Theme.of(context).colorScheme;
+    final List<String> allSections = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    final customCtrl = TextEditingController();
+
+    // Load current sections
+    List<String> selected = [];
+    try {
+      selected = await ApiService.getDepartmentSections(dept['id']);
+    } catch (_) {}
+    if (selected.isEmpty) selected = ['A', 'B'];
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: Text('Sections — ${dept['code']}'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ...allSections.map((s) {
+                      final isSelected = selected.contains(s);
+                      return GestureDetector(
+                        onTap: () => setD(() {
+                          isSelected ? selected.remove(s) : selected.add(s);
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? cs.primary.withOpacity(0.15)
+                                : cs.surfaceVariant.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isSelected
+                                  ? cs.primary
+                                  : cs.onSurface.withOpacity(0.1),
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Text(
+                            'Sec $s',
+                            style: TextStyle(
+                              color: isSelected
+                                  ? cs.primary
+                                  : cs.onSurface.withOpacity(0.7),
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    // Show custom sections not in allSections
+                    ...selected
+                        .where((s) => !allSections.contains(s))
+                        .map(
+                          (s) => GestureDetector(
+                            onTap: () => setD(() => selected.remove(s)),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: cs.primary.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: cs.primary),
+                              ),
+                              child: Text(
+                                'Sec $s',
+                                style: TextStyle(color: cs.primary),
+                              ),
+                            ),
+                          ),
+                        ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: customCtrl,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: const InputDecoration(
+                          labelText: 'Custom section',
+                          hintText: 'e.g. Z',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () {
+                        final s = customCtrl.text.trim().toUpperCase();
+                        if (s.isNotEmpty && !selected.contains(s)) {
+                          setD(() {
+                            selected.add(s);
+                            customCtrl.clear();
+                          });
+                        }
+                      },
+                      icon: Icon(Icons.add_circle_outline, color: cs.primary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                try {
+                  await ApiService.updateDepartmentSections(
+                    dept['id'],
+                    selected,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Sections updated'),
+                        backgroundColor: Color(0xFF4CAF50),
+                      ),
+                    );
+                    _loadDepartments();
+                  }
+                } on ApiException catch (e) {
+                  if (mounted) _showError(e.message);
+                }
+              },
+              child: const Text('Save Sections'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

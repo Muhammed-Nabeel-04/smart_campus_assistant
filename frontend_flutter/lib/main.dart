@@ -45,7 +45,6 @@ import 'screens/admin/admin_faculty_details_screen.dart';
 import 'screens/admin/admin_generate_faculty_qr_screen.dart';
 import 'screens/admin/admin_complaints_management_screen.dart';
 import 'screens/admin/admin_system_reports_screen.dart';
-import 'screens/admin/admin_settings_screen.dart';
 import 'screens/admin/admin_profile_screen.dart';
 import 'screens/admin/hod_subject_management_screen.dart';
 import 'screens/admin/hod_qr_onboarding_screen.dart';
@@ -332,7 +331,7 @@ class _SmartCampusAppState extends State<SmartCampusApp> {
         '/adminComplaintsManagement': (context) =>
             const AdminComplaintsManagementScreen(),
         '/adminSystemReports': (context) => const AdminSystemReportsScreen(),
-        '/adminSettings': (context) => const AdminSettingsScreen(),
+
         '/adminProfile': (context) => const AdminProfileScreen(),
         '/hodSubjectManagement': (context) =>
             const HODSubjectManagementScreen(),

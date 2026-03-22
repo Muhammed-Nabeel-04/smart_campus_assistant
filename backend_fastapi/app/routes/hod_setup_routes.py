@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from passlib.context import CryptContext
 
 from app.services.deps import get_db, get_current_user
@@ -400,3 +400,74 @@ def update_class_semester(
         "year": payload.year,
         "semester": payload.semester,
     }
+
+# ── Get HOD department sections ───────────────────────────────
+@router.get("/sections")
+def get_hod_sections(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="HOD access required")
+    dept = db.query(Department).filter(
+        Department.hod_user_id == current_user["user_id"]
+    ).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    import json
+    try:
+        sections = json.loads(dept.sections or "[]")
+    except Exception:
+        sections = []
+    return {"sections": sections}
+
+# ── Update HOD department sections ────────────────────────────
+class SectionsPayload(BaseModel):
+    sections: List[str]
+
+@router.put("/sections")
+def update_hod_sections(
+    payload: SectionsPayload,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="HOD access required")
+    dept = db.query(Department).filter(
+        Department.hod_user_id == current_user["user_id"]
+    ).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    import json
+    dept.sections = json.dumps(payload.sections)
+    db.commit()
+    return {"message": "Sections updated", "sections": payload.sections}
+
+class UpdateSubjectPayload(BaseModel):
+    name: Optional[str] = None
+    credits: Optional[int] = None
+    subject_type: Optional[str] = None
+
+@router.put("/subjects/{subject_id}")
+def update_hod_subject(
+    subject_id: int,
+    payload: UpdateSubjectPayload,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="HOD access required")
+
+    subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+
+    if payload.name:
+        subject.name = payload.name
+    if payload.credits is not None:
+        subject.credits = payload.credits
+    if payload.subject_type:
+        subject.type = payload.subject_type
+
+    db.commit()
+    return {"message": "Subject updated successfully"}

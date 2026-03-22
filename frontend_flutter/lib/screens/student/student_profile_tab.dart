@@ -1,10 +1,10 @@
 // File: lib/screens/student/tabs/student_profile_tab.dart
-// Student Profile with READ-ONLY data + Logout + Theme Toggle
+// Student Profile with READ-ONLY data + Logout + Theme Selection
 
 import 'package:flutter/material.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
-import '../../main.dart'; // Required for SmartCampusApp.setTheme
+import '../../main.dart'; // ✅ Added import
 
 class StudentProfileTab extends StatefulWidget {
   const StudentProfileTab({super.key});
@@ -29,12 +29,14 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
       final data = await ApiService.getStudentProfile(
         SessionManager.studentId!,
       );
-      setState(() {
-        _profileData = data;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _profileData = data;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -98,7 +100,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
 
           const SizedBox(height: 24),
 
-          // Theme Selection Section (NEW)
+          // ── App Settings (Theme Toggle) ────────────────────────
           _buildSection('App Settings', [_buildThemeTile(context, cs)], cs),
 
           const SizedBox(height: 16),
@@ -106,25 +108,25 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
           // Academic Information
           _buildSection('Academic Information', [
             _buildInfoTile(
-              Icons.school,
+              Icons.school_outlined,
               'Department',
               _profileData?['department'] ?? SessionManager.department ?? 'N/A',
               cs,
             ),
             _buildInfoTile(
-              Icons.class_,
-              'Year',
+              Icons.class_outlined,
+              'Academic Year',
               _profileData?['year'] ?? SessionManager.year ?? 'N/A',
               cs,
             ),
             _buildInfoTile(
-              Icons.group,
+              Icons.grid_view_rounded,
               'Section',
               _profileData?['section'] ?? SessionManager.section ?? 'N/A',
               cs,
             ),
             _buildInfoTile(
-              Icons.badge,
+              Icons.badge_outlined,
               'Register Number',
               _profileData?['register_number'] ??
                   SessionManager.registerNumber ??
@@ -138,7 +140,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
           // Personal Information
           _buildSection('Personal Information', [
             _buildInfoTile(
-              Icons.cake,
+              Icons.cake_outlined,
               'Date of Birth',
               _profileData?['date_of_birth'] != null
                   ? _profileData!['date_of_birth'].toString().split('T')[0]
@@ -146,19 +148,19 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
               cs,
             ),
             _buildInfoTile(
-              Icons.bloodtype,
+              Icons.bloodtype_outlined,
               'Blood Group',
               _profileData?['blood_group'] ?? 'Not set',
               cs,
             ),
             _buildInfoTile(
-              Icons.wc,
+              Icons.wc_outlined,
               'Gender',
               _profileData?['gender'] ?? 'Not set',
               cs,
             ),
             _buildInfoTile(
-              Icons.home,
+              Icons.home_outlined,
               'Residential Type',
               _profileData?['residential_type'] ?? 'Day Scholar',
               cs,
@@ -170,19 +172,19 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
           // Contact Information
           _buildSection('Contact Information', [
             _buildInfoTile(
-              Icons.phone,
+              Icons.phone_outlined,
               'Phone',
               _profileData?['phone_number'] ?? 'Not set',
               cs,
             ),
             _buildInfoTile(
-              Icons.email,
+              Icons.alternate_email_rounded,
               'Email',
               _profileData?['email'] ?? SessionManager.email ?? 'N/A',
               cs,
             ),
             _buildInfoTile(
-              Icons.location_on,
+              Icons.location_on_outlined,
               'Address',
               _profileData?['address'] ?? 'Not set',
               cs,
@@ -214,24 +216,22 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
 
           const SizedBox(height: 16),
 
-          // Note
+          // Note Banner
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFF9800).withOpacity(0.1), // Warning Fixed
+              color: Colors.orange.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFFFF9800).withOpacity(0.3),
-              ),
+              border: Border.all(color: Colors.orange.withOpacity(0.3)),
             ),
             child: const Row(
               children: [
-                Icon(Icons.info_outline, color: Color(0xFFFF9800), size: 20),
-                SizedBox(width: 12),
+                Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'To update your details, contact your faculty.',
-                    style: TextStyle(color: Color(0xFFFF9800), fontSize: 12),
+                    'To update your official details, please contact the department faculty.',
+                    style: TextStyle(color: Colors.orange, fontSize: 12),
                   ),
                 ),
               ],
@@ -245,47 +245,40 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
   }
 
   Widget _buildThemeTile(BuildContext context, ColorScheme cs) {
-    final current = SmartCampusApp.currentTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Theme Mode',
-          style: TextStyle(
-            color: cs.onSurface.withOpacity(0.7),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          'Choose your preferred theme mode',
+          style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 13),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
           child: SegmentedButton<ThemeMode>(
             segments: const [
               ButtonSegment(
                 value: ThemeMode.system,
-                label: Text('System'),
+                label: Text('System', style: TextStyle(fontSize: 12)),
                 icon: Icon(Icons.brightness_auto, size: 18),
               ),
               ButtonSegment(
                 value: ThemeMode.light,
-                label: Text('Light'),
+                label: Text('Light', style: TextStyle(fontSize: 12)),
                 icon: Icon(Icons.light_mode, size: 18),
               ),
               ButtonSegment(
                 value: ThemeMode.dark,
-                label: Text('Dark'),
+                label: Text('Dark', style: TextStyle(fontSize: 12)),
                 icon: Icon(Icons.dark_mode, size: 18),
               ),
             ],
-            selected: {current},
-            onSelectionChanged: (val) => SmartCampusApp.setTheme(val.first),
-            style: ButtonStyle(
-              visualDensity: VisualDensity.comfortable,
-              side: WidgetStateProperty.all(
-                BorderSide(color: cs.outline.withOpacity(0.2)),
-              ),
-            ),
+            selected: {SmartCampusApp.currentTheme},
+            onSelectionChanged: (val) {
+              setState(() {
+                SmartCampusApp.setTheme(val.first);
+              });
+            },
           ),
         ),
       ],
@@ -308,30 +301,19 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
       ),
       child: Column(
         children: [
-          // Avatar
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: cs.onPrimary.withOpacity(0.2),
-              shape: BoxShape.circle,
-              border: Border.all(color: cs.onPrimary, width: 3),
-            ),
-            child: Center(
-              child: Text(
-                SessionManager.name?.substring(0, 1).toUpperCase() ?? 'S',
-                style: TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: cs.onPrimary,
-                ),
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: cs.onPrimary,
+            child: Text(
+              SessionManager.name?.substring(0, 1).toUpperCase() ?? 'S',
+              style: TextStyle(
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+                color: cs.primary,
               ),
             ),
           ),
-
           const SizedBox(height: 16),
-
-          // Name
           Text(
             SessionManager.name ?? 'Student',
             style: TextStyle(
@@ -341,10 +323,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
             ),
             textAlign: TextAlign.center,
           ),
-
           const SizedBox(height: 4),
-
-          // Register Number
           Text(
             SessionManager.registerNumber ?? '',
             style: TextStyle(
@@ -352,10 +331,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
               color: cs.onPrimary.withOpacity(0.9),
             ),
           ),
-
           const SizedBox(height: 12),
-
-          // Class Badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(

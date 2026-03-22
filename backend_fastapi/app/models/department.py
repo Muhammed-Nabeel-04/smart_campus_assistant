@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
 from datetime import datetime
 from app.database import Base
 
@@ -10,5 +10,6 @@ class Department(Base):
     code = Column(String, nullable=False, unique=True)
     hod_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_by_principal_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    sections = Column(Text, nullable=True)  # JSON array e.g. ["A","B","C"]
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -181,8 +181,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 title: 'Manage Faculty',
                 icon: Icons.badge,
                 color: roleAdmin,
-                onTap: () =>
-                    Navigator.pushNamed(context, '/adminFacultyManagement'),
+                onTap: () async {
+                  await Navigator.pushNamed(context, '/adminFacultyManagement');
+                  if (mounted) _loadStats();
+                },
                 cs: cs,
               ),
             ),
@@ -192,7 +194,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 title: 'Add Faculty',
                 icon: Icons.person_add,
                 color: statusSuccess,
-                onTap: () => Navigator.pushNamed(context, '/adminAddFaculty'),
+                onTap: () async {
+                  await Navigator.pushNamed(context, '/adminAddFaculty');
+                  if (mounted) _loadStats();
+                },
                 cs: cs,
               ),
             ),

@@ -18,6 +18,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
   final _phoneController = TextEditingController();
 
   String _selectedDepartment = '';
+  String _hodDepartmentName = '';
   bool _isLoading = false;
   List<Map<String, dynamic>> _departments = [];
   bool _loadingDepts = true;
@@ -28,7 +29,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
     '3rd Year',
     '4th Year',
   ];
-  static const List<String> _sections = ['A', 'B', 'C', 'D', 'E', 'F'];
+  List<String> _sections = [];
 
   String? _pickerYear;
   String? _pickerDept;
@@ -43,10 +44,27 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
 
   Future<void> _loadDepartments() async {
     try {
+      // Load HOD's own department first
+      final hodDept = await ApiService.getHODDepartment();
+      final deptCode = hodDept['department_code'] ?? hodDept['code'] ?? '';
+      final deptName =
+          hodDept['department_name'] ?? hodDept['department'] ?? '';
+
+      // Load all departments for assignment picker
       final data = await ApiService.getDepartments();
+      // Load sections for HOD's department
+      List<String> sections = [];
+      try {
+        sections = await ApiService.getHODSections();
+      } catch (_) {}
+
       if (mounted) {
         setState(() {
+          _selectedDepartment = deptCode;
+          _hodDepartmentName = deptName;
+          _pickerDept = deptCode;
           _departments = List<Map<String, dynamic>>.from(data);
+          _sections = sections.isNotEmpty ? sections : ['A', 'B', 'C'];
           _loadingDepts = false;
         });
       }
@@ -97,6 +115,21 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
       });
       _pickerYear = _pickerDept = _pickerSection = null;
     });
+  }
+
+  Future<void> _loadSectionsForDept(String deptCode) async {
+    try {
+      final depts = await ApiService.getPrincipalDepartments();
+      final dept = depts.firstWhere(
+        (d) => d['code'].toString().toLowerCase() == deptCode.toLowerCase(),
+        orElse: () => {},
+      );
+      if (dept.isEmpty) return;
+      final sections = await ApiService.getDepartmentSections(dept['id']);
+      if (mounted && sections.isNotEmpty) {
+        setState(() => _sections = sections);
+      }
+    } catch (_) {}
   }
 
   Future<void> _handleSubmit() async {
@@ -283,27 +316,60 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                   validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
-                _loadingDepts
-                    ? const Center(child: CircularProgressIndicator())
-                    : DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'Home Department',
-                          prefixIcon: Icon(Icons.business_outlined),
-                        ),
-                        dropdownColor: cs.surface,
-                        items: _departments
-                            .map(
-                              (d) => DropdownMenuItem<String>(
-                                value: d['code'] as String,
-                                child: Text('${d['name']} (${d['code']})'),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => _selectedDepartment = v ?? ''),
-                        validator: (v) =>
-                            (v == null || v.isEmpty) ? 'Required' : null,
+                // Department auto-set from HOD's department
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: cs.primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: cs.primary.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.business_outlined,
+                        color: cs.primary,
+                        size: 20,
                       ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Home Department',
+                              style: TextStyle(
+                                color: cs.onSurface.withOpacity(0.5),
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _loadingDepts
+                                  ? 'Loading...'
+                                  : _hodDepartmentName.isNotEmpty
+                                  ? _hodDepartmentName
+                                  : _selectedDepartment,
+                              style: TextStyle(
+                                color: cs.onSurface,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.lock_outline,
+                        color: cs.onSurface.withOpacity(0.3),
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _phoneController,
@@ -383,10 +449,12 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                   children: _departments
                       .map(
                         (d) => _selChip(
-                          '${d['code']}',
+                          '${d['name']}',
                           _pickerDept == d['code'],
-                          () =>
-                              setState(() => _pickerDept = d['code'] as String),
+                          () {
+                            setState(() => _pickerDept = d['code'] as String);
+                            _loadSectionsForDept(d['code'] as String);
+                          },
                           cs,
                         ),
                       )

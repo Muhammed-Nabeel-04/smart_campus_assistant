@@ -1,6 +1,7 @@
 // lib/screens/auth/role_selection_screen.dart
 import 'package:flutter/material.dart';
 import '../../core/session.dart';
+import '../../main.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
@@ -11,19 +12,34 @@ class RoleSelectionScreen extends StatefulWidget {
 
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
+    // Check if we are currently in Dark Mode to determine icon look
+    final isDark = SmartCampusApp.currentTheme == ThemeMode.dark;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          // ── Theme Toggle Button ──────────────────────────────────
+          IconButton(
+            // Show filled moon if dark mode is active, outlined if system
+            icon: Icon(
+              isDark ? Icons.brightness_2 : Icons.brightness_2_outlined,
+            ),
+            tooltip: isDark ? 'Switch to System Theme' : 'Switch to Dark Theme',
+            onPressed: () {
+              setState(() {
+                // Logic: If System -> Dark. If anything else (Dark) -> System.
+                final newMode = SmartCampusApp.currentTheme == ThemeMode.system
+                    ? ThemeMode.dark
+                    : ThemeMode.system;
+                SmartCampusApp.setTheme(newMode);
+              });
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.pushNamed(context, '/backendSettings'),
@@ -35,7 +51,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
           child: Column(
             children: [
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
 
               // ── Logo ───────────────────────────────────────────
               Container(
@@ -68,15 +84,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               Text(
                 'Smart Campus',
                 style: TextStyle(
-                  color: cs.onBackground,
+                  color: cs.onSurface,
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
                 ),
               ),
-
               const SizedBox(height: 6),
-
               Text(
                 'Assistant',
                 style: TextStyle(
@@ -84,16 +98,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 2,
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              Text(
-                'Select your role to continue',
-                style: TextStyle(
-                  color: cs.onBackground.withOpacity(0.6),
-                  fontSize: 14,
                 ),
               ),
 
@@ -108,9 +112,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 onTap: () =>
                     Navigator.pushNamed(context, '/studentOnboardingScan'),
               ),
-
               const SizedBox(height: 16),
-
               _RoleButton(
                 icon: Icons.badge_rounded,
                 label: 'Faculty',
@@ -118,9 +120,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 color: const Color(0xFF00BCD4),
                 onTap: () => Navigator.pushNamed(context, '/facultyLogin'),
               ),
-
               const SizedBox(height: 16),
-
               _RoleButton(
                 icon: Icons.admin_panel_settings_rounded,
                 label: 'Admin / HOD',
@@ -128,9 +128,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 color: const Color(0xFFF44336),
                 onTap: () => Navigator.pushNamed(context, '/adminLogin'),
               ),
-
               const SizedBox(height: 16),
-
               _RoleButton(
                 icon: Icons.account_balance_rounded,
                 label: 'Principal',
@@ -139,7 +137,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 onTap: () => Navigator.pushNamed(context, '/principalLogin'),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -149,7 +147,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 }
 
 // ────────────────────────────────────────────────────────────────
-//  Role Button Component
+//  Role Button Component (Unchanged)
 // ────────────────────────────────────────────────────────────────
 
 class _RoleButton extends StatelessWidget {
@@ -170,16 +168,14 @@ class _RoleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isUiDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
-      elevation: isDark ? 0 : 1,
+      elevation: isUiDark ? 0 : 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: isDark
-              ? cs.onSurface.withOpacity(0.08)
-              : cs.onSurface.withOpacity(0.1),
+          color: cs.onSurface.withOpacity(isUiDark ? 0.08 : 0.1),
         ),
       ),
       child: InkWell(
@@ -189,7 +185,6 @@ class _RoleButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           child: Row(
             children: [
-              // Icon container — role color
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -198,20 +193,16 @@ class _RoleButton extends StatelessWidget {
                 ),
                 child: Icon(icon, color: color, size: 26),
               ),
-
               const SizedBox(width: 16),
-
-              // Label + subtitle
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       label,
-                      style: TextStyle(
-                        color: cs.onSurface,
+                      style: const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -225,11 +216,10 @@ class _RoleButton extends StatelessWidget {
                   ],
                 ),
               ),
-
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 16,
-                color: cs.onSurface.withOpacity(0.4),
+                color: cs.onSurface.withOpacity(0.3),
               ),
             ],
           ),
