@@ -5,7 +5,6 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:async';
 import 'dart:convert';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 
 class FacultyStartAttendanceScreen extends StatefulWidget {
   final Map<String, dynamic> department;
@@ -42,6 +41,10 @@ class _FacultyStartAttendanceScreenState
   Timer? _durationTimer;
   Timer? _pollTimer;
 
+  // Fixed Role Colors
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color errorRed = Color(0xFFF44336);
+
   @override
   void initState() {
     super.initState();
@@ -57,25 +60,25 @@ class _FacultyStartAttendanceScreenState
   }
 
   Future<void> _startSession() async {
-    // Show duration picker first
     final duration = await showDialog<int>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
         int selected = 60;
         return StatefulBuilder(
           builder: (ctx, setS) => AlertDialog(
-            backgroundColor: AppColors.bgCard,
-            title: const Text(
+            backgroundColor: cs.surface,
+            title: Text(
               'Set Class Duration',
-              style: TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: cs.onSurface),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'How long is this class?',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: cs.onSurface.withOpacity(0.6)),
                 ),
                 const SizedBox(height: 16),
                 Wrap(
@@ -87,11 +90,9 @@ class _FacultyStartAttendanceScreenState
                           label: Text('$m min'),
                           selected: selected == m,
                           onSelected: (_) => setS(() => selected = m),
-                          selectedColor: AppColors.primary,
+                          selectedColor: cs.primary,
                           labelStyle: TextStyle(
-                            color: selected == m
-                                ? Colors.white
-                                : AppColors.textPrimary,
+                            color: selected == m ? cs.onPrimary : cs.onSurface,
                           ),
                         ),
                       )
@@ -130,32 +131,31 @@ class _FacultyStartAttendanceScreenState
       final startedBy = response['started_by'] ?? 'Another faculty';
 
       if (isExisting && !isSameFaculty && mounted) {
-        // Different faculty is already taking this class — block and show info
         showDialog(
           context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppColors.bgCard,
-            title: const Text(
-              'Class Already Ongoing',
-              style: TextStyle(color: AppColors.textPrimary),
-            ),
-            content: Text(
-              '$startedBy is currently taking this class.\nYou cannot start another session.',
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.danger,
-                ),
-                child: const Text('OK'),
+          builder: (ctx) {
+            final cs = Theme.of(ctx).colorScheme;
+            return AlertDialog(
+              backgroundColor: cs.surface,
+              title: const Text('Class Already Ongoing'),
+              content: Text(
+                '$startedBy is currently taking this class.\nYou cannot start another session.',
               ),
-            ],
-          ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: cs.error),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            );
+          },
         );
         setState(() => _isLoading = false);
         return;
@@ -165,7 +165,7 @@ class _FacultyStartAttendanceScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Rejoining your active session'),
-            backgroundColor: AppColors.warning,
+            backgroundColor: Color(0xFFFF9800), // Warning
           ),
         );
       }
@@ -184,7 +184,7 @@ class _FacultyStartAttendanceScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: AppColors.danger,
+            backgroundColor: errorRed,
           ),
         );
         Navigator.pop(context);
@@ -248,7 +248,7 @@ class _FacultyStartAttendanceScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Class time ended. Session closed automatically.'),
-          backgroundColor: AppColors.success,
+          backgroundColor: successGreen,
         ),
       );
       Navigator.pop(context);
@@ -258,35 +258,36 @@ class _FacultyStartAttendanceScreenState
   Future<void> _endSession() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.bgCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'End Session?',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Are you sure you want to end this attendance session?\n\n$_studentsPresent students marked present.',
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
+      builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        return AlertDialog(
+          backgroundColor: cs.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('End Session'),
+          title: const Text('End Session?'),
+          content: Text(
+            'Are you sure you want to end this attendance session?\n\n$_studentsPresent students marked present.',
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: cs.onSurface.withOpacity(0.6)),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: cs.error),
+              child: const Text(
+                'End Session',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirm == true && _sessionId != null) {
@@ -301,7 +302,7 @@ class _FacultyStartAttendanceScreenState
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Failed to end session'),
-              backgroundColor: AppColors.danger,
+              backgroundColor: errorRed,
             ),
           );
         }
@@ -321,11 +322,10 @@ class _FacultyStartAttendanceScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
-        backgroundColor: AppColors.bgCard,
-        elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -335,18 +335,16 @@ class _FacultyStartAttendanceScreenState
             ),
             Text(
               '${widget.classData['year']} - Section ${widget.classData['section']}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: cs.onSurface.withOpacity(0.6),
               ),
             ),
           ],
         ),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF1565C0)),
-            )
+          ? Center(child: CircularProgressIndicator(color: cs.primary))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -355,9 +353,7 @@ class _FacultyStartAttendanceScreenState
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
-                      ),
+                      color: cs.primary,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Column(
@@ -369,17 +365,20 @@ class _FacultyStartAttendanceScreenState
                               Icons.people,
                               'Present',
                               '$_studentsPresent',
+                              cs,
                             ),
                             _buildStatItem(
                               Icons.timer,
                               'Duration',
                               _durationDisplay,
+                              cs,
                             ),
                             if (_durationMinutes != null)
                               _buildStatItem(
                                 Icons.hourglass_bottom,
                                 'Limit',
                                 '$_durationMinutes min',
+                                cs,
                               ),
                           ],
                         ),
@@ -390,7 +389,7 @@ class _FacultyStartAttendanceScreenState
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: cs.onPrimary.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
@@ -400,15 +399,15 @@ class _FacultyStartAttendanceScreenState
                                 width: 8,
                                 height: 8,
                                 decoration: const BoxDecoration(
-                                  color: AppColors.success,
+                                  color: successGreen,
                                   shape: BoxShape.circle,
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              const Text(
+                              Text(
                                 'Session Active',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: cs.onPrimary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -429,7 +428,7 @@ class _FacultyStartAttendanceScreenState
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF1565C0).withOpacity(0.3),
+                          color: cs.primary.withOpacity(0.2),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -456,17 +455,13 @@ class _FacultyStartAttendanceScreenState
                         const SizedBox(height: 16),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(
-                              Icons.autorenew,
-                              color: Color(0xFF1565C0),
-                              size: 16,
-                            ),
-                            SizedBox(width: 8),
+                          children: [
+                            Icon(Icons.autorenew, color: cs.primary, size: 16),
+                            const SizedBox(width: 8),
                             Text(
                               'QR rotates every 3 seconds',
                               style: TextStyle(
-                                color: Color(0xFF1565C0),
+                                color: cs.primary,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -483,17 +478,17 @@ class _FacultyStartAttendanceScreenState
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.info.withOpacity(0.1),
+                      color: const Color(0xFF2196F3).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.info.withOpacity(0.3),
+                        color: const Color(0xFF2196F3).withOpacity(0.3),
                       ),
                     ),
-                    child: Row(
-                      children: const [
+                    child: const Row(
+                      children: [
                         Icon(
                           Icons.info_outline,
-                          color: AppColors.info,
+                          color: Color(0xFF2196F3),
                           size: 20,
                         ),
                         SizedBox(width: 12),
@@ -501,7 +496,7 @@ class _FacultyStartAttendanceScreenState
                           child: Text(
                             'Students scan this QR to mark attendance',
                             style: TextStyle(
-                              color: AppColors.info,
+                              color: Color(0xFF2196F3),
                               fontSize: 13,
                             ),
                           ),
@@ -518,14 +513,14 @@ class _FacultyStartAttendanceScreenState
                       children: [
                         const Icon(
                           Icons.check_circle,
-                          color: AppColors.success,
+                          color: successGreen,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
                         Text(
                           'Students Present ($_studentsPresent)',
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
+                          style: TextStyle(
+                            color: cs.onSurface,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -534,7 +529,7 @@ class _FacultyStartAttendanceScreenState
                     ),
                     const SizedBox(height: 12),
                     ..._presentStudents.map(
-                      (student) => _buildStudentTile(student),
+                      (student) => _buildStudentTile(student, cs),
                     ),
                   ],
 
@@ -555,8 +550,8 @@ class _FacultyStartAttendanceScreenState
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.danger,
-                        foregroundColor: Colors.white,
+                        backgroundColor: cs.error,
+                        foregroundColor: cs.onError,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -569,38 +564,44 @@ class _FacultyStartAttendanceScreenState
     );
   }
 
-  Widget _buildStatItem(IconData icon, String label, String value) {
+  Widget _buildStatItem(
+    IconData icon,
+    String label,
+    String value,
+    ColorScheme cs,
+  ) {
     return Column(
       children: [
-        Icon(icon, color: Colors.white, size: 28),
+        Icon(icon, color: cs.onPrimary, size: 28),
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: cs.onPrimary,
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
         ),
         Text(
           label,
-          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+          style: TextStyle(color: cs.onPrimary.withOpacity(0.8), fontSize: 12),
         ),
       ],
     );
   }
 
-  Widget _buildStudentTile(Map<String, dynamic> student) {
+  Widget _buildStudentTile(Map<String, dynamic> student, ColorScheme cs) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.onSurface.withOpacity(0.1)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+          const Icon(Icons.check_circle, color: successGreen, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -608,15 +609,15 @@ class _FacultyStartAttendanceScreenState
               children: [
                 Text(
                   student['full_name'] ?? student['name'] ?? 'Student',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: cs.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   student['register_number'] ?? '',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: cs.onSurface.withOpacity(0.6),
                     fontSize: 12,
                   ),
                 ),
@@ -625,8 +626,8 @@ class _FacultyStartAttendanceScreenState
           ),
           Text(
             student['timestamp'] ?? student['time'] ?? '',
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.6),
               fontSize: 12,
             ),
           ),

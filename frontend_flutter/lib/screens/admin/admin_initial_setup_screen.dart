@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
 
@@ -35,7 +34,6 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
     '4th Year': YearSubjects(selectedSemester: 7),
   };
 
-  // ✅ Semesters per year
   final Map<String, List<int>> _yearSemesters = {
     '1st Year': [1, 2],
     '2nd Year': [3, 4],
@@ -45,7 +43,6 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
 
   @override
   void dispose() {
-    // Dispose subject controllers
     for (var year in _yearData.values) {
       year.dispose();
     }
@@ -53,12 +50,12 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
   }
 
   Future<void> _handleComplete() async {
+    final cs = Theme.of(context).colorScheme;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // Add all subjects
       List<Map<String, dynamic>> allSubjects = [];
 
       for (var entry in _yearData.entries) {
@@ -80,13 +77,11 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
         }
       }
 
-      // Batch create subjects
       if (allSubjects.isNotEmpty) {
         await ApiService.createSubjectsBatch(allSubjects);
       }
 
       if (mounted) {
-        // Mark setup complete locally so login skips wizard next time
         final uid = widget.userId ?? SessionManager.userId;
         if (uid != null) {
           final prefs = await SharedPreferences.getInstance();
@@ -96,7 +91,7 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Setup completed successfully!'),
-            backgroundColor: AppColors.success,
+            backgroundColor: Color(0xFF4CAF50),
           ),
         );
         Navigator.pushReplacementNamed(context, '/adminDashboard');
@@ -104,23 +99,19 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: AppColors.danger,
-          ),
+          SnackBar(content: Text(e.toString()), backgroundColor: cs.error),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         title: Text('${widget.department} HOD Setup'),
         automaticallyImplyLeading: false,
@@ -128,6 +119,7 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
       body: Form(
         key: _formKey,
         child: Stepper(
+          type: StepperType.vertical,
           currentStep: _currentStep,
           onStepContinue: () {
             if (_currentStep < 3) {
@@ -146,71 +138,59 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
               padding: const EdgeInsets.only(top: 24),
               child: Row(
                 children: [
-                  if (_currentStep > 0)
-                    TextButton(
-                      onPressed: details.onStepCancel,
-                      child: const Text('Back'),
-                    ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : details.onStepContinue,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.danger,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : details.onStepContinue,
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              _currentStep == 3
+                                  ? 'Complete Setup'
+                                  : 'Next Step',
                             ),
-                          )
-                        : Text(_currentStep == 3 ? 'Complete Setup' : 'Next'),
+                    ),
                   ),
+                  if (_currentStep > 0) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: details.onStepCancel,
+                        child: const Text('Back'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             );
           },
           steps: [
-            // Step 0: 1st Year Subjects
-            Step(
-              title: const Text('1st Year Subjects'),
-              content: _buildYearStep('1st Year'),
-              isActive: _currentStep >= 0,
-              state: _currentStep > 0 ? StepState.complete : StepState.indexed,
-            ),
-
-            // Step 1: 2nd Year Subjects
-            Step(
-              title: const Text('2nd Year Subjects'),
-              content: _buildYearStep('2nd Year'),
-              isActive: _currentStep >= 1,
-              state: _currentStep > 1 ? StepState.complete : StepState.indexed,
-            ),
-
-            // Step 2: 3rd Year Subjects
-            Step(
-              title: const Text('3rd Year Subjects'),
-              content: _buildYearStep('3rd Year'),
-              isActive: _currentStep >= 2,
-              state: _currentStep > 2 ? StepState.complete : StepState.indexed,
-            ),
-
-            // Step 3: 4th Year Subjects
-            Step(
-              title: const Text('4th Year Subjects'),
-              content: _buildYearStep('4th Year'),
-              isActive: _currentStep >= 3,
-              state: StepState.indexed,
-            ),
+            _buildStep(0, '1st Year Subjects', cs),
+            _buildStep(1, '2nd Year Subjects', cs),
+            _buildStep(2, '3rd Year Subjects', cs),
+            _buildStep(3, '4th Year Subjects', cs),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildYearStep(String year) {
+  Step _buildStep(int index, String title, ColorScheme cs) {
+    return Step(
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      content: _buildYearStep(title.split(' Subjects')[0], cs),
+      isActive: _currentStep >= index,
+      state: _currentStep > index ? StepState.complete : StepState.indexed,
+    );
+  }
+
+  Widget _buildYearStep(String year, ColorScheme cs) {
     final yearData = _yearData[year]!;
 
     return Column(
@@ -220,28 +200,26 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
           value: yearData.selectedSemester,
           decoration: const InputDecoration(
             labelText: 'Ongoing Semester',
-            prefixIcon: Icon(Icons.calendar_today),
+            prefixIcon: Icon(Icons.calendar_today_outlined),
           ),
+          dropdownColor: cs.surface,
           items: [
             for (int i in _yearSemesters[year]!)
               DropdownMenuItem(value: i, child: Text('Semester $i')),
           ],
-          onChanged: (value) {
-            setState(() {
-              yearData.selectedSemester = value!;
-            });
-          },
+          onChanged: (value) =>
+              setState(() => yearData.selectedSemester = value!),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
-        // Number of Subjects
         DropdownButtonFormField<int>(
           value: yearData.subjectCount,
           decoration: const InputDecoration(
             labelText: 'Number of Subjects',
-            prefixIcon: Icon(Icons.book),
+            prefixIcon: Icon(Icons.menu_book_outlined),
           ),
+          dropdownColor: cs.surface,
           items: [
             for (int i = 0; i <= 10; i++)
               DropdownMenuItem(
@@ -249,47 +227,40 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
                 child: Text(i == 0 ? 'No subjects' : '$i subjects'),
               ),
           ],
-          onChanged: (value) {
-            setState(() {
-              yearData.updateSubjectCount(value!);
-            });
-          },
+          onChanged: (value) =>
+              setState(() => yearData.updateSubjectCount(value!)),
         ),
 
-        const SizedBox(height: 24),
-
-        // Subject Input Fields
         if (yearData.subjectCount > 0) ...[
-          const Text(
-            'Enter Subject Names:',
+          const SizedBox(height: 24),
+          Text(
+            'Subject Names:',
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: cs.onSurface,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 14,
             ),
           ),
-          const SizedBox(height: 16),
-
+          const SizedBox(height: 12),
           ...List.generate(
             yearData.subjectCount,
             (index) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: TextFormField(
                 controller: yearData.subjectControllers[index],
+                style: TextStyle(color: cs.onSurface),
                 decoration: InputDecoration(
                   labelText: 'Subject ${index + 1}',
                   prefixIcon: const Icon(Icons.subject),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear, size: 20),
-                    onPressed: () {
-                      yearData.subjectControllers[index].clear();
-                    },
+                    icon: Icon(
+                      Icons.clear,
+                      size: 18,
+                      color: cs.onSurface.withOpacity(0.3),
+                    ),
+                    onPressed: () => yearData.subjectControllers[index].clear(),
                   ),
                 ),
-                validator: (value) {
-                  // Optional validation - subjects can be empty
-                  return null;
-                },
               ),
             ),
           ),
@@ -309,12 +280,10 @@ class YearSubjects {
 
   void updateSubjectCount(int newCount) {
     if (newCount > subjectControllers.length) {
-      // Add more controllers
       for (int i = subjectControllers.length; i < newCount; i++) {
         subjectControllers.add(TextEditingController());
       }
     } else if (newCount < subjectControllers.length) {
-      // Remove excess controllers
       for (int i = newCount; i < subjectControllers.length; i++) {
         subjectControllers[i].dispose();
       }

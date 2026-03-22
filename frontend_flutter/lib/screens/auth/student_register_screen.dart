@@ -1,7 +1,6 @@
 // lib/screens/auth/student_register_screen.dart
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 
 class StudentRegisterScreen extends StatefulWidget {
   const StudentRegisterScreen({super.key});
@@ -52,7 +51,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Registration successful! Please login.'),
-            backgroundColor: AppColors.success,
+            backgroundColor: Theme.of(context).colorScheme.secondary,
           ),
         );
         Navigator.pop(context);
@@ -60,15 +59,18 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connection error. Check your network.'),
-            backgroundColor: AppColors.danger,
+          SnackBar(
+            content: const Text('Connection error. Check your network.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -79,10 +81,12 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        elevation: 0,
         title: const Text('Create Account'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -99,15 +103,14 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
               children: [
                 const SizedBox(height: 8),
 
-                // ── Section Header ───────────────────────────
-                _sectionLabel('Personal Info'),
+                // ── Personal Info ────────────────────────────
+                _sectionLabel('Personal Info', cs),
                 const SizedBox(height: 12),
 
                 // Full Name
                 TextFormField(
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
-                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: const InputDecoration(
                     labelText: 'Full Name',
                     hintText: 'John Doe',
@@ -124,7 +127,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: const InputDecoration(
                     labelText: 'Email',
                     hintText: 'student@college.edu',
@@ -144,7 +146,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     labelText: 'Password',
                     hintText: 'Min 6 characters',
@@ -154,7 +155,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: AppColors.primary,
                       ),
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
@@ -170,15 +170,14 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
 
                 const SizedBox(height: 24),
 
-                // ── Section Header ───────────────────────────
-                _sectionLabel('Academic Info'),
+                // ── Academic Info ────────────────────────────
+                _sectionLabel('Academic Info', cs),
                 const SizedBox(height: 12),
 
                 // Department
                 TextFormField(
                   controller: _departmentController,
                   textCapitalization: TextCapitalization.words,
-                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: const InputDecoration(
                     labelText: 'Department',
                     hintText: 'e.g. Computer Science',
@@ -194,8 +193,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                 // Year Dropdown
                 DropdownButtonFormField<String>(
                   value: _selectedYear,
-                  dropdownColor: AppColors.bgCard,
-                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: const InputDecoration(
                     labelText: 'Year',
                     prefixIcon: Icon(Icons.school_outlined),
@@ -216,11 +213,11 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _register,
                     child: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             height: 22,
                             width: 22,
                             child: CircularProgressIndicator(
-                              color: AppColors.primaryFg,
+                              color: cs.onTertiary,
                               strokeWidth: 2.5,
                             ),
                           )
@@ -240,16 +237,16 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'Already have an account? ',
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: cs.onBackground.withOpacity(0.6)),
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text(
+                      child: Text(
                         'Login',
                         style: TextStyle(
-                          color: AppColors.primary,
+                          color: cs.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -266,22 +263,22 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
     );
   }
 
-  Widget _sectionLabel(String text) {
+  Widget _sectionLabel(String text, ColorScheme cs) {
     return Row(
       children: [
         Container(
           width: 4,
           height: 18,
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: cs.primary,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
         const SizedBox(width: 10),
         Text(
           text,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: cs.onBackground,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),

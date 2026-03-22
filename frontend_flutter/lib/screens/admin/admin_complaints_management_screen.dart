@@ -1,6 +1,7 @@
 // File: lib/screens/admin/admin_complaints_management_screen.dart
+// HOD/Admin interface to filter, resolve, and escalate student complaints
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 
 class AdminComplaintsManagementScreen extends StatefulWidget {
@@ -16,6 +17,11 @@ class _AdminComplaintsManagementScreenState
   String _filterStatus = 'all';
   List<Map<String, dynamic>> _complaints = [];
   bool _isLoading = true;
+
+  // Semantic Status Colors
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color warningOrange = Color(0xFFFF9800);
+  static const Color infoBlue = Color(0xFF2196F3);
 
   @override
   void initState() {
@@ -41,7 +47,10 @@ class _AdminComplaintsManagementScreenState
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } catch (e) {
@@ -61,25 +70,32 @@ class _AdminComplaintsManagementScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(title: const Text('Complaints Management')),
       body: Column(
         children: [
           // Filter Chips
           Container(
-            color: AppColors.bgDark,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border(
+                bottom: BorderSide(color: cs.onSurface.withOpacity(0.05)),
+              ),
+            ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  _buildFilterChip('All', 'all'),
-                  _buildFilterChip('Pending', 'pending'),
-                  _buildFilterChip('In Progress', 'in_progress'),
-                  _buildFilterChip('Resolved', 'resolved'),
-                  _buildFilterChip('Rejected', 'rejected'),
-                  _buildFilterChip('Escalated', 'escalated'),
+                  _buildFilterChip('All', 'all', cs),
+                  _buildFilterChip('Pending', 'pending', cs),
+                  _buildFilterChip('In Progress', 'in_progress', cs),
+                  _buildFilterChip('Resolved', 'resolved', cs),
+                  _buildFilterChip('Rejected', 'rejected', cs),
+                  _buildFilterChip('Escalated', 'escalated', cs),
                 ],
               ),
             ),
@@ -88,21 +104,20 @@ class _AdminComplaintsManagementScreenState
           // Complaints List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: cs.primary))
                 : _filteredComplaints.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No complaints found',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  )
+                ? _buildEmptyState(cs)
                 : RefreshIndicator(
                     onRefresh: _loadComplaints,
+                    color: cs.primary,
                     child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.all(16),
                       itemCount: _filteredComplaints.length,
                       itemBuilder: (context, index) {
-                        return _buildComplaintCard(_filteredComplaints[index]);
+                        return _buildComplaintCard(
+                          _filteredComplaints[index],
+                          cs,
+                        );
                       },
                     ),
                   ),
@@ -112,7 +127,7 @@ class _AdminComplaintsManagementScreenState
     );
   }
 
-  Widget _buildFilterChip(String label, String value) {
+  Widget _buildFilterChip(String label, String value, ColorScheme cs) {
     final isSelected = _filterStatus == value;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -121,21 +136,38 @@ class _AdminComplaintsManagementScreenState
         selected: isSelected,
         onSelected: (selected) {
           setState(() => _filterStatus = value);
-          _loadComplaints(); // ✅ Added this
+          _loadComplaints();
         },
-        backgroundColor: AppColors.bgCard,
-        selectedColor: AppColors.danger,
+        selectedColor: cs.primary.withOpacity(0.2),
+        checkmarkColor: cs.primary,
+        labelStyle: TextStyle(
+          color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.7),
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
       ),
     );
   }
 
-  Widget _buildComplaintCard(Map<String, dynamic> complaint) {
+  Widget _buildComplaintCard(Map<String, dynamic> complaint, ColorScheme cs) {
+    final priority = (complaint['priority'] ?? 'low').toString().toLowerCase();
+    final status = (complaint['status'] ?? 'pending').toString().toLowerCase();
+
+    final Color priorityColor = priority == 'high' || priority == 'urgent'
+        ? cs.error
+        : priority == 'medium'
+        ? warningOrange
+        : successGreen;
+
     return Card(
+      elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
-      color: AppColors.bgCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: cs.onSurface.withOpacity(0.1)),
+      ),
       child: InkWell(
         onTap: () => _showComplaintDialog(complaint),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -143,61 +175,15 @@ class _AdminComplaintsManagementScreenState
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.priorityColor(
-                        complaint['priority'],
-                      ).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      complaint['priority'] ?? 'N/A',
-                      style: TextStyle(
-                        color: AppColors.priorityColor(
-                          complaint['priority'] ?? 'low',
-                        ),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  _buildBadge(priority.toUpperCase(), priorityColor),
                   const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.complaintStatusColor(
-                        complaint['status'] ?? 'pending',
-                      ).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      (complaint['status'] ?? 'pending')
-                          .toString()
-                          .replaceAll('_', ' ')
-                          .toUpperCase(),
-                      style: TextStyle(
-                        color: AppColors.complaintStatusColor(
-                          complaint['status'] ?? 'pending',
-                        ),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  if (complaint['escalated_to_principal'] == true)
+                    _buildBadge('ESCALATED', cs.error),
                   const Spacer(),
                   Text(
-                    (complaint['created_at'] ?? '').toString().length > 10
-                        ? complaint['created_at'].toString().substring(0, 10)
-                        : complaint['created_at']?.toString() ?? '',
-                    style: const TextStyle(
-                      color: AppColors.textHint,
+                    _formatDate(complaint['created_at']),
+                    style: TextStyle(
+                      color: cs.onSurface.withOpacity(0.4),
                       fontSize: 11,
                     ),
                   ),
@@ -207,7 +193,6 @@ class _AdminComplaintsManagementScreenState
               Text(
                 complaint['title'] ?? 'No Title',
                 style: const TextStyle(
-                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -215,36 +200,37 @@ class _AdminComplaintsManagementScreenState
               const SizedBox(height: 4),
               Text(
                 complaint['description'] ?? '',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: cs.onSurface.withOpacity(0.6),
                   fontSize: 13,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.person, size: 14, color: AppColors.textHint),
+                  Icon(Icons.person_outline, size: 14, color: cs.primary),
                   const SizedBox(width: 4),
                   Text(
-                    complaint['student_name'] ?? 'Unknown Student',
-                    style: const TextStyle(
-                      color: AppColors.textHint,
+                    complaint['student_name'] ?? 'Unknown',
+                    style: TextStyle(
+                      color: cs.primary,
                       fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(
-                    Icons.category,
+                  Icon(
+                    Icons.label_outline,
                     size: 14,
-                    color: AppColors.textHint,
+                    color: cs.onSurface.withOpacity(0.4),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     complaint['category'] ?? 'General',
-                    style: const TextStyle(
-                      color: AppColors.textHint,
+                    style: TextStyle(
+                      color: cs.onSurface.withOpacity(0.4),
                       fontSize: 12,
                     ),
                   ),
@@ -257,31 +243,60 @@ class _AdminComplaintsManagementScreenState
     );
   }
 
+  Widget _buildBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(dynamic date) {
+    final str = date?.toString() ?? '';
+    return str.length > 10 ? str.substring(0, 10) : str;
+  }
+
   void _showComplaintDialog(Map<String, dynamic> complaint) {
+    final cs = Theme.of(context).colorScheme;
     final responseController = TextEditingController();
     String selectedStatus = complaint['status'] ?? 'pending';
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(complaint['title'] ?? 'No Title'),
+        builder: (context, setModalState) => AlertDialog(
+          backgroundColor: cs.surface,
+          title: Text(complaint['title'] ?? 'Complaint Details'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Student: ${complaint['student_name'] ?? 'Unknown'}'),
-                const SizedBox(height: 8),
-                Text('Category: ${complaint['category'] ?? 'N/A'}'),
-                const SizedBox(height: 8),
-                Text('Priority: ${complaint['priority'] ?? 'N/A'}'),
-                const SizedBox(height: 16),
-                Text(complaint['description'] ?? ''),
-                const SizedBox(height: 16),
+                Text(
+                  'Student: ${complaint['student_name'] ?? 'Unknown'}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  complaint['description'] ?? '',
+                  style: TextStyle(color: cs.onSurface.withOpacity(0.7)),
+                ),
+                const SizedBox(height: 20),
                 DropdownButtonFormField<String>(
                   value: selectedStatus,
-                  decoration: const InputDecoration(labelText: 'Status'),
+                  decoration: const InputDecoration(labelText: 'Action Status'),
+                  dropdownColor: cs.surface,
                   items: const [
                     DropdownMenuItem(value: 'pending', child: Text('Pending')),
                     DropdownMenuItem(
@@ -297,14 +312,14 @@ class _AdminComplaintsManagementScreenState
                       child: Text('Rejected'),
                     ),
                   ],
-                  onChanged: (v) => setState(() => selectedStatus = v!),
+                  onChanged: (v) => setModalState(() => selectedStatus = v!),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: responseController,
                   decoration: const InputDecoration(
-                    labelText: 'Admin Response',
-                    hintText: 'Enter your response...',
+                    labelText: 'Response to Student',
+                    hintText: 'Provide details about the action taken...',
                   ),
                   maxLines: 3,
                 ),
@@ -314,70 +329,57 @@ class _AdminComplaintsManagementScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const Text('Close'),
             ),
-            if (!(complaint['escalated_to_principal'] == true))
+            if (complaint['escalated_to_principal'] != true)
               TextButton(
                 onPressed: () async {
-                  try {
-                    await ApiService.escalateComplaint(complaint['id']);
+                  await ApiService.escalateComplaint(complaint['id']);
+                  if (mounted) {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Escalated to Principal'),
-                        backgroundColor: AppColors.warning,
-                      ),
-                    );
                     _loadComplaints();
-                  } on ApiException catch (e) {
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      SnackBar(
-                        content: Text(e.message),
-                        backgroundColor: AppColors.danger,
-                      ),
-                    );
                   }
                 },
-                child: const Text(
-                  'Escalate to Principal',
-                  style: TextStyle(color: AppColors.warning),
-                ),
+                child: Text('Escalate', style: TextStyle(color: cs.error)),
               ),
             ElevatedButton(
               onPressed: () async {
-                try {
-                  await ApiService.adminUpdateComplaint(
-                    // ✅ Real API
-                    complaint['id'],
-                    {
-                      'status': selectedStatus,
-                      'admin_response': responseController.text.trim(),
-                    },
-                  );
+                await ApiService.adminUpdateComplaint(complaint['id'], {
+                  'status': selectedStatus,
+                  'admin_response': responseController.text.trim(),
+                });
+                if (mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Complaint updated successfully'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
                   _loadComplaints();
-                } on ApiException catch (e) {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(
-                      content: Text(e.message),
-                      backgroundColor: AppColors.danger,
-                    ),
-                  );
                 }
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.danger,
-              ),
-              child: const Text('Submit'),
+              child: const Text('Update'),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ColorScheme cs) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.inbox_outlined,
+            size: 80,
+            color: cs.onSurface.withOpacity(0.1),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No complaints found',
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.5),
+              fontSize: 16,
+            ),
+          ),
+        ],
       ),
     );
   }

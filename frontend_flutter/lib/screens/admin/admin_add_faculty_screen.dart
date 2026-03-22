@@ -1,6 +1,6 @@
-// lib/screens/admin/admin_add_faculty_screen.dart
+// File: lib/screens/admin/admin_add_faculty_screen.dart
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 
 class AdminAddFacultyScreen extends StatefulWidget {
@@ -69,7 +69,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Select year, department and section first'),
-          backgroundColor: AppColors.warning,
+          backgroundColor: Color(0xFFFF9800), // Warning Orange
         ),
       );
       return;
@@ -84,7 +84,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Assignment already added'),
-          backgroundColor: AppColors.warning,
+          backgroundColor: Color(0xFFFF9800),
         ),
       );
       return;
@@ -123,7 +123,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
             content: Text(
               'Faculty created! Now generate a QR to complete onboarding.',
             ),
-            backgroundColor: AppColors.success,
+            backgroundColor: Color(0xFF4CAF50), // Success Green
           ),
         );
         Navigator.pop(context, true);
@@ -131,7 +131,10 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } finally {
@@ -141,7 +144,12 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
 
   // ── UI helpers ─────────────────────────────────────────────────────────────
 
-  Widget _selChip(String label, bool selected, VoidCallback onTap) {
+  Widget _selChip(
+    String label,
+    bool selected,
+    VoidCallback onTap,
+    ColorScheme cs,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -149,19 +157,19 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withOpacity(0.18)
-              : AppColors.bgInput,
+              ? cs.primary.withOpacity(0.12)
+              : cs.surfaceVariant.withOpacity(0.3),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.bgSeparator,
+            color: selected ? cs.primary : cs.onSurface.withOpacity(0.1),
             width: selected ? 1.5 : 1,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? AppColors.primary : AppColors.textSecondary,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
+            color: selected ? cs.primary : cs.onSurface.withOpacity(0.7),
+            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
             fontSize: 13,
           ),
         ),
@@ -169,14 +177,14 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
     );
   }
 
-  Widget _secLabel(String t) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
+  Widget _secLabel(String t, ColorScheme cs) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, top: 8),
     child: Text(
       t,
-      style: const TextStyle(
-        color: AppColors.textSecondary,
+      style: TextStyle(
+        color: cs.onSurface.withOpacity(0.5),
         fontSize: 11,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.bold,
         letterSpacing: 0.8,
       ),
     ),
@@ -186,13 +194,14 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
     required String title,
     required IconData icon,
     required List<Widget> children,
+    required ColorScheme cs,
     Widget? trailing,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.bgSeparator),
+        border: Border.all(color: cs.onSurface.withOpacity(0.1)),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -203,19 +212,18 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.15),
+                  color: cs.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: AppColors.primary, size: 18),
+                child: Icon(icon, color: cs.primary, size: 18),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
                   style: const TextStyle(
-                    color: AppColors.textPrimary,
                     fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -223,7 +231,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          const Divider(color: AppColors.bgSeparator, height: 1),
+          Divider(color: cs.onSurface.withOpacity(0.05), height: 1),
           const SizedBox(height: 14),
           ...children,
         ],
@@ -233,24 +241,25 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(title: const Text('Add New Faculty')),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // ── Basic Info card ─────────────────────────────────
             _card(
               title: 'Basic Information',
-              icon: Icons.person_outlined,
+              icon: Icons.person_outline,
+              cs: cs,
               children: [
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
                     labelText: 'Full Name',
-                    prefixIcon: Icon(Icons.person),
+                    prefixIcon: Icon(Icons.person_outline),
                   ),
                   validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                 ),
@@ -259,7 +268,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                   controller: _emailController,
                   decoration: const InputDecoration(
                     labelText: 'Email',
-                    prefixIcon: Icon(Icons.email),
+                    prefixIcon: Icon(Icons.alternate_email),
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
@@ -269,18 +278,19 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                   controller: _employeeIdController,
                   decoration: const InputDecoration(
                     labelText: 'Employee ID',
-                    prefixIcon: Icon(Icons.badge),
+                    prefixIcon: Icon(Icons.badge_outlined),
                   ),
                   validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
                 _loadingDepts
-                    ? const CircularProgressIndicator()
+                    ? const Center(child: CircularProgressIndicator())
                     : DropdownButtonFormField<String>(
                         decoration: const InputDecoration(
                           labelText: 'Home Department',
-                          prefixIcon: Icon(Icons.business),
+                          prefixIcon: Icon(Icons.business_outlined),
                         ),
+                        dropdownColor: cs.surface,
                         items: _departments
                             .map(
                               (d) => DropdownMenuItem<String>(
@@ -299,64 +309,59 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                   controller: _phoneController,
                   decoration: const InputDecoration(
                     labelText: 'Phone (Optional)',
-                    prefixIcon: Icon(Icons.phone),
+                    prefixIcon: Icon(Icons.phone_outlined),
                   ),
                   keyboardType: TextInputType.phone,
                 ),
               ],
             ),
-
             const SizedBox(height: 16),
-
-            // ── Teaching Assignments card ────────────────────────
             _card(
               title: 'Teaching Assignments',
               icon: Icons.class_outlined,
+              cs: cs,
               trailing: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: _assignments.isEmpty
-                      ? AppColors.bgSeparator
-                      : AppColors.primary.withOpacity(0.2),
+                      ? cs.onSurface.withOpacity(0.05)
+                      : cs.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   '${_assignments.length} added',
                   style: TextStyle(
                     color: _assignments.isEmpty
-                        ? AppColors.textSecondary
-                        : AppColors.primary,
+                        ? cs.onSurface.withOpacity(0.4)
+                        : cs.primary,
                     fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
               children: [
-                // Info banner
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.info.withOpacity(0.08),
+                    color: Colors.blue.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.info.withOpacity(0.2)),
+                    border: Border.all(color: Colors.blue.withOpacity(0.1)),
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.auto_awesome, color: AppColors.info, size: 14),
+                      Icon(Icons.info_outline, color: Colors.blue, size: 14),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Each assignment auto-creates the department, class & subjects.',
-                          style: TextStyle(color: AppColors.info, fontSize: 11),
+                          'Assignments auto-setup department, class & subject relationships.',
+                          style: TextStyle(color: Colors.blue, fontSize: 11),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                // Year chips
-                _secLabel('YEAR'),
+                const SizedBox(height: 8),
+                _secLabel('YEAR', cs),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -366,32 +371,28 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                           y,
                           _pickerYear == y,
                           () => setState(() => _pickerYear = y),
+                          cs,
                         ),
                       )
                       .toList(),
                 ),
-                const SizedBox(height: 14),
-
-                // Department chips
-                _secLabel('DEPARTMENT'),
+                _secLabel('DEPARTMENT', cs),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: _departments
                       .map(
                         (d) => _selChip(
-                          '${d['code']}  ·  ${d['name']}',
+                          '${d['code']}',
                           _pickerDept == d['code'],
                           () =>
                               setState(() => _pickerDept = d['code'] as String),
+                          cs,
                         ),
                       )
                       .toList(),
                 ),
-                const SizedBox(height: 14),
-
-                // Section chips
-                _secLabel('SECTION'),
+                _secLabel('SECTION', cs),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -401,44 +402,28 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                           'Sec $s',
                           _pickerSection == s,
                           () => setState(() => _pickerSection = s),
+                          cs,
                         ),
                       )
                       .toList(),
                 ),
                 const SizedBox(height: 16),
-
-                // Add button
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: _addAssignment,
-                    icon: const Icon(
-                      Icons.add_circle_outline,
-                      color: AppColors.primary,
-                    ),
-                    label: const Text(
-                      'Add Assignment',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    icon: const Icon(Icons.add_circle_outline, size: 18),
+                    label: const Text('Add Assignment'),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      foregroundColor: cs.primary,
+                      side: BorderSide(color: cs.primary),
                     ),
                   ),
                 ),
-
-                // Added chips list
                 if (_assignments.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  const Divider(color: AppColors.bgSeparator),
-                  const SizedBox(height: 10),
-                  _secLabel('ADDED'),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  _secLabel('CURRENT LIST', cs),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -447,22 +432,12 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                           (a) => Chip(
                             label: Text(
                               '${a['department']} · ${a['year']} · Sec ${a['section']}',
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 12,
-                              ),
-                            ),
-                            backgroundColor: AppColors.primary.withOpacity(
-                              0.12,
-                            ),
-                            side: const BorderSide(color: AppColors.primary),
-                            deleteIcon: const Icon(
-                              Icons.close,
-                              size: 14,
-                              color: AppColors.primary,
+                              style: const TextStyle(fontSize: 12),
                             ),
                             onDeleted: () =>
                                 setState(() => _assignments.remove(a)),
+                            backgroundColor: cs.surfaceVariant.withOpacity(0.5),
+                            deleteIcon: const Icon(Icons.close, size: 14),
                           ),
                         )
                         .toList(),
@@ -470,12 +445,9 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                 ],
               ],
             ),
-
-            const SizedBox(height: 28),
-
-            // ── Submit button ────────────────────────────────────
+            const SizedBox(height: 32),
             SizedBox(
-              height: 54,
+              height: 56,
               child: ElevatedButton.icon(
                 onPressed: _isLoading ? null : _handleSubmit,
                 icon: _isLoading
@@ -489,15 +461,11 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                       )
                     : const Icon(Icons.check_circle_outline),
                 label: Text(
-                  _isLoading ? 'Creating...' : 'Create Faculty',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  _isLoading ? 'Creating...' : 'Create Faculty Account',
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 40),
           ],
         ),
       ),

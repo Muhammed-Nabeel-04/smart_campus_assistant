@@ -3,8 +3,6 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
-// ✅ Added import for Class Selection
 import 'faculty_class_selection_screen.dart';
 
 class FacultyDepartmentSelectionScreen extends StatefulWidget {
@@ -52,7 +50,6 @@ class _FacultyDepartmentSelectionScreenState
     }).toList();
   }
 
-  // ✅ Updated navigation to use MaterialPageRoute
   void _selectDepartment(Map<String, dynamic> department) {
     Navigator.push(
       context,
@@ -80,11 +77,10 @@ class _FacultyDepartmentSelectionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
-        backgroundColor: AppColors.bgCard,
-        elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -92,9 +88,12 @@ class _FacultyDepartmentSelectionScreenState
               _actionTitle,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const Text(
+            Text(
               'Select Department',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 12,
+                color: cs.onSurface.withOpacity(0.6),
+              ),
             ),
           ],
         ),
@@ -104,20 +103,17 @@ class _FacultyDepartmentSelectionScreenState
           // Search bar
           Container(
             padding: const EdgeInsets.all(16),
-            color: AppColors.bgCard,
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border(
+                bottom: BorderSide(color: cs.onSurface.withOpacity(0.05)),
+              ),
+            ),
             child: TextField(
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: cs.onSurface),
               decoration: InputDecoration(
                 hintText: 'Search departments...',
-                hintStyle: const TextStyle(color: AppColors.textHint),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF1565C0)),
-                filled: true,
-                fillColor: AppColors.bgInput,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                prefixIcon: Icon(Icons.search, color: cs.primary),
               ),
               onChanged: (value) => setState(() => _searchQuery = value),
             ),
@@ -126,14 +122,12 @@ class _FacultyDepartmentSelectionScreenState
           // Departments grid
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF1565C0)),
-                  )
+                ? Center(child: CircularProgressIndicator(color: cs.primary))
                 : _filteredDepartments.isEmpty
-                ? _buildEmptyState()
+                ? _buildEmptyState(cs)
                 : RefreshIndicator(
                     onRefresh: _loadDepartments,
-                    color: const Color(0xFF1565C0),
+                    color: cs.primary,
                     child: GridView.builder(
                       padding: const EdgeInsets.all(16),
                       gridDelegate:
@@ -141,12 +135,13 @@ class _FacultyDepartmentSelectionScreenState
                             crossAxisCount: 2,
                             crossAxisSpacing: 12,
                             mainAxisSpacing: 12,
-                            childAspectRatio: 1.2,
+                            childAspectRatio: 1.1,
                           ),
                       itemCount: _filteredDepartments.length,
                       itemBuilder: (context, index) {
                         return _buildDepartmentCard(
                           _filteredDepartments[index],
+                          cs,
                         );
                       },
                     ),
@@ -157,7 +152,7 @@ class _FacultyDepartmentSelectionScreenState
     );
   }
 
-  Widget _buildDepartmentCard(Map<String, dynamic> department) {
+  Widget _buildDepartmentCard(Map<String, dynamic> department, ColorScheme cs) {
     final colors = [
       const Color(0xFF1565C0),
       const Color(0xFF00897B),
@@ -168,83 +163,52 @@ class _FacultyDepartmentSelectionScreenState
     ];
     final color = colors[department['id'] % colors.length];
 
-    return Material(
-      color: Colors.transparent,
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: color.withOpacity(0.2)),
+      ),
       child: InkWell(
         onTap: () => _selectDepartment(department),
         borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.bgCard,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.3)),
-          ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
                 child: Icon(
                   _getDepartmentIcon(department['code']),
                   color: color,
-                  size: 32,
+                  size: 28,
                 ),
               ),
-
               const SizedBox(height: 12),
-
-              // Department code
               Text(
                 department['code'] ?? '',
                 style: TextStyle(
                   color: color,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
                 ),
               ),
-
               const SizedBox(height: 4),
-
-              // Department name
               Text(
                 department['name'] ?? '',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
+                style: TextStyle(
+                  color: cs.onSurface.withOpacity(0.6),
+                  fontSize: 11,
                 ),
                 textAlign: TextAlign.center,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-
-              if (department['total_classes'] != null) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${department['total_classes']} classes',
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -276,7 +240,7 @@ class _FacultyDepartmentSelectionScreenState
     }
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(ColorScheme cs) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -284,20 +248,24 @@ class _FacultyDepartmentSelectionScreenState
           Icon(
             Icons.search_off,
             size: 80,
-            color: AppColors.textSecondary.withOpacity(0.5),
+            color: cs.onSurface.withOpacity(0.1),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'No departments found',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 18),
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.5),
+              fontSize: 18,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             _searchQuery.isEmpty
                 ? 'No departments assigned yet.\nAsk admin to assign your classes.'
                 : 'Try a different search term',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textSecondary.withOpacity(0.7),
+              color: cs.onSurface.withOpacity(0.4),
               fontSize: 14,
             ),
           ),

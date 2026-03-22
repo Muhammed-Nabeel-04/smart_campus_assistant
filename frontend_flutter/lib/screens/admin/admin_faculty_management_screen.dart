@@ -2,7 +2,6 @@
 // List and manage all faculty members
 
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 
 class AdminFacultyManagementScreen extends StatefulWidget {
@@ -28,7 +27,7 @@ class _AdminFacultyManagementScreenState
   Future<void> _loadFaculty() async {
     setState(() => _isLoading = true);
     try {
-      final data = await ApiService.getAllFaculty(); // ✅ Real API
+      final data = await ApiService.getAllFaculty();
       if (mounted) {
         setState(() {
           _facultyList = List<Map<String, dynamic>>.from(data);
@@ -39,7 +38,10 @@ class _AdminFacultyManagementScreenState
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } catch (e) {
@@ -67,16 +69,17 @@ class _AdminFacultyManagementScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         title: const Text('Faculty Management'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add),
+            icon: const Icon(Icons.person_add_alt_1_outlined),
             onPressed: () async {
               await Navigator.pushNamed(context, '/adminAddFaculty');
-              _loadFaculty(); // Reload after returning
+              _loadFaculty();
             },
             tooltip: 'Add Faculty',
           ),
@@ -88,9 +91,10 @@ class _AdminFacultyManagementScreenState
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
-              decoration: const InputDecoration(
+              style: TextStyle(color: cs.onSurface),
+              decoration: InputDecoration(
                 hintText: 'Search faculty...',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: Icon(Icons.search, color: cs.primary),
               ),
               onChanged: (value) => setState(() => _searchQuery = value),
             ),
@@ -99,22 +103,18 @@ class _AdminFacultyManagementScreenState
           // Faculty List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: cs.primary))
                 : _filteredFaculty.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No faculty found',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  )
+                ? _buildEmptyState(cs)
                 : RefreshIndicator(
                     onRefresh: _loadFaculty,
+                    color: cs.primary,
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: _filteredFaculty.length,
                       itemBuilder: (context, index) {
                         final faculty = _filteredFaculty[index];
-                        return _buildFacultyCard(faculty);
+                        return _buildFacultyCard(faculty, cs);
                       },
                     ),
                   ),
@@ -124,48 +124,98 @@ class _AdminFacultyManagementScreenState
     );
   }
 
-  Widget _buildFacultyCard(Map<String, dynamic> faculty) {
+  Widget _buildFacultyCard(Map<String, dynamic> faculty, ColorScheme cs) {
     return Card(
+      elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
-      color: AppColors.bgCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: cs.onSurface.withOpacity(0.1)),
+      ),
       child: ListTile(
+        contentPadding: const EdgeInsets.all(12),
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFF1565C0),
+          radius: 25,
+          backgroundColor: cs.primary.withOpacity(0.1),
           child: Text(
-            faculty['name'].toString().substring(0, 1),
-            style: const TextStyle(color: Colors.white),
+            faculty['name'].toString().substring(0, 1).toUpperCase(),
+            style: TextStyle(
+              color: cs.primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
         ),
         title: Text(
           faculty['name'],
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 4),
             Text(
               faculty['email'],
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: cs.onSurface.withOpacity(0.6),
                 fontSize: 12,
               ),
             ),
+            const SizedBox(height: 2),
             Text(
-              '${faculty['department']} • ${faculty['employee_id']}',
-              style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+              '${faculty['department']} • ID: ${faculty['employee_id']}',
+              style: TextStyle(
+                color: cs.primary,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
         trailing: PopupMenuButton<String>(
+          icon: Icon(Icons.more_vert, color: cs.onSurface.withOpacity(0.4)),
           onSelected: (value) => _handleMenuAction(value, faculty),
           itemBuilder: (context) => [
-            const PopupMenuItem(value: 'view', child: Text('View Details')),
-            const PopupMenuItem(value: 'edit', child: Text('Edit Faculty')),
-            const PopupMenuItem(value: 'qr', child: Text('Generate QR')),
-            const PopupMenuItem(value: 'delete', child: Text('Delete')),
+            const PopupMenuItem(
+              value: 'view',
+              child: Row(
+                children: [
+                  Icon(Icons.visibility_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Text('View'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'edit',
+              child: Row(
+                children: [
+                  Icon(Icons.edit_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Text('Edit'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'qr',
+              child: Row(
+                children: [
+                  Icon(Icons.qr_code_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Text('Setup QR'),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete_outline, size: 20, color: cs.error),
+                  SizedBox(width: 12),
+                  Text('Delete', style: TextStyle(color: cs.error)),
+                ],
+              ),
+            ),
           ],
         ),
         onTap: () => Navigator.pushNamed(
@@ -187,7 +237,11 @@ class _AdminFacultyManagementScreenState
         );
         break;
       case 'edit':
-        Navigator.pushNamed(context, '/adminEditFaculty', arguments: faculty);
+        Navigator.pushNamed(
+          context,
+          '/adminEditFaculty',
+          arguments: faculty,
+        ).then((_) => _loadFaculty());
         break;
       case 'qr':
         Navigator.pushNamed(
@@ -203,32 +257,37 @@ class _AdminFacultyManagementScreenState
   }
 
   Future<void> _confirmDelete(Map<String, dynamic> faculty) async {
+    final cs = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: cs.surface,
         title: const Text('Delete Faculty'),
-        content: Text('Are you sure you want to delete ${faculty['name']}?'),
+        content: Text(
+          'Are you sure you want to delete ${faculty['name']}?\nThis action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(backgroundColor: cs.error),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
+
     if (confirm == true) {
       try {
-        await ApiService.deleteFaculty(faculty['id']); // ✅ Real API
+        await ApiService.deleteFaculty(faculty['id']);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${faculty['name']} deleted successfully'),
-              backgroundColor: AppColors.success,
+            const SnackBar(
+              content: Text('Faculty deleted successfully'),
+              backgroundColor: Color(0xFF4CAF50),
             ),
           );
           _loadFaculty();
@@ -236,13 +295,33 @@ class _AdminFacultyManagementScreenState
       } on ApiException catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.message),
-              backgroundColor: AppColors.danger,
-            ),
+            SnackBar(content: Text(e.message), backgroundColor: cs.error),
           );
         }
       }
     }
+  }
+
+  Widget _buildEmptyState(ColorScheme cs) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.people_outline,
+            size: 80,
+            color: cs.onSurface.withOpacity(0.1),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No faculty found',
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.5),
+              fontSize: 18,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

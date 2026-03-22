@@ -1,6 +1,7 @@
 // lib/screens/admin/hod_subject_management_screen.dart
+// HOD interface to manage departmental subjects and toggle active semesters
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 
 class HODSubjectManagementScreen extends StatefulWidget {
@@ -35,11 +36,12 @@ class _HODSubjectManagementScreenState
     setState(() => _isLoading = true);
     try {
       final data = await ApiService.getHODSubjects();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _data = data;
           _isLoading = false;
         });
+      }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -55,7 +57,6 @@ class _HODSubjectManagementScreenState
     final sem = _currentSemesters[year];
     if (sem == null) return _yearSemesters[year]!.first;
     if (sem is int) return sem;
-    // Parse "Semester X"
     final match = RegExp(r'\d+').firstMatch(sem.toString());
     return match != null
         ? int.parse(match.group(0)!)
@@ -63,13 +64,14 @@ class _HODSubjectManagementScreenState
   }
 
   Future<void> _updateSemester(String year, int semester) async {
+    final cs = Theme.of(context).colorScheme;
     try {
       await ApiService.updateClassSemester(year: year, semester: semester);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$year updated to Semester $semester'),
-            backgroundColor: AppColors.success,
+            backgroundColor: const Color(0xFF4CAF50),
           ),
         );
         _load();
@@ -77,38 +79,34 @@ class _HODSubjectManagementScreenState
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(content: Text(e.message), backgroundColor: cs.error),
         );
       }
     }
   }
 
   Future<void> _deleteSubject(int subjectId, String name) async {
+    final cs = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgCard,
-        title: const Text(
-          'Delete Subject',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Delete "$name"?',
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
+        backgroundColor: cs.surface,
+        title: const Text('Delete Subject'),
+        content: Text('Are you sure you want to delete "$name"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(backgroundColor: cs.error),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
+
     if (confirm == true) {
       try {
         await ApiService.deleteHODSubject(subjectId);
@@ -116,10 +114,7 @@ class _HODSubjectManagementScreenState
       } on ApiException catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.message),
-              backgroundColor: AppColors.danger,
-            ),
+            SnackBar(content: Text(e.message), backgroundColor: cs.error),
           );
         }
       }
@@ -127,6 +122,7 @@ class _HODSubjectManagementScreenState
   }
 
   void _showAddSubjectDialog(String year) {
+    final cs = Theme.of(context).colorScheme;
     final nameCtrl = TextEditingController();
     int selectedSemester = _getCurrentSemester(year);
     int selectedCredits = 3;
@@ -136,26 +132,23 @@ class _HODSubjectManagementScreenState
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.bgCard,
-          title: Text(
-            'Add Subject — $year',
-            style: const TextStyle(color: AppColors.textPrimary),
-          ),
+          backgroundColor: cs.surface,
+          title: Text('Add Subject — $year'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameCtrl,
-                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: const InputDecoration(
                     labelText: 'Subject Name',
-                    prefixIcon: Icon(Icons.book),
+                    prefixIcon: Icon(Icons.book_outlined),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 DropdownButtonFormField<int>(
                   value: selectedSemester,
+                  dropdownColor: cs.surface,
                   decoration: const InputDecoration(labelText: 'Semester'),
                   items: _yearSemesters[year]!
                       .map(
@@ -167,9 +160,10 @@ class _HODSubjectManagementScreenState
                       .toList(),
                   onChanged: (v) => setDialogState(() => selectedSemester = v!),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 DropdownButtonFormField<int>(
                   value: selectedCredits,
+                  dropdownColor: cs.surface,
                   decoration: const InputDecoration(labelText: 'Credits'),
                   items: [1, 2, 3, 4, 5, 6]
                       .map(
@@ -181,9 +175,10 @@ class _HODSubjectManagementScreenState
                       .toList(),
                   onChanged: (v) => setDialogState(() => selectedCredits = v!),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: selectedType,
+                  dropdownColor: cs.surface,
                   decoration: const InputDecoration(labelText: 'Type'),
                   items: ['Theory', 'Lab', 'Project']
                       .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -199,9 +194,6 @@ class _HODSubjectManagementScreenState
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.danger,
-              ),
               onPressed: () async {
                 if (nameCtrl.text.trim().isEmpty) return;
                 Navigator.pop(ctx);
@@ -216,8 +208,8 @@ class _HODSubjectManagementScreenState
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Subject added successfully'),
-                        backgroundColor: AppColors.success,
+                        content: Text('Subject added'),
+                        backgroundColor: Color(0xFF4CAF50),
                       ),
                     );
                     _load();
@@ -227,13 +219,13 @@ class _HODSubjectManagementScreenState
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(e.message),
-                        backgroundColor: AppColors.danger,
+                        backgroundColor: cs.error,
                       ),
                     );
                   }
                 }
               },
-              child: const Text('Add'),
+              child: const Text('Add Subject'),
             ),
           ],
         ),
@@ -243,13 +235,15 @@ class _HODSubjectManagementScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(title: const Text('Subjects & Semesters')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: cs.primary))
           : RefreshIndicator(
               onRefresh: _load,
+              color: cs.primary,
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: _years.length,
@@ -257,158 +251,142 @@ class _HODSubjectManagementScreenState
                   final year = _years[i];
                   final subjects = (_subjectsByYear[year] as List?) ?? [];
                   final currentSem = _getCurrentSemester(year);
-                  final semesters = _yearSemesters[year]!;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: AppColors.bgCard,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.danger.withOpacity(0.3),
-                      ),
+                      color: cs.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: cs.onSurface.withOpacity(0.1)),
                     ),
                     child: Column(
                       children: [
-                        // Year header
                         Padding(
                           padding: const EdgeInsets.all(16),
                           child: Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
+                                  horizontal: 12,
+                                  vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.danger.withOpacity(0.15),
+                                  color: cs.primary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   year,
-                                  style: const TextStyle(
-                                    color: AppColors.danger,
+                                  style: TextStyle(
+                                    color: cs.primary,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              // Current semester selector
                               Expanded(
                                 child: DropdownButton<int>(
                                   value: currentSem,
                                   isExpanded: true,
-                                  dropdownColor: AppColors.bgCard,
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
+                                  dropdownColor: cs.surface,
+                                  underline: const SizedBox(),
+                                  icon: Icon(
+                                    Icons.swap_vert,
+                                    color: cs.primary,
+                                    size: 20,
                                   ),
-                                  underline: Container(
-                                    height: 1,
-                                    color: AppColors.bgSeparator,
-                                  ),
-                                  items: semesters
+                                  items: _yearSemesters[year]!
                                       .map(
                                         (s) => DropdownMenuItem(
                                           value: s,
                                           child: Text(
-                                            'Current: Semester $s',
+                                            'Active: Semester $s',
                                             style: const TextStyle(
-                                              color: AppColors.textPrimary,
+                                              fontSize: 14,
                                             ),
                                           ),
                                         ),
                                       )
                                       .toList(),
                                   onChanged: (v) {
-                                    if (v != null && v != currentSem) {
+                                    if (v != null && v != currentSem)
                                       _updateSemester(year, v);
-                                    }
                                   },
                                 ),
                               ),
-                              // Add subject button
                               IconButton(
-                                icon: const Icon(
-                                  Icons.add_circle,
-                                  color: AppColors.success,
+                                icon: Icon(
+                                  Icons.add_circle_outline,
+                                  color: cs.primary,
                                 ),
                                 onPressed: () => _showAddSubjectDialog(year),
-                                tooltip: 'Add Subject',
                               ),
                             ],
                           ),
                         ),
-
                         const Divider(height: 1),
-
-                        // Subjects list
                         if (subjects.isEmpty)
                           Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(20),
                             child: Text(
-                              'No subjects added yet',
+                              'No subjects added for this year',
                               style: TextStyle(
-                                color: AppColors.textSecondary.withOpacity(0.6),
+                                color: cs.onSurface.withOpacity(0.4),
                                 fontSize: 13,
                               ),
                             ),
                           )
                         else
-                          ...subjects.map((sub) {
-                            final typeColor = sub['type'] == 'Lab'
-                                ? AppColors.success
-                                : sub['type'] == 'Project'
-                                ? AppColors.warning
-                                : AppColors.info;
-                            return ListTile(
-                              leading: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: typeColor.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Icon(
-                                  sub['type'] == 'Lab'
-                                      ? Icons.science
-                                      : sub['type'] == 'Project'
-                                      ? Icons.assignment
-                                      : Icons.book,
-                                  color: typeColor,
-                                  size: 18,
-                                ),
-                              ),
-                              title: Text(
-                                sub['name'] ?? '',
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              subtitle: Text(
-                                'Sem ${sub['semester']} · ${sub['credits']} Credits · ${sub['type']}',
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: AppColors.danger,
-                                  size: 20,
-                                ),
-                                onPressed: () =>
-                                    _deleteSubject(sub['id'], sub['name']),
-                              ),
-                            );
-                          }),
+                          ...subjects.map((sub) => _buildSubjectTile(sub, cs)),
                       ],
                     ),
                   );
                 },
               ),
             ),
+    );
+  }
+
+  Widget _buildSubjectTile(Map<String, dynamic> sub, ColorScheme cs) {
+    final type = sub['type'] ?? 'Theory';
+    final Color typeColor = type == 'Lab'
+        ? const Color(0xFF00897B)
+        : type == 'Project'
+        ? const Color(0xFFE65100)
+        : cs.primary;
+
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: typeColor.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          type == 'Lab'
+              ? Icons.science_outlined
+              : type == 'Project'
+              ? Icons.assignment_outlined
+              : Icons.book_outlined,
+          color: typeColor,
+          size: 18,
+        ),
+      ),
+      title: Text(
+        sub['name'] ?? '',
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text(
+        'Sem ${sub['semester']} · ${sub['credits']} Credits · $type',
+        style: TextStyle(color: cs.onSurface.withOpacity(0.5), fontSize: 12),
+      ),
+      trailing: IconButton(
+        icon: Icon(
+          Icons.delete_outline,
+          color: cs.error.withOpacity(0.6),
+          size: 20,
+        ),
+        onPressed: () => _deleteSubject(sub['id'], sub['name']),
+      ),
     );
   }
 }

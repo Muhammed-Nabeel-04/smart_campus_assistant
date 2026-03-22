@@ -3,8 +3,6 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
-// ✅ Added import for Subject Selection
 import 'faculty_subject_selection_screen.dart';
 
 class FacultyClassSelectionScreen extends StatefulWidget {
@@ -63,11 +61,10 @@ class _FacultyClassSelectionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
-        backgroundColor: AppColors.bgCard,
-        elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -75,28 +72,36 @@ class _FacultyClassSelectionScreenState
               widget.department['name'] ?? 'Department',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const Text(
+            Text(
               'Your Classes',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 12,
+                color: cs.onSurface.withOpacity(0.6),
+              ),
             ),
           ],
         ),
       ),
       body: Column(
         children: [
-          // Banner
+          // Info Banner
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: AppColors.bgCard,
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border(
+                bottom: BorderSide(color: cs.onSurface.withOpacity(0.05)),
+              ),
+            ),
             child: Row(
               children: [
-                const Icon(Icons.class_, color: AppColors.primary, size: 16),
+                Icon(Icons.class_outlined, color: cs.primary, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Showing classes assigned to you in ${widget.department['name'] ?? widget.department['code']}',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    'Classes assigned to you in ${widget.department['code'] ?? 'this department'}',
+                    style: TextStyle(
+                      color: cs.onSurface.withOpacity(0.6),
                       fontSize: 12,
                     ),
                   ),
@@ -107,19 +112,17 @@ class _FacultyClassSelectionScreenState
           // Classes list
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF1565C0)),
-                  )
+                ? Center(child: CircularProgressIndicator(color: cs.primary))
                 : _classes.isEmpty
-                ? _buildEmptyState()
+                ? _buildEmptyState(cs)
                 : RefreshIndicator(
                     onRefresh: _loadClasses,
-                    color: const Color(0xFF1565C0),
+                    color: cs.primary,
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _classes.length,
                       itemBuilder: (context, index) {
-                        return _buildClassCard(_classes[index]);
+                        return _buildClassCard(_classes[index], cs);
                       },
                     ),
                   ),
@@ -129,13 +132,13 @@ class _FacultyClassSelectionScreenState
     );
   }
 
-  Widget _buildClassCard(Map<String, dynamic> classData) {
+  Widget _buildClassCard(Map<String, dynamic> classData, ColorScheme cs) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF1565C0).withOpacity(0.3)),
+        border: Border.all(color: cs.primary.withOpacity(0.2)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -149,12 +152,12 @@ class _FacultyClassSelectionScreenState
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1565C0).withOpacity(0.2),
+                    color: cs.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.class_,
-                    color: Color(0xFF1565C0),
+                  child: Icon(
+                    Icons.school_outlined,
+                    color: cs.primary,
                     size: 24,
                   ),
                 ),
@@ -165,24 +168,24 @@ class _FacultyClassSelectionScreenState
                     children: [
                       Text(
                         '${classData['year']} - Section ${classData['section']}',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          color: cs.onSurface,
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${classData['total_students'] ?? 0} students • ${classData['current_semester'] ?? 'Semester 1'}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
+                        '${classData['total_students'] ?? 0} students • ${classData['current_semester'] ?? 'Active Semester'}',
+                        style: TextStyle(
+                          color: cs.onSurface.withOpacity(0.6),
+                          fontSize: 13,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                Icon(Icons.chevron_right, color: cs.onSurface.withOpacity(0.3)),
               ],
             ),
           ),
@@ -191,29 +194,35 @@ class _FacultyClassSelectionScreenState
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(ColorScheme cs) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.class_,
+            Icons.class_outlined,
             size: 80,
-            color: AppColors.textSecondary.withOpacity(0.5),
+            color: cs.onSurface.withOpacity(0.1),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'No classes found',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 18),
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.5),
+              fontSize: 18,
+            ),
           ),
           const SizedBox(height: 8),
-          Text(
-            'No classes assigned in this department.\nAsk admin to update your assignments.',
-            style: TextStyle(
-              color: AppColors.textSecondary.withOpacity(0.7),
-              fontSize: 14,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              'No classes assigned in this department.\nAsk admin to update your assignments.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: cs.onSurface.withOpacity(0.4),
+                fontSize: 14,
+              ),
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),

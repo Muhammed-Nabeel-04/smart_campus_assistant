@@ -1,6 +1,7 @@
-// lib/screens/principal/principal_dashboard_screen.dart
+// File: lib/screens/principal/principal_dashboard_screen.dart
+// Principal overview dashboard with college-wide statistics and management actions
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
 
@@ -15,6 +16,13 @@ class PrincipalDashboardScreen extends StatefulWidget {
 class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
   bool _isLoading = true;
   Map<String, dynamic> _stats = {};
+
+  // Semantic Role Colors for Principal Context
+  static const Color roleDept = Color(0xFF6A1B9A);
+  static const Color roleHOD = Color(0xFF1565C0);
+  static const Color statusSuccess = Color(0xFF4CAF50);
+  static const Color statusInfo = Color(0xFF2196F3);
+  static const Color statusError = Color(0xFFF44336);
 
   @override
   void initState() {
@@ -36,7 +44,10 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } catch (e) {
@@ -46,13 +57,13 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: AppColors.bgDark,
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          backgroundColor: AppColors.bgCard,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -63,9 +74,12 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Text(
-                'Principal',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              Text(
+                'Principal · Campus Overview',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: cs.onSurface.withOpacity(0.6),
+                ),
               ),
             ],
           ),
@@ -76,7 +90,7 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
               tooltip: 'Settings',
             ),
             IconButton(
-              icon: const Icon(Icons.person_outline),
+              icon: const Icon(Icons.account_circle_outlined),
               onPressed: () =>
                   Navigator.pushNamed(context, '/principalProfile'),
               tooltip: 'Profile',
@@ -84,59 +98,60 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
           ],
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(child: CircularProgressIndicator(color: cs.primary))
             : RefreshIndicator(
                 onRefresh: _loadStats,
+                color: cs.primary,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Stats grid
+                      // Stats Grid
                       GridView.count(
                         crossAxisCount: 2,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         mainAxisSpacing: 12,
                         crossAxisSpacing: 12,
-                        childAspectRatio: 1.5,
+                        childAspectRatio: 1.4,
                         children: [
                           _StatCard(
                             title: 'Departments',
                             value: '${_stats['total_departments'] ?? 0}',
-                            icon: Icons.account_tree,
-                            color: const Color(0xFF6A1B9A),
+                            icon: Icons.account_tree_outlined,
+                            color: roleDept,
                           ),
                           _StatCard(
                             title: 'HODs',
                             value: '${_stats['total_hods'] ?? 0}',
-                            icon: Icons.manage_accounts,
-                            color: const Color(0xFF1565C0),
+                            icon: Icons.manage_accounts_outlined,
+                            color: roleHOD,
                           ),
                           _StatCard(
                             title: 'Faculty',
                             value: '${_stats['total_faculty'] ?? 0}',
-                            icon: Icons.badge,
-                            color: AppColors.success,
+                            icon: Icons.badge_outlined,
+                            color: statusSuccess,
                           ),
                           _StatCard(
-                            title: 'Students',
+                            title: 'Total Students',
                             value: '${_stats['total_students'] ?? 0}',
-                            icon: Icons.people,
-                            color: AppColors.info,
+                            icon: Icons.people_outline,
+                            color: statusInfo,
                           ),
                         ],
                       ),
 
                       const SizedBox(height: 24),
 
-                      const Text(
-                        'Quick Actions',
+                      Text(
+                        'Administrative Actions',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -145,9 +160,9 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                         children: [
                           Expanded(
                             child: _ActionCard(
-                              title: 'Departments',
-                              icon: Icons.account_tree,
-                              color: const Color(0xFF6A1B9A),
+                              title: 'Manage\nDepartments',
+                              icon: Icons.business_outlined,
+                              color: roleDept,
                               onTap: () => Navigator.pushNamed(
                                 context,
                                 '/principalDepartments',
@@ -157,9 +172,9 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: _ActionCard(
-                              title: 'HOD Management',
-                              icon: Icons.manage_accounts,
-                              color: const Color(0xFF1565C0),
+                              title: 'HOD\nControl',
+                              icon: Icons.assignment_ind_outlined,
+                              color: roleHOD,
                               onTap: () => Navigator.pushNamed(
                                 context,
                                 '/principalHODs',
@@ -173,9 +188,9 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                         children: [
                           Expanded(
                             child: _ActionCard(
-                              title: 'Reports',
-                              icon: Icons.analytics,
-                              color: AppColors.info,
+                              title: 'System\nReports',
+                              icon: Icons.analytics_outlined,
+                              color: statusInfo,
                               onTap: () => Navigator.pushNamed(
                                 context,
                                 '/adminSystemReports',
@@ -185,9 +200,9 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: _ActionCard(
-                              title: 'Complaints',
-                              icon: Icons.report_problem,
-                              color: AppColors.danger,
+                              title: 'Escalated\nIssues',
+                              icon: Icons.notification_important_outlined,
+                              color: statusError,
                               onTap: () => Navigator.pushNamed(
                                 context,
                                 '/principalComplaints',
@@ -199,21 +214,32 @@ class _PrincipalDashboardScreenState extends State<PrincipalDashboardScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Department overview
+                      // Department Snapshot List
                       if (_stats['departments'] != null) ...[
-                        const Text(
-                          'Department Overview',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Department Overview',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: cs.onSurface,
+                              ),
+                            ),
+                            Icon(
+                              Icons.list_alt_rounded,
+                              size: 18,
+                              color: cs.primary,
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 12),
                         ...(_stats['departments'] as List).map(
                           (d) => _DeptRow(dept: d),
                         ),
                       ],
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
@@ -236,32 +262,32 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 28),
+          Icon(icon, color: color, size: 24),
           const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
-          const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              fontSize: 11,
+              color: cs.onSurface.withOpacity(0.5),
             ),
             textAlign: TextAlign.center,
           ),
@@ -285,30 +311,39 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: cs.onSurface.withOpacity(0.05)),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 24),
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -321,43 +356,49 @@ class _DeptRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(10),
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.onSurface.withOpacity(0.05)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFF6A1B9A).withOpacity(0.15),
+              color: const Color(0xFF6A1B9A).withOpacity(0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              dept['code'] ?? '',
+              dept['code'] ?? '??',
               style: const TextStyle(
                 color: Color(0xFF6A1B9A),
                 fontWeight: FontWeight.bold,
+                fontSize: 12,
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               dept['name'] ?? '',
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
             ),
           ),
           Text(
-            dept['hod_name'] ?? 'No HOD',
+            dept['hod_name'] ?? 'Vacant',
             style: TextStyle(
               color: dept['hod_name'] != null
-                  ? AppColors.success
-                  : AppColors.textSecondary,
+                  ? const Color(0xFF4CAF50)
+                  : cs.onSurface.withOpacity(0.4),
               fontSize: 12,
+              fontStyle: dept['hod_name'] != null
+                  ? FontStyle.normal
+                  : FontStyle.italic,
             ),
           ),
         ],

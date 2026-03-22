@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 import '../../core/session.dart';
 
 class FacultyManualAttendanceScreen extends StatefulWidget {
@@ -32,6 +31,11 @@ class _FacultyManualAttendanceScreenState
   final DateTime _selectedDate = DateTime.now();
 
   String? _noSessionMessage;
+
+  // Fixed Role/Status Colors
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color errorRed = Color(0xFFF44336);
+  static const Color warningOrange = Color(0xFFFF9800);
 
   @override
   void initState() {
@@ -80,7 +84,6 @@ class _FacultyManualAttendanceScreenState
 
       setState(() {
         _students = List<Map<String, dynamic>>.from(data);
-        // Initialize all as absent
         for (var student in _students) {
           _attendance[student['id']] = false;
         }
@@ -108,37 +111,35 @@ class _FacultyManualAttendanceScreenState
   }
 
   Future<void> _submitAttendance() async {
+    final cs = Theme.of(context).colorScheme;
     final presentCount = _attendance.values.where((v) => v).length;
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.bgCard,
+        backgroundColor: cs.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'Submit Attendance?',
-          style: TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: cs.onSurface),
         ),
         content: Text(
           'Mark attendance for ${widget.subject['name']} on ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}?\n\n'
           'Present: $presentCount\n'
           'Absent: ${_students.length - presentCount}',
-          style: const TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: cs.onSurface.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: cs.onSurface.withOpacity(0.6)),
             ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1565C0),
-              foregroundColor: Colors.white,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: cs.primary),
             child: const Text('Submit'),
           ),
         ],
@@ -162,9 +163,9 @@ class _FacultyManualAttendanceScreenState
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Attendance marked for $presentCount students'),
-            backgroundColor: AppColors.success,
+          const SnackBar(
+            content: Text('Attendance marked successfully'),
+            backgroundColor: successGreen,
           ),
         );
         Navigator.pop(context);
@@ -172,25 +173,21 @@ class _FacultyManualAttendanceScreenState
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(content: Text(e.message), backgroundColor: errorRed),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final presentCount = _attendance.values.where((v) => v).length;
 
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
-        backgroundColor: AppColors.bgCard,
-        elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -200,9 +197,9 @@ class _FacultyManualAttendanceScreenState
             ),
             Text(
               widget.subject['name'] ?? 'Subject',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: cs.onSurface.withOpacity(0.6),
               ),
             ),
           ],
@@ -210,97 +207,49 @@ class _FacultyManualAttendanceScreenState
       ),
       body: Column(
         children: [
-          // Date & Stats Bar
+          // Stats Bar
           Container(
             padding: const EdgeInsets.all(16),
-            color: AppColors.bgCard,
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border(
+                bottom: BorderSide(color: cs.onSurface.withOpacity(0.05)),
+              ),
+            ),
             child: Column(
               children: [
-                const SizedBox(height: 8),
-
-                // Stats
                 Row(
                   children: [
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.success.withOpacity(0.3),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              '$presentCount',
-                              style: const TextStyle(
-                                color: AppColors.success,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Text(
-                              'Present',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
+                      child: _buildSummaryCard(
+                        'Present',
+                        '$presentCount',
+                        successGreen,
+                        cs,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.danger.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.danger.withOpacity(0.3),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              '${_students.length - presentCount}',
-                              style: const TextStyle(
-                                color: AppColors.danger,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Text(
-                              'Absent',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
+                      child: _buildSummaryCard(
+                        'Absent',
+                        '${_students.length - presentCount}',
+                        errorRed,
+                        cs,
                       ),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 12),
-
-                // Quick Actions
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: _markAllPresent,
                         icon: const Icon(Icons.check_box, size: 18),
-                        label: const Text('Mark All Present'),
+                        label: const Text('All Present'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.success,
-                          side: const BorderSide(color: AppColors.success),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          foregroundColor: successGreen,
+                          side: const BorderSide(color: successGreen),
                         ),
                       ),
                     ),
@@ -309,11 +258,10 @@ class _FacultyManualAttendanceScreenState
                       child: OutlinedButton.icon(
                         onPressed: _markAllAbsent,
                         icon: const Icon(Icons.cancel, size: 18),
-                        label: const Text('Mark All Absent'),
+                        label: const Text('All Absent'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.danger,
-                          side: const BorderSide(color: AppColors.danger),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          foregroundColor: errorRed,
+                          side: const BorderSide(color: errorRed),
                         ),
                       ),
                     ),
@@ -326,9 +274,7 @@ class _FacultyManualAttendanceScreenState
           // Students List
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF1565C0)),
-                  )
+                ? Center(child: CircularProgressIndicator(color: cs.primary))
                 : _noSessionMessage != null
                 ? Center(
                     child: Padding(
@@ -337,16 +283,16 @@ class _FacultyManualAttendanceScreenState
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.block,
+                            Icons.event_busy,
                             size: 64,
-                            color: AppColors.warning.withOpacity(0.6),
+                            color: warningOrange.withOpacity(0.5),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             _noSessionMessage!,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            style: TextStyle(
+                              color: cs.onSurface.withOpacity(0.6),
                               fontSize: 15,
                             ),
                           ),
@@ -357,22 +303,21 @@ class _FacultyManualAttendanceScreenState
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: _students.length,
-                    itemBuilder: (context, index) {
-                      return _buildStudentTile(_students[index]);
-                    },
+                    itemBuilder: (context, index) =>
+                        _buildStudentTile(_students[index], cs),
                   ),
           ),
         ],
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          color: AppColors.bgCard,
+        decoration: BoxDecoration(
+          color: cs.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black26,
+              color: Colors.black12,
               blurRadius: 10,
-              offset: Offset(0, -2),
+              offset: const Offset(0, -2),
             ),
           ],
         ),
@@ -380,21 +325,12 @@ class _FacultyManualAttendanceScreenState
           child: SizedBox(
             height: 56,
             child: ElevatedButton.icon(
-              onPressed: _isSubmitting ? null : _submitAttendance,
-              icon: const Icon(Icons.check_circle),
+              onPressed: _isSubmitting || _noSessionMessage != null
+                  ? null
+                  : _submitAttendance,
+              icon: const Icon(Icons.cloud_upload_outlined),
               label: Text(
                 _isSubmitting ? 'Submitting...' : 'Submit Attendance',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1565C0),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
               ),
             ),
           ),
@@ -403,62 +339,83 @@ class _FacultyManualAttendanceScreenState
     );
   }
 
-  Widget _buildStudentTile(Map<String, dynamic> student) {
+  Widget _buildSummaryCard(
+    String label,
+    String value,
+    Color color,
+    ColorScheme cs,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.6),
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentTile(Map<String, dynamic> student, ColorScheme cs) {
     final isPresent = _attendance[student['id']] ?? false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isPresent
-              ? AppColors.success.withOpacity(0.3)
-              : AppColors.bgSeparator,
+              ? successGreen.withOpacity(0.3)
+              : cs.onSurface.withOpacity(0.1),
         ),
       ),
       child: CheckboxListTile(
         value: isPresent,
-        onChanged: (value) {
-          setState(() {
-            _attendance[student['id']] = value ?? false;
-          });
-        },
+        onChanged: (value) =>
+            setState(() => _attendance[student['id']] = value ?? false),
         title: Text(
           student['full_name'] ?? 'Student',
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
           student['register_number'] ?? '',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 12),
         ),
-        secondary: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isPresent
-                  ? [AppColors.success, AppColors.successDark]
-                  : [const Color(0xFF1565C0), const Color(0xFF1976D2)],
-            ),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Center(
-            child: Text(
-              student['full_name']?.substring(0, 1).toUpperCase() ?? 'S',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+        secondary: CircleAvatar(
+          backgroundColor: isPresent
+              ? successGreen
+              : cs.primary.withOpacity(0.1),
+          child: Text(
+            (student['full_name'] ?? 'S')
+                .toString()
+                .substring(0, 1)
+                .toUpperCase(),
+            style: TextStyle(
+              color: isPresent ? Colors.white : cs.primary,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
-        activeColor: AppColors.success,
-        checkColor: Colors.white,
+        activeColor: successGreen,
         controlAffinity: ListTileControlAffinity.trailing,
       ),
     );

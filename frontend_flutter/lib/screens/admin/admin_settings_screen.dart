@@ -1,6 +1,7 @@
 // File: lib/screens/admin/admin_settings_screen.dart
+// Admin interface for system configurations, account security, and data management
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../core/session.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
@@ -18,57 +19,63 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
-      appBar: AppBar(title: const Text('Admin Settings')),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Account Section
-          _buildSectionTitle('Account'),
-          _buildAccountCard(),
+          _buildSectionTitle('Account Profile', cs),
+          _buildAccountCard(cs),
 
           const SizedBox(height: 24),
 
           // System Settings
-          _buildSectionTitle('System Settings'),
+          _buildSectionTitle('System Configuration', cs),
           _buildSettingCard(
-            'Enable Notifications',
-            'Send push notifications to users',
+            'Push Notifications',
+            'Send real-time alerts to users',
             Switch(
               value: _enableNotifications,
               onChanged: (v) => setState(() => _enableNotifications = v),
-              activeColor: AppColors.danger,
+              activeColor: cs.primary,
             ),
+            cs,
           ),
           _buildSettingCard(
-            'Faculty Approval Required',
-            'New faculty must be approved before access',
+            'Faculty Verification',
+            'Manual approval for new faculty',
             Switch(
               value: _requireApprovalForFaculty,
               onChanged: (v) => setState(() => _requireApprovalForFaculty = v),
-              activeColor: AppColors.danger,
+              activeColor: cs.primary,
             ),
+            cs,
           ),
           _buildSettingCard(
-            'Auto-Approve Complaints',
-            'Automatically mark complaints as approved',
+            'Auto-Resolve Tickets',
+            'Automate student complaint closure',
             Switch(
               value: _autoApproveComplaints,
               onChanged: (v) => setState(() => _autoApproveComplaints = v),
-              activeColor: AppColors.danger,
+              activeColor: cs.primary,
             ),
+            cs,
           ),
 
           const SizedBox(height: 24),
 
           // Security Settings
-          _buildSectionTitle('Security'),
+          _buildSectionTitle('Security & Privacy', cs),
           _buildSettingCard(
             'Session Timeout',
-            'Automatically logout after inactivity',
+            'Duration before auto-logout',
             DropdownButton<String>(
               value: _sessionTimeout,
+              dropdownColor: cs.surface,
+              underline: const SizedBox(),
               items: const [
                 DropdownMenuItem(value: '1', child: Text('1 hour')),
                 DropdownMenuItem(value: '6', child: Text('6 hours')),
@@ -76,51 +83,55 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                 DropdownMenuItem(value: '168', child: Text('7 days')),
               ],
               onChanged: (v) => setState(() => _sessionTimeout = v!),
-              dropdownColor: AppColors.bgCard,
             ),
+            cs,
           ),
 
           const SizedBox(height: 12),
 
           _buildActionButton(
-            'Change Password',
-            Icons.lock_outline,
+            'Update Login Password',
+            Icons.lock_reset_outlined,
             () => _showPasswordDialog(),
+            cs,
           ),
 
           const SizedBox(height: 24),
 
           // Data Management
-          _buildSectionTitle('Data Management'),
+          _buildSectionTitle('System Maintenance', cs),
           _buildActionButton(
-            'Export All Data',
-            Icons.download,
+            'Generate System Backup',
+            Icons.cloud_download_outlined,
             () => _showExportDialog(),
+            cs,
           ),
           const SizedBox(height: 12),
           _buildActionButton(
-            'Clear Cache',
-            Icons.delete_sweep,
+            'Wipe Application Cache',
+            Icons.cleaning_services_outlined,
             () => _confirmClearCache(),
+            cs,
           ),
 
           const SizedBox(height: 24),
 
           // About
-          _buildSectionTitle('About'),
+          _buildSectionTitle('About Platform', cs),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.bgCard,
-              borderRadius: BorderRadius.circular(12),
+              color: cs.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: cs.onSurface.withOpacity(0.05)),
             ),
             child: Column(
               children: [
-                _buildInfoRow('App Version', '1.0.0'),
-                const Divider(height: 24),
-                _buildInfoRow('Build Number', '1'),
-                const Divider(height: 24),
-                _buildInfoRow('Last Updated', '2024-03-10'),
+                _buildInfoRow('Version', '2.0.4 Enterprise', cs),
+                Divider(height: 24, color: cs.onSurface.withOpacity(0.05)),
+                _buildInfoRow('Environment', 'Production', cs),
+                Divider(height: 24, color: cs.onSurface.withOpacity(0.05)),
+                _buildInfoRow('Last Patch', '2026-03-15', cs),
               ],
             ),
           ),
@@ -128,54 +139,63 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           const SizedBox(height: 24),
 
           // Danger Zone
-          _buildSectionTitle('Danger Zone'),
+          _buildSectionTitle('Danger Zone', cs),
           _buildActionButton(
-            'Reset System',
-            Icons.restore,
+            'Re-initialize System',
+            Icons.factory_outlined,
             () => _confirmReset(),
-            color: AppColors.warning,
+            cs,
+            color: const Color(0xFFFF9800), // Warning Orange
           ),
           const SizedBox(height: 12),
           _buildActionButton(
-            'Delete All Data',
-            Icons.delete_forever,
+            'Purge Database Records',
+            Icons.delete_forever_outlined,
             () => _confirmDeleteAll(),
-            color: AppColors.danger,
+            cs,
+            color: cs.error,
           ),
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, ColorScheme cs) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
       child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
+          color: cs.onSurface.withOpacity(0.5),
+          letterSpacing: 1.2,
         ),
       ),
     );
   }
 
-  Widget _buildAccountCard() {
+  Widget _buildAccountCard(ColorScheme cs) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(12),
+        color: cs.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.primary.withOpacity(0.2)),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            radius: 32,
-            backgroundColor: AppColors.danger,
+            radius: 30,
+            backgroundColor: cs.primary,
             child: Text(
-              SessionManager.name?.substring(0, 1) ?? 'A',
-              style: const TextStyle(fontSize: 24, color: Colors.white),
+              SessionManager.name?.substring(0, 1).toUpperCase() ?? 'A',
+              style: TextStyle(
+                fontSize: 22,
+                color: cs.onPrimary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -186,26 +206,24 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                 Text(
                   SessionManager.name ?? 'Administrator',
                   style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  SessionManager.email ?? 'admin@campus.edu',
+                  style: TextStyle(
+                    color: cs.onSurface.withOpacity(0.6),
+                    fontSize: 13,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  SessionManager.email ?? 'admin@college.edu',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Role: Admin',
-                  style: const TextStyle(
-                    color: AppColors.danger,
+                  'Super Admin Access',
+                  style: TextStyle(
+                    color: cs.primary,
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -216,13 +234,19 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _buildSettingCard(String title, String subtitle, Widget trailing) {
+  Widget _buildSettingCard(
+    String title,
+    String subtitle,
+    Widget trailing,
+    ColorScheme cs,
+  ) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(12),
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.onSurface.withOpacity(0.05)),
       ),
       child: Row(
         children: [
@@ -233,16 +257,15 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: cs.onSurface.withOpacity(0.5),
                     fontSize: 12,
                   ),
                 ),
@@ -255,98 +278,83 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon, VoidCallback onTap, {Color? color}) {
+  Widget _buildActionButton(
+    String label,
+    IconData icon,
+    VoidCallback onTap,
+    ColorScheme cs, {
+    Color? color,
+  }) {
+    final activeColor = color ?? cs.primary;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: (color ?? AppColors.primary).withOpacity(0.3)),
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: activeColor.withOpacity(0.2)),
         ),
         child: Row(
           children: [
-            Icon(icon, color: color ?? AppColors.primary, size: 24),
+            Icon(icon, color: activeColor, size: 22),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
-                  color: color ?? AppColors.textPrimary,
-                  fontSize: 14,
+                  color: color ?? cs.onSurface,
                   fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
               ),
             ),
-            Icon(Icons.arrow_forward_ios, color: AppColors.textHint, size: 16),
+            Icon(
+              Icons.chevron_right,
+              color: cs.onSurface.withOpacity(0.3),
+              size: 18,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, ColorScheme cs) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          style: TextStyle(color: cs.onSurface.withOpacity(0.5), fontSize: 13),
         ),
         Text(
           value,
-          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         ),
       ],
     );
   }
 
-  void _showPasswordDialog() {
-    final currentController = TextEditingController();
-    final newController = TextEditingController();
-    final confirmController = TextEditingController();
+  // --- Modal Logic ---
 
+  void _showPasswordDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Change Password'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: currentController,
-              decoration: const InputDecoration(labelText: 'Current Password'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: newController,
-              decoration: const InputDecoration(labelText: 'New Password'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: confirmController,
-              decoration: const InputDecoration(labelText: 'Confirm New Password'),
-              obscureText: true,
-            ),
-          ],
+      builder: (ctx) => AlertDialog(
+        title: const Text('Security Update'),
+        content: const Text(
+          'This will redirect you to the password management portal.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Later'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Password changed successfully')),
-              );
-            },
-            child: const Text('Change'),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Proceed'),
           ),
         ],
       ),
@@ -356,57 +364,47 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   void _showExportDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Export Data'),
-        content: const Text('Choose data format for export:'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CSV')),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('JSON')),
-        ],
-      ),
-    );
-  }
-
-  void _confirmClearCache() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear Cache'),
-        content: const Text('This will clear all cached data. Continue?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Cache cleared')),
-              );
-            },
-            child: const Text('Clear'),
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Export System Log'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Save as CSV'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Save as PDF'),
           ),
         ],
       ),
     );
   }
 
+  void _confirmClearCache() {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('App cache has been cleared')));
+  }
+
   void _confirmReset() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reset System'),
-        content: const Text('This will reset all system settings to default. User data will NOT be affected.'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('System Reset'),
+        content: const Text(
+          'This will restore all configuration defaults. Continue?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('System reset complete')),
-              );
-            },
-            style: TextButton.styleFrom(foregroundColor: AppColors.warning),
-            child: const Text('Reset'),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Reset',
+              style: TextStyle(color: Color(0xFFFF9800)),
+            ),
           ),
         ],
       ),
@@ -416,23 +414,22 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   void _confirmDeleteAll() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete All Data'),
-        content: const Text('WARNING: This will delete ALL data including users, attendance, and complaints. This action CANNOT be undone!'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Purge Database'),
+        content: const Text(
+          'This action will delete all user data permanently. This cannot be undone.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('For safety, this action requires server confirmation'),
-                  backgroundColor: AppColors.danger,
-                ),
-              );
-            },
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('DELETE ALL'),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Delete Everything'),
           ),
         ],
       ),

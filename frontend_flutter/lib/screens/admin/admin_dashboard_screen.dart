@@ -2,7 +2,6 @@
 // Admin dashboard with system stats and quick actions
 
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
 
@@ -16,6 +15,13 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _isLoading = true;
   Map<String, dynamic> _stats = {};
+
+  // Fixed Role Colors for Admin context
+  static const Color roleAdmin = Color(0xFF1565C0);
+  static const Color statusSuccess = Color(0xFF4CAF50);
+  static const Color statusWarning = Color(0xFFFF9800);
+  static const Color statusError = Color(0xFFF44336);
+  static const Color statusInfo = Color(0xFF2196F3);
 
   @override
   void initState() {
@@ -36,7 +42,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } catch (e) {
@@ -44,40 +53,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  Future<void> _handleLogout() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      await ApiService.logout();
-      await SessionManager.clearSession();
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: AppColors.bgDark,
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: Column(
@@ -86,59 +68,60 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const Text('Admin Dashboard'),
               Text(
                 SessionManager.name ?? 'Administrator',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color: cs.onSurface.withOpacity(0.6),
                 ),
               ),
             ],
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.settings),
+              icon: const Icon(Icons.settings_outlined),
               onPressed: () => Navigator.pushNamed(context, '/backendSettings'),
               tooltip: 'Server Settings',
             ),
             IconButton(
-              icon: const Icon(Icons.person),
+              icon: const Icon(Icons.person_outline),
               onPressed: () => Navigator.pushNamed(context, '/adminProfile'),
               tooltip: 'Profile',
             ),
           ],
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(child: CircularProgressIndicator(color: cs.primary))
             : RefreshIndicator(
                 onRefresh: _loadStats,
+                color: cs.primary,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildStatsGrid(),
+                      _buildStatsGrid(cs),
                       const SizedBox(height: 24),
-                      const Text(
+                      Text(
                         'Quick Actions',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildQuickActions(),
+                      _buildQuickActions(cs),
                       const SizedBox(height: 24),
-                      const Text(
+                      Text(
                         'System Overview',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildSystemOverview(),
+                      _buildSystemOverview(cs),
                     ],
                   ),
                 ),
@@ -147,7 +130,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(ColorScheme cs) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -159,32 +142,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         _StatCard(
           title: 'Total Faculty',
           value: '${_stats['total_faculty'] ?? 0}',
-          icon: Icons.badge,
-          color: const Color(0xFF1565C0),
+          icon: Icons.badge_outlined,
+          color: roleAdmin,
+          cs: cs,
         ),
         _StatCard(
           title: 'Total Students',
           value: '${_stats['total_students'] ?? 0}',
-          icon: Icons.people,
-          color: AppColors.primary,
+          icon: Icons.people_outline,
+          color: cs.primary,
+          cs: cs,
         ),
         _StatCard(
           title: 'Departments',
           value: '${_stats['total_departments'] ?? 0}',
-          icon: Icons.account_tree,
-          color: AppColors.info,
+          icon: Icons.account_tree_outlined,
+          color: statusInfo,
+          cs: cs,
         ),
         _StatCard(
           title: 'Pending Issues',
           value: '${_stats['pending_complaints'] ?? 0}',
-          icon: Icons.report_problem,
-          color: AppColors.warning,
+          icon: Icons.report_problem_outlined,
+          color: statusWarning,
+          cs: cs,
         ),
       ],
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(ColorScheme cs) {
     return Column(
       children: [
         Row(
@@ -193,9 +180,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               child: _QuickActionCard(
                 title: 'Manage Faculty',
                 icon: Icons.badge,
-                color: const Color(0xFF1565C0),
+                color: roleAdmin,
                 onTap: () =>
                     Navigator.pushNamed(context, '/adminFacultyManagement'),
+                cs: cs,
               ),
             ),
             const SizedBox(width: 12),
@@ -203,8 +191,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               child: _QuickActionCard(
                 title: 'Add Faculty',
                 icon: Icons.person_add,
-                color: AppColors.success,
+                color: statusSuccess,
                 onTap: () => Navigator.pushNamed(context, '/adminAddFaculty'),
+                cs: cs,
               ),
             ),
           ],
@@ -216,9 +205,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               child: _QuickActionCard(
                 title: 'Subjects & Semesters',
                 icon: Icons.menu_book,
-                color: AppColors.danger,
+                color: statusError,
                 onTap: () =>
                     Navigator.pushNamed(context, '/hodSubjectManagement'),
+                cs: cs,
               ),
             ),
             const SizedBox(width: 12),
@@ -226,9 +216,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               child: _QuickActionCard(
                 title: 'Complaints',
                 icon: Icons.inbox,
-                color: AppColors.warning,
+                color: statusWarning,
                 onTap: () =>
                     Navigator.pushNamed(context, '/adminComplaintsManagement'),
+                cs: cs,
               ),
             ),
           ],
@@ -239,10 +230,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             Expanded(
               child: _QuickActionCard(
                 title: 'Reports',
-                icon: Icons.analytics,
-                color: AppColors.info,
+                icon: Icons.analytics_outlined,
+                color: statusInfo,
                 onTap: () =>
                     Navigator.pushNamed(context, '/adminSystemReports'),
+                cs: cs,
               ),
             ),
             const SizedBox(width: 12),
@@ -253,25 +245,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildSystemOverview() {
+  Widget _buildSystemOverview(ColorScheme cs) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(12),
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.onSurface.withOpacity(0.1)),
       ),
       child: Column(
         children: [
           _OverviewRow(
             label: 'Active Sessions Today',
             value: '${_stats['active_sessions'] ?? 0}',
-            icon: Icons.timer,
+            icon: Icons.timer_outlined,
+            cs: cs,
           ),
-          const Divider(height: 24),
+          Divider(height: 24, color: cs.onSurface.withOpacity(0.05)),
           _OverviewRow(
             label: "Today's Attendance",
             value: '${_stats['today_attendance'] ?? 0}%',
-            icon: Icons.check_circle,
+            icon: Icons.check_circle_outline,
+            cs: cs,
           ),
         ],
       ),
@@ -279,19 +274,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
-// ── Stat Card ────────────────────────────────────────────────────────────────
-
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
   final IconData icon;
   final Color color;
+  final ColorScheme cs;
 
   const _StatCard({
     required this.title,
     required this.value,
     required this.icon,
     required this.color,
+    required this.cs,
   });
 
   @override
@@ -299,9 +294,9 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -319,9 +314,9 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.textSecondary,
+              color: cs.onSurface.withOpacity(0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -331,86 +326,88 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// ── Quick Action Card ────────────────────────────────────────────────────────
-
 class _QuickActionCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
+  final ColorScheme cs;
 
   const _QuickActionCard({
     required this.title,
     required this.icon,
     required this.color,
     required this.onTap,
+    required this.cs,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-        decoration: BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: color.withOpacity(0.2)),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 32),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Overview Row ─────────────────────────────────────────────────────────────
-
 class _OverviewRow extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
+  final ColorScheme cs;
 
   const _OverviewRow({
     required this.label,
     required this.value,
     required this.icon,
+    required this.cs,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: AppColors.primary, size: 24),
+        Icon(icon, color: cs.primary, size: 24),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.6),
               fontSize: 14,
             ),
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: cs.onSurface,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),

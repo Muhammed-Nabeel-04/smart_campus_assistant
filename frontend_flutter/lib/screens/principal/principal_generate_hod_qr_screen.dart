@@ -1,7 +1,8 @@
-// lib/screens/principal/principal_generate_hod_qr_screen.dart
+// File: lib/screens/principal/principal_generate_hod_qr_screen.dart
+// Principal generates a secure, time-limited token for HOD onboarding
+
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 
 class PrincipalGenerateHODQRScreen extends StatefulWidget {
@@ -35,7 +36,7 @@ class _PrincipalGenerateHODQRScreenState
       final res = await ApiService.generateHODQR(widget.hod['id']);
       if (mounted) {
         setState(() {
-          // ✅ Build QR data from token
+          // Token string to be scanned by the HOD onboarding screen
           _qrData = res['token'];
           _expiresIn = res['expires_in_minutes'] != null
               ? (res['expires_in_minutes'] as int) * 60
@@ -44,127 +45,138 @@ class _PrincipalGenerateHODQRScreenState
         });
       }
     } on ApiException catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.message;
           _isLoading = false;
         });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(title: const Text('HOD Onboarding QR')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: _isLoading
-              ? const CircularProgressIndicator()
+              ? CircularProgressIndicator(color: cs.primary)
               : _error != null
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: AppColors.danger,
-                      size: 64,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _error!,
-                      style: const TextStyle(color: AppColors.danger),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _generateQR,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      widget.hod['name'] ?? '',
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.hod['department_name'] ?? '',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: QrImageView(
-                        data: _qrData ?? '',
-                        version: QrVersions.auto,
-                        size: 220,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppColors.warning.withOpacity(0.3),
-                        ),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.timer_outlined,
-                            color: AppColors.warning,
-                            size: 18,
-                          ),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'QR expires in 1 minutes. HOD must scan this to set their password.',
-                              style: TextStyle(
-                                color: AppColors.warning,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    OutlinedButton.icon(
-                      onPressed: _generateQR,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Regenerate QR'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF1565C0),
-                        side: const BorderSide(color: Color(0xFF1565C0)),
-                      ),
-                    ),
-                  ],
-                ),
+              ? _buildErrorState(cs)
+              : _buildQRContent(cs),
         ),
       ),
+    );
+  }
+
+  Widget _buildQRContent(ColorScheme cs) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          widget.hod['name'] ?? 'HOD',
+          style: TextStyle(
+            color: cs.onSurface,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          widget.hod['department_name'] ?? 'Department',
+          style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 14),
+        ),
+        const SizedBox(height: 32),
+
+        // QR Code Container
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: cs.primary.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: QrImageView(
+            data: _qrData ?? '',
+            version: QrVersions.auto,
+            size: 240,
+            eyeStyle: QrEyeStyle(
+              eyeShape: QrEyeShape.square,
+              color: cs.primary,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 32),
+
+        // Expiry Warning
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.withOpacity(0.2)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.timer_outlined, color: Colors.orange, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'This QR code is valid for setup only. HOD must scan this now to authorize their account.',
+                  style: TextStyle(
+                    color: Colors.orange.shade800,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 32),
+
+        OutlinedButton.icon(
+          onPressed: _generateQR,
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('Regenerate Token'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: cs.primary,
+            side: BorderSide(color: cs.primary),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorState(ColorScheme cs) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.error_outline_rounded, color: cs.error, size: 64),
+        const SizedBox(height: 16),
+        Text(
+          _error!,
+          style: TextStyle(color: cs.error, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        ElevatedButton(
+          onPressed: _generateQR,
+          child: const Text('Retry Generation'),
+        ),
+      ],
     );
   }
 }

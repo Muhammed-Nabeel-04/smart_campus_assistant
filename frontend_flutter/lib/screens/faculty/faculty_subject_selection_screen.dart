@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
-import '../../core/app_colors.dart';
 
 class FacultySubjectSelectionScreen extends StatefulWidget {
   final Map<String, dynamic> department;
@@ -58,8 +57,8 @@ class _FacultySubjectSelectionScreenState
     }
   }
 
-  // ✅ Updated _selectSubject with fixed routing
   Future<void> _selectSubject(Map<String, dynamic> subject) async {
+    final cs = Theme.of(context).colorScheme;
     final completeData = {
       'department': widget.department,
       'class': widget.classData,
@@ -69,7 +68,6 @@ class _FacultySubjectSelectionScreenState
 
     switch (widget.action) {
       case 'attendance':
-        // Check if session already active for this subject
         final facultyId = SessionManager.facultyId!;
         try {
           final activeSessions = await ApiService.getActiveSessions(facultyId);
@@ -82,14 +80,14 @@ class _FacultySubjectSelectionScreenState
             showDialog(
               context: context,
               builder: (ctx) => AlertDialog(
-                backgroundColor: AppColors.bgCard,
-                title: const Text(
+                backgroundColor: cs.surface,
+                title: Text(
                   'Session Already Active',
-                  style: TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: cs.onSurface),
                 ),
                 content: Text(
                   '${subject['name']} already has an ongoing session.\nDo you want to rejoin it?',
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: cs.onSurface.withOpacity(0.7)),
                 ),
                 actions: [
                   TextButton(
@@ -105,9 +103,6 @@ class _FacultySubjectSelectionScreenState
                         arguments: completeData,
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                    ),
                     child: const Text('Rejoin'),
                   ),
                 ],
@@ -160,11 +155,10 @@ class _FacultySubjectSelectionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
-        backgroundColor: AppColors.bgCard,
-        elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -174,9 +168,9 @@ class _FacultySubjectSelectionScreenState
             ),
             Text(
               widget.department['name'] ?? 'Department',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: cs.onSurface.withOpacity(0.6),
               ),
             ),
           ],
@@ -184,24 +178,29 @@ class _FacultySubjectSelectionScreenState
       ),
       body: Column(
         children: [
-          // ✅ Show only the HOD-assigned semester (no switching)
+          // Current Semester Banner
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: AppColors.bgCard,
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border(
+                bottom: BorderSide(color: cs.onSurface.withOpacity(0.05)),
+              ),
+            ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.calendar_today,
-                  color: AppColors.primary,
-                  size: 16,
+                Icon(
+                  Icons.calendar_month_outlined,
+                  color: cs.primary,
+                  size: 18,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   _selectedSemester,
-                  style: const TextStyle(
-                    color: AppColors.primary,
+                  style: TextStyle(
+                    color: cs.primary,
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -211,19 +210,17 @@ class _FacultySubjectSelectionScreenState
           // Subjects list
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF1565C0)),
-                  )
-                : _subjects.isEmpty
-                ? _buildEmptyState()
+                ? Center(child: CircularProgressIndicator(color: cs.primary))
+                : _filteredSubjects.isEmpty
+                ? _buildEmptyState(cs)
                 : RefreshIndicator(
                     onRefresh: _loadSubjects,
-                    color: const Color(0xFF1565C0),
+                    color: cs.primary,
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _filteredSubjects.length,
                       itemBuilder: (context, index) {
-                        return _buildSubjectCard(_filteredSubjects[index]);
+                        return _buildSubjectCard(_filteredSubjects[index], cs);
                       },
                     ),
                   ),
@@ -233,20 +230,20 @@ class _FacultySubjectSelectionScreenState
     );
   }
 
-  Widget _buildSubjectCard(Map<String, dynamic> subject) {
-    final typeColors = {
-      'Theory': const Color(0xFF1565C0),
-      'Lab': const Color(0xFF00897B),
-      'Project': const Color(0xFFE65100),
-    };
-    final color = typeColors[subject['type']] ?? const Color(0xFF1565C0);
+  Widget _buildSubjectCard(Map<String, dynamic> subject, ColorScheme cs) {
+    final String type = subject['type'] ?? 'Theory';
+    final Color typeColor = type == 'Lab'
+        ? const Color(0xFF00897B)
+        : type == 'Project'
+        ? const Color(0xFFE65100)
+        : cs.primary;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: typeColor.withOpacity(0.2)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -257,54 +254,47 @@ class _FacultySubjectSelectionScreenState
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Icon
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
+                    color: typeColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    _getSubjectIcon(subject['type']),
-                    color: color,
+                    _getSubjectIcon(type),
+                    color: typeColor,
                     size: 24,
                   ),
                 ),
-
                 const SizedBox(width: 16),
-
-                // Subject info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Subject name
                       Text(
                         subject['name'] ?? 'Subject',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          color: cs.onSurface,
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 6),
-
-                      // Subject code and type
                       Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
-                              vertical: 4,
+                              vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.2),
+                              color: typeColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               subject['code'] ?? '',
                               style: TextStyle(
-                                color: color,
+                                color: typeColor,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -312,9 +302,9 @@ class _FacultySubjectSelectionScreenState
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '${subject['type']} • ${subject['credits']} Credits',
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            '$type • ${subject['credits']} Credits',
+                            style: TextStyle(
+                              color: cs.onSurface.withOpacity(0.5),
                               fontSize: 12,
                             ),
                           ),
@@ -323,9 +313,7 @@ class _FacultySubjectSelectionScreenState
                     ],
                   ),
                 ),
-
-                // Arrow
-                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                Icon(Icons.chevron_right, color: cs.onSurface.withOpacity(0.3)),
               ],
             ),
           ),
@@ -337,16 +325,16 @@ class _FacultySubjectSelectionScreenState
   IconData _getSubjectIcon(String? type) {
     switch (type) {
       case 'Lab':
-        return Icons.science;
+        return Icons.science_outlined;
       case 'Project':
-        return Icons.assignment;
+        return Icons.assignment_outlined;
       case 'Theory':
       default:
-        return Icons.book;
+        return Icons.menu_book_outlined;
     }
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(ColorScheme cs) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -354,32 +342,30 @@ class _FacultySubjectSelectionScreenState
           Icon(
             Icons.book_outlined,
             size: 80,
-            color: AppColors.textSecondary.withOpacity(0.5),
+            color: cs.onSurface.withOpacity(0.1),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'No subjects found',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 18),
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.5),
+              fontSize: 18,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'No subjects available for $_selectedSemester',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textSecondary.withOpacity(0.7),
+              color: cs.onSurface.withOpacity(0.4),
               fontSize: 14,
             ),
-            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
+          OutlinedButton.icon(
             onPressed: _loadSubjects,
             icon: const Icon(Icons.refresh),
-            label: const Text('Refresh'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1565C0),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
+            label: const Text('Refresh List'),
           ),
         ],
       ),

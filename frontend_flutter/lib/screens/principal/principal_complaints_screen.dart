@@ -1,7 +1,7 @@
 // File: lib/screens/principal/principal_complaints_screen.dart
+// Principal interface to review and resolve complaints escalated from the HOD level
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
-import '../../core/session.dart';
 import '../../services/api_service.dart';
 
 class PrincipalComplaintsScreen extends StatefulWidget {
@@ -29,9 +29,11 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
   Future<void> _loadDepartments() async {
     try {
       final data = await ApiService.getPrincipalDepartments();
-      setState(() {
-        _departments = List<Map<String, dynamic>>.from(data);
-      });
+      if (mounted) {
+        setState(() {
+          _departments = List<Map<String, dynamic>>.from(data);
+        });
+      }
     } catch (_) {}
   }
 
@@ -55,33 +57,24 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(title: const Text('Escalated Complaints')),
       body: Column(
         children: [
-          // Department filter
+          // Department Filter
           if (_departments.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: const EdgeInsets.all(16),
               child: DropdownButtonFormField<int?>(
                 value: _selectedDeptId,
-                dropdownColor: AppColors.bgCard,
-                decoration: InputDecoration(
-                  labelText: 'Department',
-                  labelStyle: const TextStyle(color: AppColors.textSecondary),
-                  filled: true,
-                  fillColor: AppColors.bgCard,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+                dropdownColor: cs.surface,
+                decoration: const InputDecoration(
+                  labelText: 'Filter by Department',
+                  prefixIcon: Icon(Icons.business_outlined),
                 ),
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: cs.onSurface),
                 items: [
                   const DropdownMenuItem<int?>(
                     value: null,
@@ -101,41 +94,44 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
               ),
             ),
 
-          // Status filter chips
+          // Status Filter Chips
           Container(
-            color: AppColors.bgDark,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border(
+                bottom: BorderSide(color: cs.onSurface.withOpacity(0.05)),
+              ),
+            ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  _buildFilterChip('All', 'all'),
-                  _buildFilterChip('Escalated', 'escalated'),
-                  _buildFilterChip('In Progress', 'in_progress'),
-                  _buildFilterChip('Resolved', 'resolved'),
+                  _buildFilterChip('All', 'all', cs),
+                  _buildFilterChip('Escalated', 'escalated', cs),
+                  _buildFilterChip('In Progress', 'in_progress', cs),
+                  _buildFilterChip('Resolved', 'resolved', cs),
                 ],
               ),
             ),
           ),
 
-          // Complaints list
+          // Complaints List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: cs.primary))
                 : _complaints.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No escalated complaints',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  )
+                ? _buildEmptyState(cs)
                 : RefreshIndicator(
                     onRefresh: _loadComplaints,
+                    color: cs.primary,
                     child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.all(16),
                       itemCount: _complaints.length,
                       itemBuilder: (context, index) =>
-                          _buildComplaintCard(_complaints[index]),
+                          _buildComplaintCard(_complaints[index], cs),
                     ),
                   ),
           ),
@@ -144,7 +140,7 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, String value) {
+  Widget _buildFilterChip(String label, String value, ColorScheme cs) {
     final isSelected = _filterStatus == value;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -155,22 +151,39 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
           setState(() => _filterStatus = value);
           _loadComplaints();
         },
-        backgroundColor: AppColors.bgCard,
-        selectedColor: const Color(0xFF6A1B9A),
+        selectedColor: cs.primary.withOpacity(0.2),
+        checkmarkColor: cs.primary,
+        labelStyle: TextStyle(
+          color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.7),
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
       ),
     );
   }
 
-  Widget _buildComplaintCard(Map<String, dynamic> complaint) {
-    final priority = complaint['priority'] ?? 'medium';
-    final status = complaint['status'] ?? 'escalated';
+  Widget _buildComplaintCard(Map<String, dynamic> complaint, ColorScheme cs) {
+    final priority = (complaint['priority'] ?? 'medium')
+        .toString()
+        .toLowerCase();
+    final status = (complaint['status'] ?? 'escalated')
+        .toString()
+        .toLowerCase();
+
+    // Priority Colors
+    final Color priorityColor = priority == 'high' || priority == 'urgent'
+        ? cs.error
+        : (priority == 'medium' ? Colors.orange : Colors.green);
 
     return Card(
+      elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
-      color: AppColors.bgCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: cs.onSurface.withOpacity(0.1)),
+      ),
       child: InkWell(
         onTap: () => _showComplaintDialog(complaint),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -178,50 +191,14 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.priorityColor(priority).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      priority.toUpperCase(),
-                      style: TextStyle(
-                        color: AppColors.priorityColor(priority),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  _buildBadge(priority.toUpperCase(), priorityColor),
                   const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.complaintStatusColor(
-                        status,
-                      ).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      status.replaceAll('_', ' ').toUpperCase(),
-                      style: TextStyle(
-                        color: AppColors.complaintStatusColor(status),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  _buildBadge('ESCALATED', cs.primary),
                   const Spacer(),
                   Text(
                     complaint['created_at']?.toString().substring(0, 10) ?? '',
-                    style: const TextStyle(
-                      color: AppColors.textHint,
+                    style: TextStyle(
+                      color: cs.onSurface.withOpacity(0.4),
                       fontSize: 11,
                     ),
                   ),
@@ -231,7 +208,6 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
               Text(
                 complaint['title'] ?? 'No Title',
                 style: const TextStyle(
-                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -239,35 +215,43 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
               const SizedBox(height: 4),
               Text(
                 complaint['description'] ?? '',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: cs.onSurface.withOpacity(0.6),
                   fontSize: 13,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.person, size: 14, color: AppColors.textHint),
+                  Icon(
+                    Icons.person_outline,
+                    size: 14,
+                    color: cs.onSurface.withOpacity(0.4),
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     complaint['student_name'] ?? 'Unknown',
-                    style: const TextStyle(
-                      color: AppColors.textHint,
+                    style: TextStyle(
+                      color: cs.onSurface.withOpacity(0.6),
                       fontSize: 12,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(
-                    Icons.warning_amber,
+                  Icon(
+                    Icons.warning_amber_rounded,
                     size: 14,
-                    color: AppColors.warning,
+                    color: Colors.orange,
                   ),
                   const SizedBox(width: 4),
                   const Text(
-                    'Escalated by HOD',
-                    style: TextStyle(color: AppColors.warning, fontSize: 12),
+                    'Higher Authority Action Required',
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -278,7 +262,27 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
     );
   }
 
+  Widget _buildBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
   void _showComplaintDialog(Map<String, dynamic> complaint) {
+    final cs = Theme.of(context).colorScheme;
     final responseController = TextEditingController(
       text: complaint['admin_response'] ?? '',
     );
@@ -287,41 +291,39 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setS) => AlertDialog(
-          backgroundColor: AppColors.bgCard,
-          title: Text(
-            complaint['title'] ?? 'Complaint',
-            style: const TextStyle(color: AppColors.textPrimary),
-          ),
+        builder: (context, setModalState) => AlertDialog(
+          backgroundColor: cs.surface,
+          title: Text(complaint['title'] ?? 'Complaint Review'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Student: ${complaint['student_name'] ?? 'Unknown'}',
-                  style: const TextStyle(color: AppColors.textSecondary),
+                _buildModalDetail(
+                  'Student',
+                  complaint['student_name'] ?? 'Unknown',
+                  cs,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Category: ${complaint['category'] ?? 'N/A'}',
-                  style: const TextStyle(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Priority: ${complaint['priority'] ?? 'N/A'}',
-                  style: const TextStyle(color: AppColors.textSecondary),
+                _buildModalDetail(
+                  'Category',
+                  complaint['category'] ?? 'N/A',
+                  cs,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   complaint['description'] ?? '',
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(
+                    color: cs.onSurface.withOpacity(0.8),
+                    height: 1.4,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
                   value: selectedStatus,
-                  dropdownColor: AppColors.bgCard,
-                  decoration: const InputDecoration(labelText: 'Status'),
+                  dropdownColor: cs.surface,
+                  decoration: const InputDecoration(
+                    labelText: 'Final Resolution Status',
+                  ),
                   items: const [
                     DropdownMenuItem(
                       value: 'escalated',
@@ -340,15 +342,15 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
                       child: Text('Rejected'),
                     ),
                   ],
-                  onChanged: (v) => setS(() => selectedStatus = v!),
+                  onChanged: (v) => setModalState(() => selectedStatus = v!),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: responseController,
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: cs.onSurface),
                   decoration: const InputDecoration(
-                    labelText: 'Principal Response',
-                    hintText: 'Enter your response...',
+                    labelText: 'Principal Decision/Response',
+                    hintText: 'Enter final remarks for the student...',
                   ),
                   maxLines: 3,
                 ),
@@ -367,30 +369,73 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
                     'status': selectedStatus,
                     'admin_response': responseController.text.trim(),
                   });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Complaint updated'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                  _loadComplaints();
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Complaint status updated'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    _loadComplaints();
+                  }
                 } on ApiException catch (e) {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(e.message),
-                      backgroundColor: AppColors.danger,
+                      backgroundColor: cs.error,
                     ),
                   );
                 }
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6A1B9A),
-              ),
-              child: const Text('Submit'),
+              child: const Text('Update Decision'),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildModalDetail(String label, String value, ColorScheme cs) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: RichText(
+        text: TextSpan(
+          style: TextStyle(color: cs.onSurface, fontSize: 13),
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text: value,
+              style: TextStyle(color: cs.onSurface.withOpacity(0.7)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ColorScheme cs) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.assignment_turned_in_outlined,
+            size: 80,
+            color: cs.onSurface.withOpacity(0.1),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No escalated complaints',
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.4),
+              fontSize: 16,
+            ),
+          ),
+        ],
       ),
     );
   }

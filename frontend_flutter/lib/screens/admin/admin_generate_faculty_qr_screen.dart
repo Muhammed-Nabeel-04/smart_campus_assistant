@@ -1,9 +1,10 @@
 // File: lib/screens/admin/admin_generate_faculty_qr_screen.dart
+// Admin generates a secure, one-time JSON QR for faculty onboarding
+
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:async';
 import 'dart:convert';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 
 class AdminGenerateFacultyQRScreen extends StatefulWidget {
@@ -19,10 +20,15 @@ class AdminGenerateFacultyQRScreen extends StatefulWidget {
 class _AdminGenerateFacultyQRScreenState
     extends State<AdminGenerateFacultyQRScreen> {
   String? _qrToken;
-  int _secondsRemaining = 60; // 1 minutes
+  int _secondsRemaining = 60;
   Timer? _timer;
   bool _isLoading = true;
   bool _isExpired = false;
+
+  // Fixed semantic colors for status/timer
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color warningOrange = Color(0xFFFF9800);
+  static const Color infoBlue = Color(0xFF2196F3);
 
   @override
   void initState() {
@@ -45,11 +51,11 @@ class _AdminGenerateFacultyQRScreenState
 
     try {
       final response = await ApiService.generateAdminFacultyQR(
-        widget.faculty['id'], // ✅ Real API
+        widget.faculty['id'],
       );
 
       if (mounted) {
-        // ✅ FIX: Encode as JSON so faculty scanner can find both faculty_id and token
+        // Encode as JSON so the faculty scanner app can parse both fields
         final qrData = jsonEncode({
           'faculty_id': widget.faculty['id'],
           'token': response['token'],
@@ -65,7 +71,10 @@ class _AdminGenerateFacultyQRScreenState
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } catch (e) {
@@ -76,6 +85,7 @@ class _AdminGenerateFacultyQRScreenState
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
       setState(() {
         if (_secondsRemaining > 0) {
           _secondsRemaining--;
@@ -93,44 +103,49 @@ class _AdminGenerateFacultyQRScreenState
     return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
-  Color _getTimerColor() {
-    if (_secondsRemaining > 30) return AppColors.success;
-    if (_secondsRemaining > 10) return AppColors.warning;
-    return AppColors.danger;
+  Color _getTimerColor(ColorScheme cs) {
+    if (_secondsRemaining > 30) return successGreen;
+    if (_secondsRemaining > 10) return warningOrange;
+    return cs.error;
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
-      appBar: AppBar(title: const Text('Generate Faculty QR')),
+      appBar: AppBar(title: const Text('Faculty Setup QR')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: cs.primary))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  // Faculty Info
+                  // Faculty Info Summary
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.bgCard,
-                      borderRadius: BorderRadius.circular(12),
+                      color: cs.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: cs.onSurface.withOpacity(0.1)),
                     ),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 24,
-                          backgroundColor: const Color(0xFF1565C0),
+                          backgroundColor: cs.primary.withOpacity(0.1),
                           child: Text(
-                            widget.faculty['name'].toString().substring(0, 1),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
+                            widget.faculty['name']
+                                .toString()
+                                .substring(0, 1)
+                                .toUpperCase(),
+                            style: TextStyle(
+                              color: cs.primary,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,16 +153,15 @@ class _AdminGenerateFacultyQRScreenState
                               Text(
                                 widget.faculty['name'],
                                 style: const TextStyle(
-                                  color: AppColors.textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
                               ),
                               Text(
                                 widget.faculty['email'],
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
+                                style: TextStyle(
+                                  color: cs.onSurface.withOpacity(0.6),
+                                  fontSize: 13,
                                 ),
                               ),
                             ],
@@ -159,33 +173,35 @@ class _AdminGenerateFacultyQRScreenState
 
                   const SizedBox(height: 32),
 
-                  if (_isExpired) _buildExpiredState() else _buildQRState(),
+                  if (_isExpired) _buildExpiredState(cs) else _buildQRState(cs),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildQRState() {
+  Widget _buildQRState(ColorScheme cs) {
+    final timerColor = _getTimerColor(cs);
+
     return Column(
       children: [
-        // Timer
+        // Timer Widget
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
-            color: _getTimerColor().withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _getTimerColor()),
+            color: timerColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: timerColor.withOpacity(0.3)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.timer, color: _getTimerColor(), size: 20),
-              const SizedBox(width: 8),
+              Icon(Icons.timer_outlined, color: timerColor, size: 20),
+              const SizedBox(width: 10),
               Text(
                 'Expires in ${_formatTime(_secondsRemaining)}',
                 style: TextStyle(
-                  color: _getTimerColor(),
+                  color: timerColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -196,50 +212,63 @@ class _AdminGenerateFacultyQRScreenState
 
         const SizedBox(height: 32),
 
-        // QR Code
+        // QR Code Container
         Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: cs.primary.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: QrImageView(
             data: _qrToken ?? '',
             version: QrVersions.auto,
-            size: 280,
+            size: 260,
+            backgroundColor: Colors.white,
+            eyeStyle: QrEyeStyle(
+              eyeShape: QrEyeShape.square,
+              color: cs.primary,
+            ),
           ),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 32),
 
-        // Instructions
+        // Help Instructions
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.bgCard,
-            borderRadius: BorderRadius.circular(12),
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: cs.onSurface.withOpacity(0.1)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: const [
-                  Icon(Icons.info_outline, color: AppColors.info, size: 20),
-                  SizedBox(width: 8),
+              const Row(
+                children: [
+                  Icon(Icons.info_outline, color: infoBlue, size: 20),
+                  SizedBox(width: 10),
                   Text(
-                    'Instructions',
-                    style: TextStyle(
-                      color: AppColors.info,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    'Onboarding Steps',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              _buildInstruction('Faculty scans this QR code'),
-              _buildInstruction('Faculty sets up password'),
-              _buildInstruction('QR expires in 5 minutes'),
-              _buildInstruction('One-time use only'),
+              const SizedBox(height: 16),
+              _buildInstruction(
+                '1. Faculty opens app and chooses "Onboard"',
+                cs,
+              ),
+              _buildInstruction('2. Faculty scans this QR code', cs),
+              _buildInstruction('3. QR expires in 1 min for security', cs),
+              _buildInstruction('4. One-time setup only', cs),
             ],
           ),
         ),
@@ -247,33 +276,30 @@ class _AdminGenerateFacultyQRScreenState
     );
   }
 
-  Widget _buildExpiredState() {
+  Widget _buildExpiredState(ColorScheme cs) {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(32),
+          width: double.infinity,
+          padding: const EdgeInsets.all(40),
           decoration: BoxDecoration(
-            color: AppColors.danger.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.danger),
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: cs.error.withOpacity(0.3), width: 2),
           ),
           child: Column(
-            children: const [
-              Icon(Icons.error_outline, color: AppColors.danger, size: 64),
-              SizedBox(height: 16),
-              Text(
+            children: [
+              Icon(Icons.timer_off_outlined, color: cs.error, size: 64),
+              const SizedBox(height: 20),
+              const Text(
                 'QR Code Expired',
-                style: TextStyle(
-                  color: AppColors.danger,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
-                'This QR code has expired. Generate a new one.',
-                style: TextStyle(color: AppColors.textSecondary),
+                'For security reasons, this token has expired.',
                 textAlign: TextAlign.center,
+                style: TextStyle(color: cs.onSurface.withOpacity(0.6)),
               ),
             ],
           ),
@@ -281,10 +307,9 @@ class _AdminGenerateFacultyQRScreenState
         const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,
-          height: 52,
+          height: 56,
           child: ElevatedButton.icon(
             onPressed: _generateQR,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
             icon: const Icon(Icons.refresh),
             label: const Text('Generate New QR'),
           ),
@@ -293,18 +318,20 @@ class _AdminGenerateFacultyQRScreenState
     );
   }
 
-  Widget _buildInstruction(String text) {
+  Widget _buildInstruction(String text, ColorScheme cs) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: AppColors.success, size: 16),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
+          const Icon(Icons.check_circle_outline, color: successGreen, size: 16),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: cs.onSurface.withOpacity(0.7),
+                fontSize: 13,
+              ),
             ),
           ),
         ],

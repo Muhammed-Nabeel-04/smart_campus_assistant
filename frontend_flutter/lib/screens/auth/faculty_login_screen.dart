@@ -1,10 +1,7 @@
 // File: lib/screens/faculty/faculty_login_screen.dart
-// Normal faculty login with email + password
-
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
-import '../../core/app_colors.dart';
 
 class FacultyLoginScreen extends StatefulWidget {
   const FacultyLoginScreen({super.key});
@@ -57,30 +54,26 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
         Navigator.pushReplacementNamed(context, '/facultyDashboard');
       }
     } on ApiException catch (e) {
-      if (mounted) {
-        _showError(e.message);
-      }
+      if (mounted) _showError(e.message);
     } catch (e) {
-      if (mounted) {
-        _showError(e.toString());
-      }
+      if (mounted) _showError(e.toString());
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.danger),
-    );
+    final cs = Theme.of(context).colorScheme;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: cs.error));
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -90,19 +83,19 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo/Icon
+                  // ── Logo ─────────────────────────────────────
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
+                      gradient: LinearGradient(
+                        colors: [cs.primary, cs.secondary],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF1565C0).withOpacity(0.3),
+                          color: cs.primary.withOpacity(0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -117,13 +110,13 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Title
-                  const Text(
+                  // ── Title ─────────────────────────────────────
+                  Text(
                     'Faculty Portal',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1565C0),
+                      color: cs.primary,
                     ),
                   ),
 
@@ -133,134 +126,69 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
                     'Sign in to manage your classes',
                     style: TextStyle(
                       fontSize: 16,
-                      color: AppColors.textSecondary,
+                      color: cs.onBackground.withOpacity(0.6),
                     ),
                   ),
 
                   const SizedBox(height: 48),
 
-                  // Email Field
+                  // ── Email ─────────────────────────────────────
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Email',
-                      labelStyle: const TextStyle(
-                        color: AppColors.textSecondary,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.email_outlined,
-                        color: Color(0xFF1565C0),
-                      ),
-                      filled: true,
-                      fillColor: AppColors.bgCard,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: AppColors.bgSeparator,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF1565C0),
-                          width: 2,
-                        ),
-                      ),
+                      prefixIcon: Icon(Icons.email_outlined),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty)
                         return 'Please enter your email';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Please enter a valid email';
-                      }
+                      if (!v.contains('@')) return 'Please enter a valid email';
                       return null;
                     },
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Password Field
+                  // ── Password ──────────────────────────────────
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      labelStyle: const TextStyle(
-                        color: AppColors.textSecondary,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.lock_outline,
-                        color: Color(0xFF1565C0),
-                      ),
+                      prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
-                          color: const Color(0xFF1565C0),
                         ),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
-                      ),
-                      filled: true,
-                      fillColor: AppColors.bgCard,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: AppColors.bgSeparator,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF1565C0),
-                          width: 2,
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
                         ),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
+                    validator: (v) {
+                      if (v == null || v.isEmpty)
                         return 'Please enter your password';
-                      }
                       return null;
                     },
                   ),
 
                   const SizedBox(height: 24),
 
-                  // Login Button
+                  // ── Login Button ──────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1565C0),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
                       child: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 24,
                               width: 24,
                               child: CircularProgressIndicator(
-                                color: Colors.white,
+                                color: cs.onTertiary,
                                 strokeWidth: 2,
                               ),
                             )
@@ -276,24 +204,30 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
 
                   const SizedBox(height: 16),
 
-                  // OR Divider
+                  // ── OR Divider ────────────────────────────────
                   Row(
                     children: [
-                      Expanded(child: Divider(color: AppColors.textSecondary)),
+                      Expanded(
+                        child: Divider(color: cs.onBackground.withOpacity(0.2)),
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
                           'OR',
-                          style: TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(
+                            color: cs.onBackground.withOpacity(0.5),
+                          ),
                         ),
                       ),
-                      Expanded(child: Divider(color: AppColors.textSecondary)),
+                      Expanded(
+                        child: Divider(color: cs.onBackground.withOpacity(0.2)),
+                      ),
                     ],
                   ),
 
                   const SizedBox(height: 16),
 
-                  // First time setup button
+                  // ── First Time Setup ──────────────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -308,46 +242,27 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF1565C0),
-                        side: const BorderSide(
-                          color: Color(0xFF1565C0),
-                          width: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                   ),
 
                   const SizedBox(height: 24),
 
-                  // Info note
+                  // ── Info Note ─────────────────────────────────
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.info.withOpacity(0.1),
+                      color: cs.primary.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.info.withOpacity(0.3),
-                      ),
+                      border: Border.all(color: cs.primary.withOpacity(0.25)),
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: AppColors.info,
-                          size: 20,
-                        ),
+                        Icon(Icons.info_outline, color: cs.primary, size: 20),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             'New faculty? Get your setup QR from admin.',
-                            style: TextStyle(
-                              color: AppColors.info,
-                              fontSize: 12,
-                            ),
+                            style: TextStyle(color: cs.primary, fontSize: 12),
                           ),
                         ),
                       ],

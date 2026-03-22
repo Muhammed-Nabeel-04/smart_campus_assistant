@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import '../../core/session.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 
 class FacultyDashboardScreen extends StatefulWidget {
@@ -20,6 +19,13 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   bool _isLoading = true;
   late AnimationController _blinkController;
   late Animation<double> _blinkAnim;
+
+  // Fixed Role Colors from Guide
+  static const Color roleHOD = Color(0xFFF44336); // Red for Alerts/Active
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color infoBlue = Color(0xFF2196F3);
+  static const Color warningOrange = Color(0xFFFF9800);
+  static const Color principalPurple = Color(0xFF9C27B0);
 
   @override
   void initState() {
@@ -59,32 +65,30 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   }
 
   Future<void> _handleLogout() async {
+    final cs = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.bgCard,
+        backgroundColor: cs.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Logout',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: const Text(
+        title: Text('Logout', style: TextStyle(color: cs.onSurface)),
+        content: Text(
           'Are you sure you want to logout?',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: cs.onSurface.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: cs.onSurface.withOpacity(0.6)),
             ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              foregroundColor: Colors.white,
+              backgroundColor: cs.error,
+              foregroundColor: cs.onError,
             ),
             child: const Text('Logout'),
           ),
@@ -103,13 +107,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Wrapped with PopScope to prevent accidental back-button logout
+    final cs = Theme.of(context).colorScheme;
+
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: AppColors.bgDark,
         appBar: AppBar(
-          backgroundColor: AppColors.bgCard,
           elevation: 0,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,9 +126,9 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
               ),
               Text(
                 SessionManager.department ?? 'Faculty',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color: cs.onSurface.withOpacity(0.6),
                 ),
               ),
             ],
@@ -144,11 +147,9 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
         ),
         body: RefreshIndicator(
           onRefresh: _loadStats,
-          color: const Color(0xFF1565C0),
+          color: cs.primary,
           child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF1565C0)),
-                )
+              ? Center(child: CircularProgressIndicator(color: cs.primary))
               : ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
@@ -164,15 +165,15 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                               margin: const EdgeInsets.only(bottom: 16),
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: AppColors.danger.withOpacity(0.15),
+                                color: roleHOD.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.danger),
+                                border: Border.all(color: roleHOD),
                               ),
                               child: Row(
                                 children: [
                                   const Icon(
                                     Icons.radio_button_checked,
-                                    color: AppColors.danger,
+                                    color: roleHOD,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 10),
@@ -180,14 +181,14 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                     child: Text(
                                       '${_activeSessions.length} Active Session${_activeSessions.length > 1 ? 's' : ''} Running — Tap to manage',
                                       style: const TextStyle(
-                                        color: AppColors.danger,
+                                        color: roleHOD,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ),
                                   const Icon(
                                     Icons.arrow_forward_ios,
-                                    color: AppColors.danger,
+                                    color: roleHOD,
                                     size: 14,
                                   ),
                                 ],
@@ -210,28 +211,32 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                           'Total Classes',
                           '${_stats?['total_sessions'] ?? 0}',
                           Icons.class_,
-                          const Color(0xFF4CAF50),
+                          successGreen,
                           () => _showSessionsSheet(),
+                          cs,
                         ),
                         _buildTappableStatCard(
                           'Active Sessions',
                           '${_activeSessions.length}',
                           Icons.play_circle,
-                          const Color(0xFF2196F3),
+                          infoBlue,
                           () => _showActiveSessionsSheet(),
+                          cs,
                         ),
                         _buildTappableStatCard(
                           'Total Students',
                           '${_stats?['total_students'] ?? 0}',
                           Icons.people,
-                          const Color(0xFFFF9800),
+                          warningOrange,
                           () => _showStudentsSheet(),
+                          cs,
                         ),
                         _buildStatCard(
                           'Avg Attendance',
                           '${_stats?['average_attendance'] ?? 0}%',
                           Icons.trending_up,
-                          const Color(0xFF9C27B0),
+                          principalPurple,
+                          cs,
                         ),
                       ],
                     ),
@@ -239,12 +244,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                     const SizedBox(height: 24),
 
                     // Quick Actions
-                    const Text(
+                    Text(
                       'Quick Actions',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: cs.onSurface,
                       ),
                     ),
 
@@ -258,59 +263,59 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                       mainAxisSpacing: 12,
                       childAspectRatio: 1.2,
                       children: [
-                        // ✅ START ATTENDANCE
                         _buildActionCard(
                           'Start Attendance',
                           Icons.qr_code,
-                          const Color(0xFF1565C0),
+                          cs.primary,
                           () => Navigator.pushNamed(
                             context,
                             '/facultyDepartmentSelect',
                             arguments: 'attendance',
                           ),
+                          cs,
                         ),
-                        // ✅ MANUAL ATTENDANCE
                         _buildActionCard(
                           'Manual Attendance',
                           Icons.fact_check,
-                          const Color(0xFFD84315),
+                          roleHOD, // Red for manual intervention
                           () => Navigator.pushNamed(
                             context,
                             '/facultyDepartmentSelect',
                             arguments: 'manual',
                           ),
+                          cs,
                         ),
-                        // ✅ MANAGE CLASSES
                         _buildActionCard(
                           'Manage Classes',
                           Icons.class_,
-                          const Color(0xFF00897B),
+                          successGreen,
                           () => Navigator.pushNamed(
                             context,
                             '/facultyDepartmentSelect',
                             arguments: 'classroom',
                           ),
+                          cs,
                         ),
-                        // ✅ VIEW REPORTS
                         _buildActionCard(
                           'View Reports',
                           Icons.assessment,
-                          const Color(0xFF6A1B9A),
+                          principalPurple,
                           () => Navigator.pushNamed(
                             context,
                             '/facultyDepartmentSelect',
                             arguments: 'reports',
                           ),
+                          cs,
                         ),
-                        // ✅ POST NOTICE
                         _buildActionCard(
                           'Post Notice',
                           Icons.notifications,
-                          const Color(0xFFE65100),
+                          warningOrange,
                           () => Navigator.pushNamed(
                             context,
                             '/facultyPostNotification',
                           ),
+                          cs,
                         ),
                       ],
                     ),
@@ -318,21 +323,21 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                     const SizedBox(height: 24),
 
                     // Recent Activity
-                    const Text(
+                    Text(
                       'Recent Sessions',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: cs.onSurface,
                       ),
                     ),
 
                     const SizedBox(height: 12),
 
                     if (_stats?['recent_sessions'] != null)
-                      ..._buildRecentSessions(_stats!['recent_sessions'])
+                      ..._buildRecentSessions(_stats!['recent_sessions'], cs)
                     else
-                      _buildEmptyState(),
+                      _buildEmptyState(cs),
                   ],
                 ),
         ),
@@ -341,9 +346,10 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   }
 
   void _showStudentsSheet() {
+    final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.bgCard,
+      backgroundColor: cs.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -389,7 +395,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
 
                     return StatefulBuilder(
                       builder: (ctx, setInner) {
-                        // Departments for filter
                         final depts = [
                           'All',
                           ...{
@@ -399,7 +404,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                           },
                         ];
 
-                        // Filter
                         var filtered = _filterDept == 'All'
                             ? allStudents
                             : allStudents
@@ -422,19 +426,16 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                               .toList();
                         }
 
-                        // Sort
                         filtered.sort((a, b) {
-                          if (_sortBy == 'name') {
+                          if (_sortBy == 'name')
                             return (a['full_name'] ?? '').compareTo(
                               b['full_name'] ?? '',
                             );
-                          } else if (_sortBy == 'register') {
+                          if (_sortBy == 'register')
                             return (a['register_number'] ?? '').compareTo(
                               b['register_number'] ?? '',
                             );
-                          } else {
-                            return (a['year'] ?? '').compareTo(b['year'] ?? '');
-                          }
+                          return (a['year'] ?? '').compareTo(b['year'] ?? '');
                         });
 
                         return Padding(
@@ -446,13 +447,13 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                 children: [
                                   const Icon(
                                     Icons.people,
-                                    color: Color(0xFFFF9800),
+                                    color: warningOrange,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Students (${filtered.length})',
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
+                                    style: TextStyle(
+                                      color: cs.onSurface,
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -460,37 +461,16 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                 ],
                               ),
                               const SizedBox(height: 12),
-
-                              // Search
                               TextField(
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                ),
+                                style: TextStyle(color: cs.onSurface),
                                 decoration: InputDecoration(
                                   hintText: 'Search by name or register no...',
-                                  hintStyle: const TextStyle(
-                                    color: AppColors.textHint,
-                                  ),
-                                  prefixIcon: const Icon(
-                                    Icons.search,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  filled: true,
-                                  fillColor: AppColors.bgDark,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 10,
-                                  ),
+                                  prefixIcon: const Icon(Icons.search),
                                 ),
                                 onChanged: (v) =>
                                     setInner(() => _searchQuery = v),
                               ),
                               const SizedBox(height: 12),
-
-                              // Filter by dept
                               SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
                                 child: Row(
@@ -509,8 +489,10 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                             ),
                                             decoration: BoxDecoration(
                                               color: _filterDept == d
-                                                  ? const Color(0xFFFF9800)
-                                                  : AppColors.bgDark,
+                                                  ? warningOrange
+                                                  : cs.onSurface.withOpacity(
+                                                      0.1,
+                                                    ),
                                               borderRadius:
                                                   BorderRadius.circular(20),
                                             ),
@@ -519,7 +501,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                               style: TextStyle(
                                                 color: _filterDept == d
                                                     ? Colors.white
-                                                    : AppColors.textSecondary,
+                                                    : cs.onSurface,
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -530,72 +512,16 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                       .toList(),
                                 ),
                               ),
-                              const SizedBox(height: 8),
-
-                              // Sort options
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Sort:',
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  ...[
-                                    ['name', 'Name'],
-                                    ['register', 'Reg No'],
-                                    ['year', 'Year'],
-                                  ].map(
-                                    (s) => GestureDetector(
-                                      onTap: () =>
-                                          setInner(() => _sortBy = s[0]),
-                                      child: Container(
-                                        margin: const EdgeInsets.only(right: 8),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _sortBy == s[0]
-                                              ? AppColors.primary.withOpacity(
-                                                  0.2,
-                                                )
-                                              : Colors.transparent,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          border: Border.all(
-                                            color: _sortBy == s[0]
-                                                ? AppColors.primary
-                                                : AppColors.bgSeparator,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          s[1],
-                                          style: TextStyle(
-                                            color: _sortBy == s[0]
-                                                ? AppColors.primary
-                                                : AppColors.textSecondary,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
                               const SizedBox(height: 12),
-
-                              // Student list
                               Expanded(
                                 child: filtered.isEmpty
-                                    ? const Center(
+                                    ? Center(
                                         child: Text(
                                           'No students found',
                                           style: TextStyle(
-                                            color: AppColors.textSecondary,
+                                            color: cs.onSurface.withOpacity(
+                                              0.5,
+                                            ),
                                           ),
                                         ),
                                       )
@@ -604,89 +530,59 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                         itemCount: filtered.length,
                                         itemBuilder: (ctx, i) {
                                           final s = filtered[i];
-                                          return Container(
+                                          return Card(
                                             margin: const EdgeInsets.only(
                                               bottom: 8,
                                             ),
-                                            padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.bgDark,
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                CircleAvatar(
-                                                  backgroundColor: const Color(
-                                                    0xFFFF9800,
-                                                  ).withOpacity(0.2),
-                                                  child: Text(
-                                                    (s['full_name'] ?? 'S')
-                                                        .toString()
-                                                        .substring(0, 1)
-                                                        .toUpperCase(),
-                                                    style: const TextStyle(
-                                                      color: Color(0xFFFF9800),
-                                                      fontWeight:
-                                                          FontWeight.bold,
+                                            child: ListTile(
+                                              leading: CircleAvatar(
+                                                backgroundColor: warningOrange
+                                                    .withOpacity(0.2),
+                                                child: Text(
+                                                  (s['full_name'] ?? 'S')
+                                                      .toString()
+                                                      .substring(0, 1)
+                                                      .toUpperCase(),
+                                                  style: const TextStyle(
+                                                    color: warningOrange,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              title: Text(
+                                                s['full_name'] ?? '',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              subtitle: Text(
+                                                '${s['register_number']} • ${s['year']} Sec ${s['section']}',
+                                              ),
+                                              trailing: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4,
                                                     ),
+                                                decoration: BoxDecoration(
+                                                  color: cs.primary.withOpacity(
+                                                    0.1,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Text(
+                                                  s['department']
+                                                          ?.toString()
+                                                          .toUpperCase() ??
+                                                      '',
+                                                  style: TextStyle(
+                                                    color: cs.primary,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        s['full_name'] ?? '',
-                                                        style: const TextStyle(
-                                                          color: AppColors
-                                                              .textPrimary,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                        ),
-                                                      ),
-                                                      Text(
-                                                        '${s['register_number']} • ${s['year']} Sec ${s['section']}',
-                                                        style: const TextStyle(
-                                                          color: AppColors
-                                                              .textSecondary,
-                                                          fontSize: 12,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: AppColors.primary
-                                                        .withOpacity(0.15),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          8,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    s['department']
-                                                            ?.toString()
-                                                            .toUpperCase() ??
-                                                        '',
-                                                    style: const TextStyle(
-                                                      color: AppColors.primary,
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
+                                              ),
                                             ),
                                           );
                                         },
@@ -708,116 +604,105 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   }
 
   void _showActiveSessionsSheet() {
+    final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.bgCard,
+      backgroundColor: cs.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.radio_button_checked,
-                    color: AppColors.danger,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Active Sessions',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (_activeSessions.isEmpty)
-                const Text(
-                  'No active sessions',
-                  style: TextStyle(color: AppColors.textSecondary),
-                )
-              else
-                ..._activeSessions.map(
-                  (s) => Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.bgDark,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.danger.withOpacity(0.4),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                s['subject_name'] ?? '',
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                '${s['class_name']} • ${s['students_present']} present',
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        ElevatedButton(
-                          onPressed: () async {
-                            Navigator.pop(ctx);
-                            await ApiService.endAttendanceSession(
-                              s['session_id'],
-                            );
-                            _loadStats();
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Session ended'),
-                                  backgroundColor: AppColors.success,
-                                ),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.danger,
-                          ),
-                          child: const Text('End'),
-                        ),
-                      ],
-                    ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.radio_button_checked,
+                  color: roleHOD,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Active Sessions',
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              const SizedBox(height: 8),
-            ],
-          ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_activeSessions.isEmpty)
+              Text(
+                'No active sessions',
+                style: TextStyle(color: cs.onSurface.withOpacity(0.5)),
+              )
+            else
+              ..._activeSessions.map(
+                (s) => Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: cs.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: roleHOD.withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              s['subject_name'] ?? '',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              '${s['class_name']} • ${s['students_present']} present',
+                              style: TextStyle(
+                                color: cs.onSurface.withOpacity(0.6),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await ApiService.endAttendanceSession(
+                            s['session_id'],
+                          );
+                          _loadStats();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: roleHOD,
+                        ),
+                        child: const Text('End'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 8),
+          ],
         ),
       ),
     );
   }
 
   void _showSessionsSheet() {
+    final cs = Theme.of(context).colorScheme;
     String _period = 'today';
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.bgCard,
+      backgroundColor: cs.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -833,16 +718,15 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'My Classes',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: cs.onSurface,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // Period tabs
                   Row(
                     children: ['today', 'yesterday', 'all']
                         .map(
@@ -856,18 +740,18 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                               ),
                               decoration: BoxDecoration(
                                 color: _period == p
-                                    ? const Color(0xFF1565C0)
-                                    : AppColors.bgDark,
+                                    ? cs.primary
+                                    : cs.onSurface.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
                                 p[0].toUpperCase() + p.substring(1),
                                 style: TextStyle(
                                   color: _period == p
-                                      ? Colors.white
-                                      : AppColors.textSecondary,
-                                  fontWeight: FontWeight.w600,
+                                      ? cs.onPrimary
+                                      : cs.onSurface,
                                   fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -883,84 +767,64 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                         period: _period,
                       ),
                       builder: (ctx, snap) {
-                        if (snap.connectionState == ConnectionState.waiting) {
+                        if (snap.connectionState == ConnectionState.waiting)
                           return const Center(
                             child: CircularProgressIndicator(),
                           );
-                        }
                         final sessions = snap.data ?? [];
-                        if (sessions.isEmpty) {
-                          return const Center(
+                        if (sessions.isEmpty)
+                          return Center(
                             child: Text(
                               'No sessions found',
-                              style: TextStyle(color: AppColors.textSecondary),
+                              style: TextStyle(
+                                color: cs.onSurface.withOpacity(0.5),
+                              ),
                             ),
                           );
-                        }
+
                         return ListView.builder(
                           controller: scroll,
                           itemCount: sessions.length,
                           itemBuilder: (ctx, i) {
                             final s = sessions[i];
                             final isActive = s['status'] == 'active';
-                            return Container(
+                            return Card(
                               margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: AppColors.bgDark,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
+                              shape: RoundedRectangleBorder(
+                                side: BorderSide(
                                   color: isActive
-                                      ? AppColors.danger.withOpacity(0.5)
-                                      : AppColors.bgSeparator,
+                                      ? roleHOD.withOpacity(0.5)
+                                      : Colors.transparent,
                                 ),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isActive
-                                        ? Icons.radio_button_checked
-                                        : Icons.check_circle,
-                                    color: isActive
-                                        ? AppColors.danger
-                                        : AppColors.success,
-                                    size: 18,
+                              child: ListTile(
+                                leading: Icon(
+                                  isActive
+                                      ? Icons.radio_button_checked
+                                      : Icons.check_circle,
+                                  color: isActive ? roleHOD : successGreen,
+                                ),
+                                title: Text(
+                                  s['subject_name'] ?? '',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          s['subject_name'] ?? '',
-                                          style: const TextStyle(
-                                            color: AppColors.textPrimary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        Text(
-                                          '${s['class_name']} • ${s['students_present']} present',
-                                          style: const TextStyle(
-                                            color: AppColors.textSecondary,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                ),
+                                subtitle: Text(
+                                  '${s['class_name']} • ${s['students_present']} present',
+                                ),
+                                trailing: Text(
+                                  s['started_at']?.toString().substring(
+                                        11,
+                                        16,
+                                      ) ??
+                                      '',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: cs.onSurface.withOpacity(0.4),
                                   ),
-                                  Text(
-                                    s['started_at']?.toString().substring(
-                                          11,
-                                          16,
-                                        ) ??
-                                        '',
-                                    style: const TextStyle(
-                                      color: AppColors.textHint,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             );
                           },
@@ -983,13 +847,14 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     IconData icon,
     Color color,
     VoidCallback onTap,
+    ColorScheme cs,
   ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.bgCard,
+          color: cs.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color.withOpacity(0.3)),
         ),
@@ -1011,17 +876,16 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
             const Spacer(),
             Text(
               value,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: cs.onSurface,
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: cs.onSurface.withOpacity(0.6),
                 fontSize: 12,
               ),
             ),
@@ -1036,11 +900,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     String value,
     IconData icon,
     Color color,
+    ColorScheme cs,
   ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
@@ -1052,17 +917,16 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: cs.onSurface,
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.6),
               fontSize: 12,
             ),
           ),
@@ -1076,6 +940,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     IconData icon,
     Color color,
     VoidCallback onTap,
+    ColorScheme cs,
   ) {
     return Material(
       color: Colors.transparent,
@@ -1085,7 +950,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.bgCard,
+            color: cs.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: color.withOpacity(0.3)),
           ),
@@ -1095,7 +960,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
+                  color: color.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 32),
@@ -1103,8 +968,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
               const SizedBox(height: 12),
               Text(
                 label,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1117,75 +982,48 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     );
   }
 
-  List<Widget> _buildRecentSessions(List<dynamic> sessions) {
+  List<Widget> _buildRecentSessions(List<dynamic> sessions, ColorScheme cs) {
     return sessions.take(5).map((session) {
       final isActive = session['status'] == 'active';
-      return Container(
+      return Card(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isActive
-                ? AppColors.danger.withOpacity(0.4)
-                : AppColors.bgSeparator,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(
+            color: isActive ? roleHOD.withOpacity(0.4) : Colors.transparent,
           ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: (isActive ? AppColors.danger : const Color(0xFF1565C0))
-                    .withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                isActive ? Icons.radio_button_checked : Icons.schedule,
-                color: isActive ? AppColors.danger : const Color(0xFF1565C0),
-              ),
+        child: ListTile(
+          leading: Icon(
+            isActive ? Icons.radio_button_checked : Icons.schedule,
+            color: isActive ? roleHOD : cs.primary,
+          ),
+          title: Text(
+            session['subject_name'] ?? 'Subject',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: Text(
+            '${session['class_name']} • ${session['students_present']} present',
+          ),
+          trailing: Text(
+            session['started_at']?.toString().substring(11, 16) ?? '',
+            style: TextStyle(
+              fontSize: 11,
+              color: cs.onSurface.withOpacity(0.4),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    session['subject_name'] ?? 'Subject',
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${session['class_name']} • ${session['students_present']} present',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              session['started_at']?.toString().substring(11, 16) ?? '',
-              style: const TextStyle(color: AppColors.textHint, fontSize: 11),
-            ),
-          ],
+          ),
         ),
       );
     }).toList();
   }
 
-  Widget _buildEmptyState() {
-    return Container(
+  Widget _buildEmptyState(ColorScheme cs) {
+    return Padding(
       padding: const EdgeInsets.all(40),
-      child: const Center(
+      child: Center(
         child: Text(
           'No recent sessions',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: cs.onSurface.withOpacity(0.5)),
         ),
       ),
     );

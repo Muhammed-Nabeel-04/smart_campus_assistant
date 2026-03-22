@@ -1,6 +1,7 @@
+// File: lib/screens/faculty/view_attendance_screen.dart
+
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 
 class ViewAttendanceScreen extends StatefulWidget {
   const ViewAttendanceScreen({super.key});
@@ -29,7 +30,9 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
     _classId = classData?['id'];
     _subjectId = subject?['id'];
     _subjectName = subject?['name'] ?? 'Subject';
-    _className = '${classData?['year']} - Section ${classData?['section']}';
+    _className = classData != null
+        ? '${classData['year']} - Section ${classData['section']}'
+        : null;
 
     _loadAttendance();
   }
@@ -58,7 +61,10 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
       if (mounted) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } catch (e) {
@@ -66,19 +72,19 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
     }
   }
 
-  Color _getAttendanceColor(dynamic percentage) {
+  Color _getAttendanceColor(dynamic percentage, ColorScheme cs) {
     final pct = (percentage ?? 0).toDouble();
-    if (pct >= 75) return Colors.green;
-    if (pct >= 60) return Colors.orange;
-    return AppColors.danger;
+    if (pct >= 75) return const Color(0xFF4CAF50); // Success Green
+    if (pct >= 60) return const Color(0xFFFF9800); // Warning Orange
+    return cs.error; // Danger Red
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
-        backgroundColor: AppColors.bgCard,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -89,9 +95,9 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
             if (_className != null)
               Text(
                 _className!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color: cs.onSurface.withOpacity(0.6),
                 ),
               ),
           ],
@@ -104,62 +110,41 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: cs.primary))
           : _students.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.bar_chart_outlined,
-                    size: 80,
-                    color: AppColors.textSecondary.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No attendance records yet',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            )
+          ? _buildEmptyState(cs)
           : RefreshIndicator(
               onRefresh: _loadAttendance,
+              color: cs.primary,
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: _students.length,
                 itemBuilder: (context, index) {
                   final s = _students[index];
                   final percentage = s['attendance_percentage'] ?? 0;
-                  final color = _getAttendanceColor(percentage);
+                  final statusColor = _getAttendanceColor(percentage, cs);
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.bgCard,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: color.withOpacity(0.3)),
+                      color: cs.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: cs.onSurface.withOpacity(0.1)),
                     ),
                     child: Row(
                       children: [
-                        // Avatar
                         CircleAvatar(
-                          backgroundColor: color.withOpacity(0.2),
+                          backgroundColor: statusColor.withOpacity(0.1),
                           child: Text(
                             (s['full_name'] ?? '?')[0].toUpperCase(),
                             style: TextStyle(
-                              color: color,
+                              color: statusColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-
-                        // Name + register number
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,37 +152,35 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                               Text(
                                 s['full_name'] ?? 'Unknown',
                                 style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
                                 ),
                               ),
                               Text(
                                 s['register_number'] ?? '',
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
+                                style: TextStyle(
+                                  color: cs.onSurface.withOpacity(0.6),
                                   fontSize: 12,
                                 ),
                               ),
                             ],
                           ),
                         ),
-
-                        // Percentage
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
                               '${percentage.toStringAsFixed(1)}%',
                               style: TextStyle(
-                                color: color,
+                                color: statusColor,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
                             Text(
-                              '${s['attended']}/${s['total']} classes',
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
+                              '${s['attended']}/${s['total']} days',
+                              style: TextStyle(
+                                color: cs.onSurface.withOpacity(0.4),
                                 fontSize: 11,
                               ),
                             ),
@@ -209,6 +192,30 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                 },
               ),
             ),
+    );
+  }
+
+  Widget _buildEmptyState(ColorScheme cs) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.bar_chart_outlined,
+            size: 80,
+            color: cs.onSurface.withOpacity(0.1),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No attendance records yet',
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.5),
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

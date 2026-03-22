@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 
 class FacultyAttendanceReportsScreen extends StatefulWidget {
   final Map<String, dynamic> department;
@@ -30,6 +29,10 @@ class _FacultyAttendanceReportsScreenState
   bool _isLoading = true;
   DateTime _fromDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _toDate = DateTime.now();
+
+  // Fixed Role Colors
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color errorRed = Color(0xFFF44336);
 
   @override
   void initState() {
@@ -58,6 +61,7 @@ class _FacultyAttendanceReportsScreenState
   }
 
   Future<void> _selectFromDate() async {
+    final cs = Theme.of(context).colorScheme;
     final picked = await showDatePicker(
       context: context,
       initialDate: _fromDate,
@@ -65,10 +69,11 @@ class _FacultyAttendanceReportsScreenState
       lastDate: _toDate,
       builder: (context, child) {
         return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF1565C0),
-              surface: AppColors.bgCard,
+          data: Theme.of(context).copyWith(
+            colorScheme: cs.copyWith(
+              primary: cs.primary,
+              surface: cs.surface,
+              onSurface: cs.onSurface,
             ),
           ),
           child: child!,
@@ -83,6 +88,7 @@ class _FacultyAttendanceReportsScreenState
   }
 
   Future<void> _selectToDate() async {
+    final cs = Theme.of(context).colorScheme;
     final picked = await showDatePicker(
       context: context,
       initialDate: _toDate,
@@ -90,10 +96,11 @@ class _FacultyAttendanceReportsScreenState
       lastDate: DateTime.now(),
       builder: (context, child) {
         return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF1565C0),
-              surface: AppColors.bgCard,
+          data: Theme.of(context).copyWith(
+            colorScheme: cs.copyWith(
+              primary: cs.primary,
+              surface: cs.surface,
+              onSurface: cs.onSurface,
             ),
           ),
           child: child!,
@@ -108,23 +115,21 @@ class _FacultyAttendanceReportsScreenState
   }
 
   void _exportReport() {
+    final cs = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.bgCard,
+        backgroundColor: cs.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Export Report',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: const Text(
+        title: Text('Export Report', style: TextStyle(color: cs.onSurface)),
+        content: Text(
           'Export feature coming soon!\nYou will be able to download reports as PDF or Excel.',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: cs.onSurface.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Color(0xFF1565C0))),
+            child: Text('OK', style: TextStyle(color: cs.primary)),
           ),
         ],
       ),
@@ -133,11 +138,10 @@ class _FacultyAttendanceReportsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
-        backgroundColor: AppColors.bgCard,
-        elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -147,9 +151,9 @@ class _FacultyAttendanceReportsScreenState
             ),
             Text(
               widget.subject['name'] ?? 'Subject',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: cs.onSurface.withOpacity(0.6),
               ),
             ),
           ],
@@ -167,7 +171,12 @@ class _FacultyAttendanceReportsScreenState
           // Date Range Selector
           Container(
             padding: const EdgeInsets.all(16),
-            color: AppColors.bgCard,
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border(
+                bottom: BorderSide(color: cs.onSurface.withOpacity(0.05)),
+              ),
+            ),
             child: Column(
               children: [
                 Row(
@@ -175,28 +184,31 @@ class _FacultyAttendanceReportsScreenState
                     Expanded(
                       child: InkWell(
                         onTap: _selectFromDate,
+                        borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.bgInput,
+                            color: cs.surface,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF1565C0)),
+                            border: Border.all(
+                              color: cs.primary.withOpacity(0.5),
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'From',
                                 style: TextStyle(
-                                  color: AppColors.textSecondary,
+                                  color: cs.onSurface.withOpacity(0.5),
                                   fontSize: 12,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 '${_fromDate.day}/${_fromDate.month}/${_fromDate.year}',
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
+                                style: TextStyle(
+                                  color: cs.onSurface,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -206,38 +218,41 @@ class _FacultyAttendanceReportsScreenState
                         ),
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Icon(
                         Icons.arrow_forward,
-                        color: AppColors.textSecondary,
+                        color: cs.onSurface.withOpacity(0.3),
                       ),
                     ),
                     Expanded(
                       child: InkWell(
                         onTap: _selectToDate,
+                        borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.bgInput,
+                            color: cs.surface,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF1565C0)),
+                            border: Border.all(
+                              color: cs.primary.withOpacity(0.5),
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'To',
                                 style: TextStyle(
-                                  color: AppColors.textSecondary,
+                                  color: cs.onSurface.withOpacity(0.5),
                                   fontSize: 12,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 '${_toDate.day}/${_toDate.month}/${_toDate.year}',
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
+                                style: TextStyle(
+                                  color: cs.onSurface,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -256,16 +271,20 @@ class _FacultyAttendanceReportsScreenState
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.info.withOpacity(0.1),
+                    color: cs.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: AppColors.info, size: 16),
+                      Icon(Icons.info_outline, color: cs.primary, size: 16),
                       const SizedBox(width: 8),
                       Text(
                         'Showing ${_reports.length} students',
-                        style: TextStyle(color: AppColors.info, fontSize: 12),
+                        style: TextStyle(
+                          color: cs.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -277,19 +296,17 @@ class _FacultyAttendanceReportsScreenState
           // Reports List
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF1565C0)),
-                  )
+                ? Center(child: CircularProgressIndicator(color: cs.primary))
                 : _reports.isEmpty
-                ? _buildEmptyState()
+                ? _buildEmptyState(cs)
                 : RefreshIndicator(
                     onRefresh: _loadReports,
-                    color: const Color(0xFF1565C0),
+                    color: cs.primary,
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _reports.length,
                       itemBuilder: (context, index) {
-                        return _buildReportCard(_reports[index]);
+                        return _buildReportCard(_reports[index], cs);
                       },
                     ),
                   ),
@@ -299,26 +316,22 @@ class _FacultyAttendanceReportsScreenState
     );
   }
 
-  Widget _buildReportCard(Map<String, dynamic> report) {
+  Widget _buildReportCard(Map<String, dynamic> report, ColorScheme cs) {
     final present = report['present'] ?? 0;
     final absent = report['absent'] ?? 0;
     final total = present + absent;
-    final percentage = total > 0
-        ? (present / total * 100).toStringAsFixed(1)
-        : '0.0';
     final percentageValue = total > 0 ? (present / total * 100) : 0.0;
+    final percentage = percentageValue.toStringAsFixed(1);
 
-    final statusColor = percentageValue >= 75
-        ? AppColors.success
-        : AppColors.danger;
+    final statusColor = percentageValue >= 75 ? successGreen : errorRed;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: statusColor.withOpacity(0.3)),
+        border: Border.all(color: cs.onSurface.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,16 +342,14 @@ class _FacultyAttendanceReportsScreenState
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
-                  ),
+                  color: cs.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: Text(
                     report['name']?.substring(0, 1).toUpperCase() ?? 'S',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: cs.onPrimary,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -352,8 +363,8 @@ class _FacultyAttendanceReportsScreenState
                   children: [
                     Text(
                       report['name'] ?? 'Student',
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: cs.onSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -361,8 +372,8 @@ class _FacultyAttendanceReportsScreenState
                     const SizedBox(height: 4),
                     Text(
                       report['register_number'] ?? '',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: cs.onSurface.withOpacity(0.6),
                         fontSize: 13,
                       ),
                     ),
@@ -375,15 +386,15 @@ class _FacultyAttendanceReportsScreenState
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.2),
+                  color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: statusColor),
+                  border: Border.all(color: statusColor.withOpacity(0.5)),
                 ),
                 child: Text(
                   '$percentage%',
                   style: TextStyle(
                     color: statusColor,
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -397,21 +408,24 @@ class _FacultyAttendanceReportsScreenState
                 child: _buildStatColumn(
                   'Present',
                   present.toString(),
-                  AppColors.success,
+                  successGreen,
+                  cs,
                 ),
               ),
               Expanded(
                 child: _buildStatColumn(
                   'Absent',
                   absent.toString(),
-                  AppColors.danger,
+                  errorRed,
+                  cs,
                 ),
               ),
               Expanded(
                 child: _buildStatColumn(
                   'Total',
                   total.toString(),
-                  const Color(0xFF1565C0),
+                  cs.primary,
+                  cs,
                 ),
               ),
             ],
@@ -421,27 +435,32 @@ class _FacultyAttendanceReportsScreenState
     );
   }
 
-  Widget _buildStatColumn(String label, String value, Color color) {
+  Widget _buildStatColumn(
+    String label,
+    String value,
+    Color color,
+    ColorScheme cs,
+  ) {
     return Column(
       children: [
         Text(
           value,
           style: TextStyle(
             color: color,
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          style: TextStyle(color: cs.onSurface.withOpacity(0.5), fontSize: 11),
         ),
       ],
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(ColorScheme cs) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -449,17 +468,23 @@ class _FacultyAttendanceReportsScreenState
           Icon(
             Icons.assessment_outlined,
             size: 80,
-            color: AppColors.textSecondary.withOpacity(0.5),
+            color: cs.onSurface.withOpacity(0.2),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'No attendance records found',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 18),
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.5),
+              fontSize: 18,
+            ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Try selecting a different date range',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.4),
+              fontSize: 14,
+            ),
           ),
         ],
       ),

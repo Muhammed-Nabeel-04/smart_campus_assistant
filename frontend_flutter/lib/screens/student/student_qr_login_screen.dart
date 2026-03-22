@@ -104,7 +104,7 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: Theme.of(context).colorScheme.error,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
       ),
@@ -113,14 +113,16 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A2E),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text('Student Login'),
         centerTitle: true,
       ),
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           // QR Scanner
@@ -148,18 +150,11 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
                   margin: const EdgeInsets.all(24),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF16213E).withOpacity(0.95),
-                        const Color(0xFF0F3460).withOpacity(0.95),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: cs.surface.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF00D9FF).withOpacity(0.3),
+                        color: cs.primary.withOpacity(0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -172,25 +167,25 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00D9FF).withOpacity(0.2),
+                          color: cs.primary.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.qr_code_scanner,
                           size: 48,
-                          color: Color(0xFF00D9FF),
+                          color: cs.primary,
                         ),
                       ),
 
                       const SizedBox(height: 20),
 
                       // Title
-                      const Text(
+                      Text(
                         'Scan QR Code to Login',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -202,7 +197,7 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
                         'Ask your faculty to generate your login QR code',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.7),
+                          color: cs.onSurface.withOpacity(0.7),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -216,10 +211,12 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.2),
+                          color: const Color(
+                            0xFF4CAF50,
+                          ).withOpacity(0.2), // Role Success Fixed
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.green.withOpacity(0.5),
+                            color: const Color(0xFF4CAF50).withOpacity(0.5),
                           ),
                         ),
                         child: Row(
@@ -228,13 +225,13 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
                             const Icon(
                               Icons.verified_user,
                               size: 18,
-                              color: Colors.green,
+                              color: Color(0xFF4CAF50),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Secure Login',
                               style: TextStyle(
-                                color: Colors.green.shade300,
+                                color: const Color(0xFF4CAF50),
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -253,13 +250,13 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
           if (_isProcessing)
             Container(
               color: Colors.black.withOpacity(0.7),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: Color(0xFF00D9FF)),
-                    SizedBox(height: 20),
-                    Text(
+                    CircularProgressIndicator(color: cs.primary),
+                    const SizedBox(height: 20),
+                    const Text(
                       'Validating QR Code...',
                       style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
@@ -274,16 +271,15 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
               width: 280,
               height: 280,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF00D9FF), width: 3),
+                border: Border.all(color: cs.primary, width: 3),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Stack(
                 children: [
-                  // Corner decorations
-                  _buildCornerDecoration(Alignment.topLeft),
-                  _buildCornerDecoration(Alignment.topRight),
-                  _buildCornerDecoration(Alignment.bottomLeft),
-                  _buildCornerDecoration(Alignment.bottomRight),
+                  _buildCornerDecoration(Alignment.topLeft, cs.primary),
+                  _buildCornerDecoration(Alignment.topRight, cs.primary),
+                  _buildCornerDecoration(Alignment.bottomLeft, cs.primary),
+                  _buildCornerDecoration(Alignment.bottomRight, cs.primary),
                 ],
               ),
             ),
@@ -293,7 +289,7 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
     );
   }
 
-  Widget _buildCornerDecoration(Alignment alignment) {
+  Widget _buildCornerDecoration(Alignment alignment, Color color) {
     return Align(
       alignment: alignment,
       child: Container(
@@ -304,22 +300,22 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
             top:
                 alignment == Alignment.topLeft ||
                     alignment == Alignment.topRight
-                ? const BorderSide(color: Color(0xFF00D9FF), width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             bottom:
                 alignment == Alignment.bottomLeft ||
                     alignment == Alignment.bottomRight
-                ? const BorderSide(color: Color(0xFF00D9FF), width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             left:
                 alignment == Alignment.topLeft ||
                     alignment == Alignment.bottomLeft
-                ? const BorderSide(color: Color(0xFF00D9FF), width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             right:
                 alignment == Alignment.topRight ||
                     alignment == Alignment.bottomRight
-                ? const BorderSide(color: Color(0xFF00D9FF), width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
           ),
         ),

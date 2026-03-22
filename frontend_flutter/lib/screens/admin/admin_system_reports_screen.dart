@@ -1,6 +1,7 @@
 // File: lib/screens/admin/admin_system_reports_screen.dart
+// System analytics and reporting interface for Admin and Principal roles
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
 
@@ -19,6 +20,11 @@ class _AdminSystemReportsScreenState extends State<AdminSystemReportsScreen> {
   List<Map<String, dynamic>> _departments = [];
   int? _selectedDeptId;
   bool _isPrincipal = false;
+
+  // Semantic Colors
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color warningOrange = Color(0xFFFF9800);
+  static const Color infoBlue = Color(0xFF2196F3);
 
   @override
   void initState() {
@@ -42,6 +48,7 @@ class _AdminSystemReportsScreenState extends State<AdminSystemReportsScreen> {
 
   void _exportReport() {
     if (_reportData.isEmpty) return;
+    final cs = Theme.of(context).colorScheme;
 
     final period = _selectedPeriod == 'today'
         ? 'Today'
@@ -88,18 +95,22 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgCard,
-        title: const Text(
-          'Export Report',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: SingleChildScrollView(
-          child: SelectableText(
-            report,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 12,
-              fontFamily: 'monospace',
+        backgroundColor: cs.surface,
+        title: const Text('Export System Report'),
+        content: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: cs.onSurface.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: SingleChildScrollView(
+            child: SelectableText(
+              report,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontSize: 12,
+                fontFamily: 'monospace',
+              ),
             ),
           ),
         ),
@@ -113,14 +124,13 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Select all text and copy to share'),
-                  backgroundColor: AppColors.success,
+                  content: Text('Report copied to clipboard'),
+                  backgroundColor: successGreen,
                 ),
               );
             },
-            icon: const Icon(Icons.copy),
-            label: const Text('Copy'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            icon: const Icon(Icons.copy_all_outlined, size: 18),
+            label: const Text('Copy Text'),
           ),
         ],
       ),
@@ -144,7 +154,10 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } catch (e) {
@@ -154,54 +167,55 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         title: const Text('System Reports'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.download),
+            icon: const Icon(Icons.share_outlined),
             onPressed: _exportReport,
-            tooltip: 'Export Report',
+            tooltip: 'Export',
           ),
         ],
       ),
       body: Column(
         children: [
-          // Period Selector
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Row(
-              children: [
-                _buildPeriodChip('Today', 'today'),
-                _buildPeriodChip('This Week', 'week'),
-                _buildPeriodChip('This Month', 'month'),
-              ],
+          // Time Period Filter
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border(
+                bottom: BorderSide(color: cs.onSurface.withOpacity(0.05)),
+              ),
+            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _buildPeriodChip('Today', 'today', cs),
+                  _buildPeriodChip('This Week', 'week', cs),
+                  _buildPeriodChip('This Month', 'month', cs),
+                ],
+              ),
             ),
           ),
 
           // Department selector (principal only)
           if (_isPrincipal && _departments.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(16),
               child: DropdownButtonFormField<int?>(
                 value: _selectedDeptId,
-                dropdownColor: AppColors.bgCard,
-                decoration: InputDecoration(
-                  labelText: 'Department',
-                  labelStyle: const TextStyle(color: AppColors.textSecondary),
-                  filled: true,
-                  fillColor: AppColors.bgCard,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+                dropdownColor: cs.surface,
+                decoration: const InputDecoration(
+                  labelText: 'Filtering by Department',
+                  prefixIcon: Icon(Icons.filter_list),
                 ),
-                style: const TextStyle(color: AppColors.textPrimary),
                 items: [
                   const DropdownMenuItem<int?>(
                     value: null,
@@ -224,48 +238,51 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
           // Reports Content
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: cs.primary))
                 : RefreshIndicator(
                     onRefresh: _loadReports,
+                    color: cs.primary,
                     child: ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
-                        // Attendance Overview
-                        _buildSectionTitle('Attendance Overview'),
+                        _buildSectionTitle('Attendance Summary', cs),
                         _buildReportCard(
-                          'Total Sessions',
-                          '${_reportData['total_attendance_sessions']}',
-                          Icons.timer,
-                          AppColors.info,
+                          'Active Class Sessions',
+                          '${_reportData['total_attendance_sessions'] ?? 0}',
+                          Icons.history_toggle_off,
+                          infoBlue,
+                          cs,
                         ),
                         _buildReportCard(
-                          'Average Attendance',
-                          '${_reportData['avg_attendance_percentage']}%',
-                          Icons.assessment,
-                          AppColors.success,
+                          'Average Participation',
+                          '${_reportData['avg_attendance_percentage'] ?? 0}%',
+                          Icons.analytics_outlined,
+                          successGreen,
+                          cs,
                         ),
 
                         const SizedBox(height: 24),
 
-                        // Student Stats
-                        _buildSectionTitle('Student Statistics'),
+                        _buildSectionTitle('Student Engagement', cs),
                         Row(
                           children: [
                             Expanded(
                               child: _buildReportCard(
                                 'Present',
-                                '${_reportData['total_students_present']}',
-                                Icons.check_circle,
-                                AppColors.success,
+                                '${_reportData['total_students_present'] ?? 0}',
+                                Icons.person_add_alt_1_outlined,
+                                successGreen,
+                                cs,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: _buildReportCard(
                                 'Absent',
-                                '${_reportData['total_students_absent']}',
-                                Icons.cancel,
-                                AppColors.danger,
+                                '${_reportData['total_students_absent'] ?? 0}',
+                                Icons.person_remove_outlined,
+                                cs.error,
+                                cs,
                               ),
                             ),
                           ],
@@ -273,62 +290,70 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
 
                         const SizedBox(height: 24),
 
-                        // Performance Insights — only for All Departments
                         if (_selectedDeptId == null) ...[
-                          _buildSectionTitle('Performance Insights'),
+                          _buildSectionTitle('Departmental Insights', cs),
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppColors.bgCard,
-                              borderRadius: BorderRadius.circular(12),
+                              color: cs.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: cs.onSurface.withOpacity(0.1),
+                              ),
                             ),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _buildInsightRow(
-                                  'Best Department',
+                                  'Top Performing Dept',
                                   _reportData['top_department'] ?? 'N/A',
-                                  Icons.emoji_events,
-                                  AppColors.warning,
+                                  Icons.workspace_premium_outlined,
+                                  warningOrange,
+                                  cs,
                                 ),
-                                const Divider(height: 24),
+                                Divider(
+                                  height: 32,
+                                  color: cs.onSurface.withOpacity(0.05),
+                                ),
                                 _buildInsightRow(
-                                  'Needs Attention',
+                                  'Lowest Attendance Class',
                                   _reportData['lowest_attendance_class'] ??
                                       'N/A',
-                                  Icons.warning,
-                                  AppColors.danger,
+                                  Icons.trending_down_outlined,
+                                  cs.error,
+                                  cs,
                                 ),
                               ],
                             ),
                           ),
-                        ], // end performance insights
+                        ],
 
                         const SizedBox(height: 24),
 
-                        // Complaints Summary
-                        _buildSectionTitle('Complaints Summary'),
+                        _buildSectionTitle('Student Support', cs),
                         Row(
                           children: [
                             Expanded(
                               child: _buildReportCard(
-                                'Resolved',
-                                '${_reportData['complaints_resolved']}',
-                                Icons.check_circle,
-                                AppColors.success,
+                                'Resolved Issues',
+                                '${_reportData['complaints_resolved'] ?? 0}',
+                                Icons.task_alt_outlined,
+                                successGreen,
+                                cs,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: _buildReportCard(
-                                'Pending',
-                                '${_reportData['complaints_pending']}',
-                                Icons.pending,
-                                AppColors.warning,
+                                'Pending Tickets',
+                                '${_reportData['complaints_pending'] ?? 0}',
+                                Icons.hourglass_empty_outlined,
+                                warningOrange,
+                                cs,
                               ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 40),
                       ],
                     ),
                   ),
@@ -338,7 +363,7 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
     );
   }
 
-  Widget _buildPeriodChip(String label, String value) {
+  Widget _buildPeriodChip(String label, String value, ColorScheme cs) {
     final isSelected = _selectedPeriod == value;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -349,21 +374,25 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
           setState(() => _selectedPeriod = value);
           _loadReports();
         },
-        backgroundColor: AppColors.bgCard,
-        selectedColor: AppColors.danger,
+        selectedColor: cs.primary.withOpacity(0.2),
+        checkmarkColor: cs.primary,
+        labelStyle: TextStyle(
+          color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.7),
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, ColorScheme cs) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16, left: 4),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 18,
+        style: TextStyle(
+          fontSize: 16,
           fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
+          color: cs.onSurface,
         ),
       ),
     );
@@ -374,24 +403,25 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
     String value,
     IconData icon,
     Color color,
+    ColorScheme cs,
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(icon, color: color, size: 22),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -400,16 +430,16 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
+                  style: TextStyle(
+                    color: cs.onSurface.withOpacity(0.5),
+                    fontSize: 11,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   value,
                   style: TextStyle(
-                    color: color,
+                    color: cs.onSurface,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -424,22 +454,23 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
 
   Widget _buildInsightRow(
     String label,
-    dynamic value,
+    String value,
     IconData icon,
     Color color,
+    ColorScheme cs,
   ) {
     return Row(
       children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 12),
+        Icon(icon, color: color, size: 22),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: cs.onSurface.withOpacity(0.5),
                   fontSize: 12,
                 ),
               ),
@@ -447,9 +478,8 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
               Text(
                 value,
                 style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
                 ),
               ),
             ],

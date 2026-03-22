@@ -38,20 +38,17 @@ class _StudentPasswordSetupScreenState
     setState(() => _isLoading = true);
 
     try {
-      // ✅ Use new method name + pass token from studentData
       final response = await ApiService.completeStudentRegistration(
-        token: widget.studentData['token'], // ← token from QR scan
+        token: widget.studentData['token'],
         password: _passwordController.text,
       );
 
-      // ✅ Save session with token returned from backend
       await SessionManager.saveSession(
         userId: response['user_id'],
         name: response['full_name'],
-        email:
-            response['register_number'], // student uses register_number as email
+        email: response['register_number'],
         role: 'student',
-        token: response['token'], // ← JWT token
+        token: response['token'],
         studentId: response['student_id'],
         department: response['department'],
         year: response['year'],
@@ -69,7 +66,10 @@ class _StudentPasswordSetupScreenState
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } finally {
@@ -81,8 +81,9 @@ class _StudentPasswordSetupScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1419),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -98,21 +99,19 @@ class _StudentPasswordSetupScreenState
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF00D9FF), Color(0xFF0099CC)],
-                      ),
+                      color: cs.primary,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF00D9FF).withOpacity(0.3),
+                          color: cs.primary.withOpacity(0.3),
                           blurRadius: 30,
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.lock_reset,
                       size: 60,
-                      color: Colors.white,
+                      color: cs.onPrimary,
                     ),
                   ),
                 ),
@@ -120,12 +119,12 @@ class _StudentPasswordSetupScreenState
                 const SizedBox(height: 32),
 
                 // Welcome message
-                const Text(
+                Text(
                   'Welcome!',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: cs.onSurface,
                   ),
                 ),
 
@@ -135,7 +134,7 @@ class _StudentPasswordSetupScreenState
                   'Set up your password to continue',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.white.withOpacity(0.7),
+                    color: cs.onSurface.withOpacity(0.7),
                   ),
                 ),
 
@@ -145,11 +144,9 @@ class _StudentPasswordSetupScreenState
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A2332),
+                    color: cs.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFF00D9FF).withOpacity(0.3),
-                    ),
+                    border: Border.all(color: cs.primary.withOpacity(0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,19 +154,22 @@ class _StudentPasswordSetupScreenState
                       _buildInfoRow(
                         Icons.person,
                         'Name',
-                        widget.studentData['name'],
+                        widget.studentData['name'] ?? 'N/A',
+                        cs,
                       ),
-                      const Divider(height: 24, color: Color(0xFF2A3A4A)),
+                      Divider(height: 24, color: cs.onSurface.withOpacity(0.1)),
                       _buildInfoRow(
                         Icons.badge,
                         'Register No',
-                        widget.studentData['register_number'],
+                        widget.studentData['register_number'] ?? 'N/A',
+                        cs,
                       ),
-                      const Divider(height: 24, color: Color(0xFF2A3A4A)),
+                      Divider(height: 24, color: cs.onSurface.withOpacity(0.1)),
                       _buildInfoRow(
                         Icons.school,
                         'Class',
                         '${widget.studentData['department']} - ${widget.studentData['year']} - ${widget.studentData['section']}',
+                        cs,
                       ),
                     ],
                   ),
@@ -181,49 +181,26 @@ class _StudentPasswordSetupScreenState
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: cs.onSurface),
                   decoration: InputDecoration(
                     labelText: 'Create Password',
-                    labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-                    prefixIcon: const Icon(
-                      Icons.lock_outline,
-                      color: Color(0xFF00D9FF),
-                    ),
+                    prefixIcon: Icon(Icons.lock_outline, color: cs.primary),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: Color(0xFF00D9FF),
+                        color: cs.primary,
                       ),
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
                     ),
-                    filled: true,
-                    fillColor: const Color(0xFF1A2332),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: const Color(0xFF2A3A4A)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF00D9FF),
-                        width: 2,
-                      ),
-                    ),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
+                    if (value == null || value.isEmpty)
                       return 'Please enter a password';
-                    }
-                    if (value.length < 6) {
+                    if (value.length < 6)
                       return 'Password must be at least 6 characters';
-                    }
                     return null;
                   },
                 ),
@@ -234,46 +211,24 @@ class _StudentPasswordSetupScreenState
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirm,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: cs.onSurface),
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
-                    labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-                    prefixIcon: const Icon(
-                      Icons.lock_outline,
-                      color: Color(0xFF00D9FF),
-                    ),
+                    prefixIcon: Icon(Icons.lock_outline, color: cs.primary),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirm
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: Color(0xFF00D9FF),
+                        color: cs.primary,
                       ),
                       onPressed: () =>
                           setState(() => _obscureConfirm = !_obscureConfirm),
                     ),
-                    filled: true,
-                    fillColor: const Color(0xFF1A2332),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: const Color(0xFF2A3A4A)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF00D9FF),
-                        width: 2,
-                      ),
-                    ),
                   ),
                   validator: (value) {
-                    if (value != _passwordController.text) {
+                    if (value != _passwordController.text)
                       return 'Passwords do not match';
-                    }
                     return null;
                   },
                 ),
@@ -286,20 +241,12 @@ class _StudentPasswordSetupScreenState
                   height: 56,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleSetup,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00D9FF),
-                      foregroundColor: const Color(0xFF0F1419),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
                     child: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             height: 24,
                             width: 24,
                             child: CircularProgressIndicator(
-                              color: Color(0xFF0F1419),
+                              color: cs.onPrimary,
                               strokeWidth: 2,
                             ),
                           )
@@ -319,23 +266,27 @@ class _StudentPasswordSetupScreenState
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.1),
+                    color: const Color(
+                      0xFFFF9800,
+                    ).withOpacity(0.1), // Fixed Warning color
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                    border: Border.all(
+                      color: const Color(0xFFFF9800).withOpacity(0.3),
+                    ),
                   ),
-                  child: Row(
+                  child: const Row(
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: Colors.amber.shade300,
+                        color: Color(0xFFFF9800),
                         size: 20,
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Remember this password. You\'ll use it along with QR login.',
                           style: TextStyle(
-                            color: Colors.amber.shade300,
+                            color: Color(0xFFFF9800),
                             fontSize: 12,
                           ),
                         ),
@@ -351,10 +302,15 @@ class _StudentPasswordSetupScreenState
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    ColorScheme cs,
+  ) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF00D9FF), size: 20),
+        Icon(icon, color: cs.primary, size: 20),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -363,15 +319,15 @@ class _StudentPasswordSetupScreenState
               Text(
                 label,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
+                  color: cs.onSurface.withOpacity(0.5),
                   fontSize: 12,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),

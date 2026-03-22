@@ -1,5 +1,7 @@
+// File: lib/screens/student/student_onboarding_screen.dart
+// Student details completion after QR verification
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 
 class StudentOnboardingScreen extends StatefulWidget {
   const StudentOnboardingScreen({super.key});
@@ -24,8 +26,9 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         title: const Text('Student Onboarding'),
         centerTitle: true,
@@ -44,23 +47,27 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
                   vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.12),
+                  color: const Color(
+                    0xFF4CAF50,
+                  ).withOpacity(0.12), // Role Success Fixed
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.success.withOpacity(0.4)),
+                  border: Border.all(
+                    color: const Color(0xFF4CAF50).withOpacity(0.4),
+                  ),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.verified_rounded,
-                      color: AppColors.success,
+                      color: Color(0xFF4CAF50),
                       size: 22,
                     ),
                     SizedBox(width: 10),
                     Text(
                       'QR Code Verified',
                       style: TextStyle(
-                        color: AppColors.success,
+                        color: Color(0xFF4CAF50),
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),
@@ -72,12 +79,12 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
               const SizedBox(height: 32),
 
               // ── Section Title ──────────────────────────────
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Complete Your Profile',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: cs.onSurface,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -91,7 +98,7 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
                 child: Text(
                   'Fill in your details to finish setup',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: cs.onSurface.withOpacity(0.6),
                     fontSize: 13,
                   ),
                 ),
@@ -105,6 +112,7 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
                 label: 'Full Name',
                 hint: 'e.g. Arjun Sharma',
                 icon: Icons.person_outline_rounded,
+                cs: cs,
               ),
 
               const SizedBox(height: 14),
@@ -114,6 +122,7 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
                 label: 'Roll Number',
                 hint: 'e.g. CS2021045',
                 icon: Icons.badge_outlined,
+                cs: cs,
               ),
 
               const SizedBox(height: 14),
@@ -123,6 +132,7 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
                 label: 'Class / Section',
                 hint: 'e.g. 3rd Year - Section B',
                 icon: Icons.group_outlined,
+                cs: cs,
               ),
 
               const SizedBox(height: 40),
@@ -141,6 +151,7 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
                     'Complete Registration',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
+                  // Theme handles color automatically (Orange/Amber CTA)
                 ),
               ),
             ],
@@ -155,14 +166,16 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
     required String label,
     required String hint,
     required IconData icon,
+    required ColorScheme cs,
   }) {
     return TextField(
       controller: controller,
-      style: const TextStyle(color: AppColors.textPrimary),
+      style: TextStyle(color: cs.onSurface),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, color: AppColors.primary),
+        prefixIcon: Icon(icon, color: cs.primary),
+        // All filling and borders are handled by the theme
       ),
     );
   }

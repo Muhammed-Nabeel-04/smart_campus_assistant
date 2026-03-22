@@ -6,7 +6,6 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:async';
 import 'dart:convert';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 
 class FacultyGenerateStudentQRScreen extends StatefulWidget {
   final Map<String, dynamic> student;
@@ -24,8 +23,13 @@ class _FacultyGenerateStudentQRScreenState
   String? _token;
   bool _isLoading = true;
   bool _isExpired = false;
-  int _remainingSeconds = 60; // 5 minutes
+  int _remainingSeconds = 60; // 1 minute expiry for security
   Timer? _timer;
+
+  // Fixed role/status colors
+  static const Color errorRed = Color(0xFFF44336);
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color infoBlue = Color(0xFF2196F3);
 
   @override
   void initState() {
@@ -70,7 +74,7 @@ class _FacultyGenerateStudentQRScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to generate QR code'),
-            backgroundColor: AppColors.danger,
+            backgroundColor: errorRed,
           ),
         );
       }
@@ -79,6 +83,7 @@ class _FacultyGenerateStudentQRScreenState
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
       setState(() {
         if (_remainingSeconds > 0) {
           _remainingSeconds--;
@@ -98,17 +103,12 @@ class _FacultyGenerateStudentQRScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
-      appBar: AppBar(
-        backgroundColor: AppColors.bgCard,
-        elevation: 0,
-        title: const Text('Generate Student QR'),
-      ),
+      appBar: AppBar(title: const Text('Generate Student QR')),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF1565C0)),
-            )
+          ? Center(child: CircularProgressIndicator(color: cs.primary))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -117,13 +117,11 @@ class _FacultyGenerateStudentQRScreenState
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
-                      ),
+                      color: cs.primary,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF1565C0).withOpacity(0.3),
+                          color: cs.primary.withOpacity(0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -135,9 +133,9 @@ class _FacultyGenerateStudentQRScreenState
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: cs.onPrimary.withOpacity(0.2),
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+                            border: Border.all(color: cs.onPrimary, width: 2),
                           ),
                           child: Center(
                             child: Text(
@@ -145,10 +143,10 @@ class _FacultyGenerateStudentQRScreenState
                                       ?.substring(0, 1)
                                       .toUpperCase() ??
                                   'S',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: cs.onPrimary,
                               ),
                             ),
                           ),
@@ -156,10 +154,10 @@ class _FacultyGenerateStudentQRScreenState
                         const SizedBox(height: 12),
                         Text(
                           widget.student['full_name'] ?? 'Student',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: cs.onPrimary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -168,7 +166,7 @@ class _FacultyGenerateStudentQRScreenState
                           widget.student['register_number'] ?? '',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.9),
+                            color: cs.onPrimary.withOpacity(0.9),
                           ),
                         ),
                       ],
@@ -178,7 +176,7 @@ class _FacultyGenerateStudentQRScreenState
                   const SizedBox(height: 32),
 
                   // QR Code or Expired Message
-                  if (_isExpired) _buildExpiredState() else _buildQRCode(),
+                  if (_isExpired) _buildExpiredState(cs) else _buildQRCode(cs),
 
                   const SizedBox(height: 24),
 
@@ -187,14 +185,14 @@ class _FacultyGenerateStudentQRScreenState
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: _remainingSeconds < 30
-                            ? AppColors.danger.withOpacity(0.1)
-                            : AppColors.success.withOpacity(0.1),
+                        color:
+                            (_remainingSeconds < 30 ? errorRed : successGreen)
+                                .withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _remainingSeconds < 30
-                              ? AppColors.danger
-                              : AppColors.success,
+                              ? errorRed
+                              : successGreen,
                           width: 2,
                         ),
                       ),
@@ -204,16 +202,16 @@ class _FacultyGenerateStudentQRScreenState
                           Icon(
                             Icons.timer,
                             color: _remainingSeconds < 30
-                                ? AppColors.danger
-                                : AppColors.success,
+                                ? errorRed
+                                : successGreen,
                           ),
                           const SizedBox(width: 12),
                           Text(
                             'Expires in: $_timeDisplay',
                             style: TextStyle(
                               color: _remainingSeconds < 30
-                                  ? AppColors.danger
-                                  : AppColors.success,
+                                  ? errorRed
+                                  : successGreen,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -228,27 +226,25 @@ class _FacultyGenerateStudentQRScreenState
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.info.withOpacity(0.1),
+                      color: cs.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.info.withOpacity(0.3),
-                      ),
+                      border: Border.all(color: cs.onSurface.withOpacity(0.1)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.info_outline,
-                              color: AppColors.info,
+                              color: infoBlue,
                               size: 20,
                             ),
                             const SizedBox(width: 12),
-                            const Text(
+                            Text(
                               'Instructions',
                               style: TextStyle(
-                                color: AppColors.textPrimary,
+                                color: cs.onSurface,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -256,10 +252,22 @@ class _FacultyGenerateStudentQRScreenState
                           ],
                         ),
                         const SizedBox(height: 12),
-                        _buildInstruction('1', 'Student opens the app'),
-                        _buildInstruction('2', 'Scans this QR code'),
-                        _buildInstruction('3', 'Sets up password (first time)'),
-                        _buildInstruction('4', 'QR expires in 1 minute'),
+                        _buildInstruction(
+                          '1',
+                          'Student opens the campus app',
+                          cs,
+                        ),
+                        _buildInstruction(
+                          '2',
+                          'Student selects Login via QR',
+                          cs,
+                        ),
+                        _buildInstruction('3', 'Scans this QR code', cs),
+                        _buildInstruction(
+                          '4',
+                          'QR expires in 1 minute for security',
+                          cs,
+                        ),
                       ],
                     ),
                   ),
@@ -280,13 +288,6 @@ class _FacultyGenerateStudentQRScreenState
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1565C0),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                   ),
 
@@ -294,26 +295,26 @@ class _FacultyGenerateStudentQRScreenState
                   if (_token != null) ...[
                     const SizedBox(height: 16),
                     ExpansionTile(
-                      title: const Text(
-                        'Show Token (Backup)',
+                      title: Text(
+                        'Show Backup Token',
                         style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: cs.onSurface.withOpacity(0.5),
                           fontSize: 14,
                         ),
                       ),
-                      iconColor: AppColors.textSecondary,
-                      collapsedIconColor: AppColors.textSecondary,
                       children: [
                         Container(
                           padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 10),
                           decoration: BoxDecoration(
-                            color: AppColors.bgCard,
+                            color: cs.onSurface.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: SelectableText(
                             _token!,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: cs.onSurface,
                               fontSize: 12,
                               fontFamily: 'monospace',
                             ),
@@ -328,7 +329,7 @@ class _FacultyGenerateStudentQRScreenState
     );
   }
 
-  Widget _buildQRCode() {
+  Widget _buildQRCode(ColorScheme cs) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -336,7 +337,7 @@ class _FacultyGenerateStudentQRScreenState
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.3),
+            color: cs.primary.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -352,30 +353,34 @@ class _FacultyGenerateStudentQRScreenState
     );
   }
 
-  Widget _buildExpiredState() {
+  Widget _buildExpiredState(ColorScheme cs) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.danger, width: 2),
+        border: Border.all(color: errorRed.withOpacity(0.5), width: 2),
       ),
       child: Column(
         children: [
-          Icon(Icons.timer_off, size: 80, color: AppColors.danger),
+          const Icon(Icons.timer_off_outlined, size: 80, color: errorRed),
           const SizedBox(height: 20),
           const Text(
             'QR Code Expired',
             style: TextStyle(
-              color: AppColors.danger,
+              color: errorRed,
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'This QR code has expired.\nPlease regenerate a new one.',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            'This login QR has expired.\nPlease regenerate a new one.',
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.6),
+              fontSize: 14,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -383,16 +388,16 @@ class _FacultyGenerateStudentQRScreenState
     );
   }
 
-  Widget _buildInstruction(String number, String text) {
+  Widget _buildInstruction(String number, String text, ColorScheme cs) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
           Container(
             width: 24,
             height: 24,
-            decoration: BoxDecoration(
-              color: AppColors.info,
+            decoration: const BoxDecoration(
+              color: infoBlue,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -410,7 +415,10 @@ class _FacultyGenerateStudentQRScreenState
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: AppColors.info, fontSize: 13),
+              style: TextStyle(
+                color: cs.onSurface.withOpacity(0.8),
+                fontSize: 13,
+              ),
             ),
           ),
         ],

@@ -1,10 +1,10 @@
 // File: lib/screens/faculty/faculty_profile_screen.dart
-// Faculty profile page with logout button
+// Faculty profile page with logout button and theme selection
 
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
+import '../../main.dart'; // Required for SmartCampusApp theme control
 
 class FacultyProfileScreen extends StatefulWidget {
   const FacultyProfileScreen({super.key});
@@ -42,7 +42,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error loading profile: $e'),
-            backgroundColor: AppColors.danger,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -50,9 +50,11 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   }
 
   Future<void> _handleLogout() async {
+    final cs = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: cs.surface,
         title: const Text('Logout'),
         content: const Text('Are you sure you want to logout?'),
         actions: [
@@ -62,8 +64,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
-            child: const Text('Logout'),
+            style: ElevatedButton.styleFrom(backgroundColor: cs.error),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -77,6 +79,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   }
 
   void _showChangePasswordDialog() {
+    final cs = Theme.of(context).colorScheme;
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -84,6 +87,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: cs.surface,
         title: const Text('Change Password'),
         content: SingleChildScrollView(
           child: Column(
@@ -125,26 +129,24 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              // TODO: Implement password change API call
               if (newPasswordController.text ==
                   confirmPasswordController.text) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(this.context).showSnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Password changed successfully'),
-                    backgroundColor: AppColors.success,
+                    backgroundColor: Color(0xFF4CAF50),
                   ),
                 );
               } else {
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Passwords do not match'),
-                    backgroundColor: AppColors.danger,
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Passwords do not match'),
+                    backgroundColor: cs.error,
                   ),
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: const Text('Change Password'),
           ),
         ],
@@ -154,13 +156,15 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(title: const Text('Profile'), centerTitle: true),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: cs.primary))
           : RefreshIndicator(
               onRefresh: _loadFacultyData,
+              color: cs.primary,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
@@ -170,15 +174,11 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF00D9FF), Color(0xFF0099CC)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: cs.primary,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
+                            color: cs.primary.withOpacity(0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -191,7 +191,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                             width: 100,
                             height: 100,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: cs.onPrimary,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
@@ -207,44 +207,38 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                                         ?.substring(0, 1)
                                         .toUpperCase() ??
                                     'F',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 40,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF00D9FF),
+                                  color: cs.primary,
                                 ),
                               ),
                             ),
                           ),
-
                           const SizedBox(height: 16),
-
-                          // Name
                           Text(
                             SessionManager.name ?? 'Faculty',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: cs.onPrimary,
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                             textAlign: TextAlign.center,
                           ),
-
                           const SizedBox(height: 4),
-
-                          // Role Badge
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: cs.onPrimary.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Faculty',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: cs.onPrimary,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -265,7 +259,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                               'Total Sessions',
                               '${_facultyData!['total_sessions'] ?? 0}',
                               Icons.class_,
-                              AppColors.success,
+                              const Color(0xFF4CAF50),
+                              cs,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -274,7 +269,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                               'This Week',
                               '${_facultyData!['this_week_sessions'] ?? 0}',
                               Icons.calendar_today,
-                              AppColors.warning,
+                              const Color(0xFFFF9800),
+                              cs,
                             ),
                           ),
                         ],
@@ -286,58 +282,59 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.bgCard,
+                        color: cs.surface,
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: cs.onSurface.withOpacity(0.1),
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Account Information',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                              color: cs.onSurface,
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildInfoRow(
                             Icons.email,
                             'Email',
                             SessionManager.email ?? 'N/A',
+                            cs,
                           ),
-
-                          const Divider(height: 24),
-
+                          Divider(
+                            height: 24,
+                            color: cs.onSurface.withOpacity(0.1),
+                          ),
                           _buildInfoRow(
                             Icons.badge,
                             'Employee ID',
                             _facultyData?['employee_id']?.toString() ?? 'N/A',
+                            cs,
                           ),
-
-                          const Divider(height: 24),
-
+                          Divider(
+                            height: 24,
+                            color: cs.onSurface.withOpacity(0.1),
+                          ),
                           _buildInfoRow(
                             Icons.business,
                             'Department',
                             _facultyData?['department'] ?? 'N/A',
+                            cs,
                           ),
-
-                          const Divider(height: 24),
-
+                          Divider(
+                            height: 24,
+                            color: cs.onSurface.withOpacity(0.1),
+                          ),
                           _buildInfoRow(
                             Icons.phone,
                             'Phone',
                             _facultyData?['phone_number'] ?? 'N/A',
-                          ),
-
-                          const Divider(height: 24),
-
-                          _buildInfoRow(
-                            Icons.person,
-                            'User ID',
-                            '${SessionManager.userId ?? 'N/A'}',
+                            cs,
                           ),
                         ],
                       ),
@@ -345,27 +342,45 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Settings Options
+                    // App Settings Section
                     Container(
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.bgCard,
+                        color: cs.surface,
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: cs.onSurface.withOpacity(0.1),
+                        ),
                       ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text(
+                            'App Settings',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildThemeTile(context, cs),
+                          const SizedBox(height: 16),
                           _buildActionTile(
                             icon: Icons.lock_outline,
                             title: 'Change Password',
-                            color: AppColors.warning,
+                            color: const Color(0xFFFF9800),
                             onTap: _showChangePasswordDialog,
+                            cs: cs,
                           ),
-
-                          const Divider(height: 1),
-
+                          Divider(
+                            height: 1,
+                            color: cs.onSurface.withOpacity(0.1),
+                          ),
                           _buildActionTile(
                             icon: Icons.help_outline,
                             title: 'Help & Support',
-                            color: AppColors.primary,
+                            color: cs.primary,
                             onTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -373,6 +388,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                                 ),
                               );
                             },
+                            cs: cs,
                           ),
                         ],
                       ),
@@ -387,7 +403,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                       child: ElevatedButton.icon(
                         onPressed: _handleLogout,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.danger,
+                          backgroundColor: cs.error,
+                          foregroundColor: cs.onError,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -404,13 +421,13 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                     ),
 
                     const SizedBox(height: 16),
-
-                    // Version Info
                     Text(
                       'Smart Campus Assistant v2.0',
-                      style: TextStyle(color: AppColors.textHint, fontSize: 12),
+                      style: TextStyle(
+                        color: cs.onSurface.withOpacity(0.4),
+                        fontSize: 12,
+                      ),
                     ),
-
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -419,16 +436,52 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     );
   }
 
+  Widget _buildThemeTile(BuildContext context, ColorScheme cs) {
+    final current = SmartCampusApp.currentTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Theme',
+          style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        SegmentedButton<ThemeMode>(
+          segments: const [
+            ButtonSegment(
+              value: ThemeMode.system,
+              label: Text('System'),
+              icon: Icon(Icons.brightness_auto),
+            ),
+            ButtonSegment(
+              value: ThemeMode.light,
+              label: Text('Light'),
+              icon: Icon(Icons.light_mode),
+            ),
+            ButtonSegment(
+              value: ThemeMode.dark,
+              label: Text('Dark'),
+              icon: Icon(Icons.dark_mode),
+            ),
+          ],
+          selected: {current},
+          onSelectionChanged: (val) => SmartCampusApp.setTheme(val.first),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStatCard(
     String label,
     String value,
     IconData icon,
     Color color,
+    ColorScheme cs,
   ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
@@ -447,8 +500,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: cs.onSurface.withOpacity(0.6),
               fontSize: 12,
             ),
             textAlign: TextAlign.center,
@@ -458,16 +511,21 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    ColorScheme cs,
+  ) {
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: cs.primary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: AppColors.primary, size: 20),
+          child: Icon(icon, color: cs.primary, size: 20),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -476,16 +534,16 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: cs.onSurface.withOpacity(0.5),
                   fontSize: 12,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -502,8 +560,10 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     required String title,
     required Color color,
     required VoidCallback onTap,
+    required ColorScheme cs,
   }) {
     return ListTile(
+      contentPadding: EdgeInsets.zero,
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
@@ -514,14 +574,11 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600),
       ),
-      trailing: const Icon(
+      trailing: Icon(
         Icons.arrow_forward_ios,
-        color: AppColors.textHint,
+        color: cs.onSurface.withOpacity(0.3),
         size: 16,
       ),
       onTap: onTap,

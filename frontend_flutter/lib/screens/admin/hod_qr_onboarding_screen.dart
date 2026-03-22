@@ -1,8 +1,9 @@
-// lib/screens/admin/hod_qr_onboarding_screen.dart
+// File: lib/screens/admin/hod_qr_onboarding_screen.dart
+// HOD scans Principal-generated QR for first-time secure onboarding
+
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 
 class HODQROnboardingScreen extends StatefulWidget {
   const HODQROnboardingScreen({super.key});
@@ -34,7 +35,7 @@ class _HODQROnboardingScreenState extends State<HODQROnboardingScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      // Token is the raw QR data string
+      // Token is the raw QR data string from Principal
       final response = await ApiService.validateHODQR(qrData.trim());
 
       if (mounted) {
@@ -57,7 +58,7 @@ class _HODQROnboardingScreenState extends State<HODQROnboardingScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppColors.danger,
+        backgroundColor: Theme.of(context).colorScheme.error,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
       ),
@@ -66,21 +67,24 @@ class _HODQROnboardingScreenState extends State<HODQROnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text('HOD Onboarding'),
         centerTitle: true,
       ),
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           // QR Scanner
           MobileScanner(
             controller: _scannerController,
             onDetect: (capture) {
-              for (final barcode in capture.barcodes) {
+              final barcodes = capture.barcodes;
+              for (final barcode in barcodes) {
                 if (barcode.rawValue != null) {
                   _handleQRScan(barcode.rawValue!);
                   break;
@@ -89,27 +93,27 @@ class _HODQROnboardingScreenState extends State<HODQROnboardingScreen> {
             },
           ),
 
-          // Scanning frame
+          // Scanning frame overlay
           Center(
             child: Container(
               width: 280,
               height: 280,
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.danger, width: 3),
+                border: Border.all(color: cs.primary, width: 3),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Stack(
                 children: [
-                  _buildCorner(Alignment.topLeft),
-                  _buildCorner(Alignment.topRight),
-                  _buildCorner(Alignment.bottomLeft),
-                  _buildCorner(Alignment.bottomRight),
+                  _buildCorner(Alignment.topLeft, cs.primary),
+                  _buildCorner(Alignment.topRight, cs.primary),
+                  _buildCorner(Alignment.bottomLeft, cs.primary),
+                  _buildCorner(Alignment.bottomRight, cs.primary),
                 ],
               ),
             ),
           ),
 
-          // Bottom card
+          // Bottom UI Card
           SafeArea(
             child: Column(
               children: [
@@ -118,11 +122,11 @@ class _HODQROnboardingScreenState extends State<HODQROnboardingScreen> {
                   margin: const EdgeInsets.all(24),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    gradient: AppColors.cardGradient,
-                    borderRadius: BorderRadius.circular(20),
+                    color: cs.surface.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.danger.withOpacity(0.3),
+                        color: cs.primary.withOpacity(0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -134,31 +138,30 @@ class _HODQROnboardingScreenState extends State<HODQROnboardingScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.danger.withOpacity(0.2),
+                          color: cs.primary.withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.qr_code_scanner,
+                        child: Icon(
+                          Icons.qr_code_scanner_rounded,
                           size: 48,
-                          color: AppColors.danger,
+                          color: cs.primary,
                         ),
                       ),
                       const SizedBox(height: 20),
                       const Text(
-                        'Scan HOD QR Code',
+                        'Secure Setup',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
                         ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Get your QR code from the Principal to complete setup',
+                        'Scan the unique QR code provided by the Principal to authorize your HOD account.',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textPrimary.withOpacity(0.7),
+                          color: cs.onSurface.withOpacity(0.6),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -173,18 +176,15 @@ class _HODQROnboardingScreenState extends State<HODQROnboardingScreen> {
           if (_isProcessing)
             Container(
               color: Colors.black.withOpacity(0.7),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: AppColors.danger),
-                    SizedBox(height: 20),
-                    Text(
-                      'Validating QR Code...',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 16,
-                      ),
+                    CircularProgressIndicator(color: cs.primary),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Verifying Authorization...',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ],
                 ),
@@ -195,7 +195,7 @@ class _HODQROnboardingScreenState extends State<HODQROnboardingScreen> {
     );
   }
 
-  Widget _buildCorner(Alignment alignment) {
+  Widget _buildCorner(Alignment alignment, Color color) {
     return Align(
       alignment: alignment,
       child: Container(
@@ -206,22 +206,22 @@ class _HODQROnboardingScreenState extends State<HODQROnboardingScreen> {
             top:
                 alignment == Alignment.topLeft ||
                     alignment == Alignment.topRight
-                ? const BorderSide(color: AppColors.danger, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             bottom:
                 alignment == Alignment.bottomLeft ||
                     alignment == Alignment.bottomRight
-                ? const BorderSide(color: AppColors.danger, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             left:
                 alignment == Alignment.topLeft ||
                     alignment == Alignment.bottomLeft
-                ? const BorderSide(color: AppColors.danger, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             right:
                 alignment == Alignment.topRight ||
                     alignment == Alignment.bottomRight
-                ? const BorderSide(color: AppColors.danger, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
           ),
         ),

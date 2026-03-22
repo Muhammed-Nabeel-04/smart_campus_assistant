@@ -1,6 +1,7 @@
-// lib/screens/principal/principal_add_hod_screen.dart
+// File: lib/screens/principal/principal_add_hod_screen.dart
+// Principal interface to register HODs for specific departments
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 
 class PrincipalAddHODScreen extends StatefulWidget {
@@ -42,7 +43,7 @@ class _PrincipalAddHODScreenState extends State<PrincipalAddHODScreen> {
       final data = await ApiService.getPrincipalDepartments();
       if (mounted) {
         setState(() {
-          // ✅ FIX Issue 2: Only show departments that have no HOD assigned yet
+          // Only show departments that have no HOD assigned yet
           _departments = List<Map<String, dynamic>>.from(
             data,
           ).where((d) => d['hod'] == null).toList();
@@ -55,12 +56,13 @@ class _PrincipalAddHODScreenState extends State<PrincipalAddHODScreen> {
   }
 
   Future<void> _handleSubmit() async {
+    final cs = Theme.of(context).colorScheme;
     if (!_formKey.currentState!.validate()) return;
     if (_selectedDeptId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a department'),
-          backgroundColor: AppColors.warning,
+          backgroundColor: Color(0xFFFF9800), // Warning Orange
         ),
       );
       return;
@@ -83,7 +85,7 @@ class _PrincipalAddHODScreenState extends State<PrincipalAddHODScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('HOD created! Generate QR to complete onboarding.'),
-            backgroundColor: AppColors.success,
+            backgroundColor: Color(0xFF4CAF50), // Success Green
           ),
         );
         Navigator.pop(context, true);
@@ -91,7 +93,7 @@ class _PrincipalAddHODScreenState extends State<PrincipalAddHODScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(content: Text(e.message), backgroundColor: cs.error),
         );
       }
     } finally {
@@ -101,167 +103,128 @@ class _PrincipalAddHODScreenState extends State<PrincipalAddHODScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
-      appBar: AppBar(title: const Text('Add New HOD')),
+      appBar: AppBar(title: const Text('Register HOD')),
       body: _loadingDepts
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: cs.primary))
           : _departments.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.check_circle_outline,
-                      size: 64,
-                      color: AppColors.success.withOpacity(0.6),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'All departments already have HODs assigned.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Remove an existing HOD first to reassign.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textHint, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            )
+          ? _buildAllAssignedState(cs)
           : Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(24),
                 children: [
-                  // Info banner
+                  // Info Banner
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.info.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.info.withOpacity(0.2),
-                      ),
+                      color: cs.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: cs.primary.withOpacity(0.2)),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: AppColors.info,
-                          size: 18,
-                        ),
-                        SizedBox(width: 10),
+                        Icon(Icons.info_outline, color: cs.primary, size: 20),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'After creating, generate a QR code so the HOD can set their password.',
+                            'Once registered, the HOD must scan a secure QR code to finalize their account setup.',
                             style: TextStyle(
-                              color: AppColors.info,
+                              color: cs.primary,
                               fontSize: 12,
+                              height: 1.4,
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 32),
 
                   TextFormField(
                     controller: _nameCtrl,
-                    style: const TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: cs.onSurface),
                     decoration: const InputDecoration(
                       labelText: 'Full Name',
-                      prefixIcon: Icon(Icons.person),
+                      prefixIcon: Icon(Icons.person_outline),
                     ),
                     validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 20),
 
                   TextFormField(
                     controller: _emailCtrl,
                     keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: cs.onSurface),
                     decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
+                      labelText: 'Official Email',
+                      prefixIcon: Icon(Icons.alternate_email),
                     ),
                     validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 20),
 
                   TextFormField(
                     controller: _empIdCtrl,
-                    style: const TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: cs.onSurface),
                     decoration: const InputDecoration(
                       labelText: 'Employee ID',
-                      prefixIcon: Icon(Icons.badge),
+                      prefixIcon: Icon(Icons.badge_outlined),
                     ),
                     validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 20),
 
                   TextFormField(
                     controller: _phoneCtrl,
                     keyboardType: TextInputType.phone,
-                    style: const TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: cs.onSurface),
                     decoration: const InputDecoration(
-                      labelText: 'Phone (Optional)',
-                      prefixIcon: Icon(Icons.phone),
+                      labelText: 'Phone Number (Optional)',
+                      prefixIcon: Icon(Icons.phone_outlined),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 20),
 
                   DropdownButtonFormField<int>(
                     value: _selectedDeptId,
+                    dropdownColor: cs.surface,
+                    style: TextStyle(color: cs.onSurface, fontSize: 15),
                     decoration: const InputDecoration(
                       labelText: 'Assign Department',
-                      prefixIcon: Icon(Icons.account_tree),
+                      prefixIcon: Icon(Icons.business_outlined),
                     ),
                     items: _departments
                         .map(
                           (d) => DropdownMenuItem<int>(
                             value: d['id'] as int,
-                            child: Text(
-                              '${d['code']} · ${d['name']}',
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
+                            child: Text('${d['code']} — ${d['name']}'),
                           ),
                         )
                         .toList(),
                     onChanged: (v) => setState(() => _selectedDeptId = v),
                     validator: (v) => v == null ? 'Select a department' : null,
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 40),
 
                   SizedBox(
-                    height: 54,
+                    height: 56,
                     child: ElevatedButton.icon(
                       onPressed: _isLoading ? null : _handleSubmit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1565C0),
-                      ),
                       icon: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: cs.onPrimary,
                               ),
                             )
-                          : const Icon(Icons.check_circle_outline),
+                          : const Icon(Icons.how_to_reg_outlined),
                       label: Text(
-                        _isLoading ? 'Creating...' : 'Create HOD',
+                        _isLoading ? 'Processing...' : 'Create HOD Account',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -272,6 +235,44 @@ class _PrincipalAddHODScreenState extends State<PrincipalAddHODScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildAllAssignedState(ColorScheme cs) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.verified_user_outlined,
+              size: 80,
+              color: cs.primary.withOpacity(0.2),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Assignments Complete',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'All existing departments currently have HODs assigned. To reassign, manage existing HODs first.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: cs.onSurface.withOpacity(0.6),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            TextButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Go Back'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

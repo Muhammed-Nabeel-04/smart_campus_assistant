@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 
 class ScanQRScreen extends StatefulWidget {
   const ScanQRScreen({super.key});
@@ -35,7 +34,6 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      // ✅ QR data is now just the token string directly
       final data = await ApiService.markAttendance(
         token: qrRawData,
         studentId: SessionManager.studentId!,
@@ -57,11 +55,13 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   }
 
   void _showResult(String message, {required bool isError}) {
+    final cs = Theme.of(context).colorScheme;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.bgCard,
+        backgroundColor: cs.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -69,8 +69,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: (isError ? AppColors.danger : AppColors.primary)
-                    .withOpacity(0.15),
+                color: (isError ? cs.error : cs.primary).withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -78,23 +77,24 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                     ? Icons.error_outline_rounded
                     : Icons.check_circle_rounded,
                 size: 52,
-                color: isError ? AppColors.danger : AppColors.primary,
+                color: isError ? cs.error : cs.primary,
               ),
             ),
             const SizedBox(height: 20),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 15,
-              ),
+              style: TextStyle(color: cs.onSurface, fontSize: 15),
             ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: cs.primary,
+                  foregroundColor: cs.onPrimary,
+                ),
                 child: const Text('OK'),
               ),
             ),
@@ -106,13 +106,15 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         title: const Text('Scan Attendance QR'),
         centerTitle: true,
       ),
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           // ── Camera ──────────────────────────────────────────
@@ -135,15 +137,15 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
               width: 260,
               height: 260,
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary, width: 3),
+                border: Border.all(color: cs.primary, width: 3),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Stack(
                 children: [
-                  _corner(Alignment.topLeft),
-                  _corner(Alignment.topRight),
-                  _corner(Alignment.bottomLeft),
-                  _corner(Alignment.bottomRight),
+                  _corner(Alignment.topLeft, cs.primary),
+                  _corner(Alignment.topRight, cs.primary),
+                  _corner(Alignment.bottomLeft, cs.primary),
+                  _corner(Alignment.bottomRight, cs.primary),
                 ],
               ),
             ),
@@ -158,11 +160,11 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
               margin: const EdgeInsets.all(24),
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                gradient: AppColors.cardGradient,
+                color: cs.surface.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.25),
+                    color: cs.primary.withOpacity(0.25),
                     blurRadius: 24,
                   ),
                 ],
@@ -170,16 +172,16 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.qr_code_scanner_rounded,
                     size: 44,
-                    color: AppColors.primary,
+                    color: cs.primary,
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Point camera at the QR code',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: cs.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -188,7 +190,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                   Text(
                     'Make sure the QR fits inside the frame',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: cs.onSurface.withOpacity(0.6),
                       fontSize: 13,
                     ),
                   ),
@@ -201,15 +203,15 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
           if (_isProcessing)
             Container(
               color: Colors.black.withOpacity(0.65),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: AppColors.primary),
-                    SizedBox(height: 16),
+                    CircularProgressIndicator(color: cs.primary),
+                    const SizedBox(height: 16),
                     Text(
                       'Processing...',
-                      style: TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(color: cs.onPrimary),
                     ),
                   ],
                 ),
@@ -220,7 +222,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     );
   }
 
-  Widget _corner(Alignment alignment) {
+  Widget _corner(Alignment alignment, Color color) {
     return Align(
       alignment: alignment,
       child: Container(
@@ -231,22 +233,22 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
             top:
                 (alignment == Alignment.topLeft ||
                     alignment == Alignment.topRight)
-                ? const BorderSide(color: AppColors.primary, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             bottom:
                 (alignment == Alignment.bottomLeft ||
                     alignment == Alignment.bottomRight)
-                ? const BorderSide(color: AppColors.primary, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             left:
                 (alignment == Alignment.topLeft ||
                     alignment == Alignment.bottomLeft)
-                ? const BorderSide(color: AppColors.primary, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             right:
                 (alignment == Alignment.topRight ||
                     alignment == Alignment.bottomRight)
-                ? const BorderSide(color: AppColors.primary, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
           ),
         ),

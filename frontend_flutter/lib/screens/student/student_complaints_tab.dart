@@ -59,22 +59,21 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1419),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF00D9FF)),
-            )
+          ? Center(child: CircularProgressIndicator(color: cs.primary))
           : _complaints.isEmpty
-          ? _buildEmptyState()
+          ? _buildEmptyState(cs)
           : RefreshIndicator(
               onRefresh: _loadComplaints,
-              color: const Color(0xFF00D9FF),
+              color: cs.primary,
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: _complaints.length,
                 itemBuilder: (context, index) {
-                  return _buildComplaintCard(_complaints[index]);
+                  return _buildComplaintCard(_complaints[index], cs);
                 },
               ),
             ),
@@ -82,17 +81,17 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
         onPressed: _showNewComplaintDialog,
         icon: const Icon(Icons.add),
         label: const Text('New Complaint'),
-        backgroundColor: const Color(0xFF00D9FF),
-        foregroundColor: const Color(0xFF0F1419),
+        backgroundColor: cs.primary,
+        foregroundColor: cs.onPrimary,
       ),
     );
   }
 
-  Widget _buildComplaintCard(Complaint complaint) {
+  Widget _buildComplaintCard(Complaint complaint, ColorScheme cs) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A2332),
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: complaint.statusColor.withOpacity(0.3)),
       ),
@@ -117,13 +116,13 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF00D9FF).withOpacity(0.2),
+                        color: cs.primary.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         complaint.category,
-                        style: const TextStyle(
-                          color: Color(0xFF00D9FF),
+                        style: TextStyle(
+                          color: cs.primary,
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
@@ -157,8 +156,8 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                 // Title
                 Text(
                   complaint.title,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: cs.onSurface,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -172,7 +171,7 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: cs.onSurface.withOpacity(0.6),
                     fontSize: 14,
                   ),
                 ),
@@ -223,13 +222,13 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                         Icon(
                           Icons.access_time,
                           size: 14,
-                          color: Colors.white.withOpacity(0.4),
+                          color: cs.onSurface.withOpacity(0.4),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           _formatTime(complaint.createdAt),
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.4),
+                            color: cs.onSurface.withOpacity(0.4),
                             fontSize: 12,
                           ),
                         ),
@@ -268,9 +267,10 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
   }
 
   void _showComplaintDetails(Complaint complaint) {
+    final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A2332),
+      backgroundColor: cs.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -316,13 +316,13 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00D9FF).withOpacity(0.2),
+                          color: cs.primary.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           complaint.category,
-                          style: const TextStyle(
-                            color: Color(0xFF00D9FF),
+                          style: TextStyle(
+                            color: cs.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -335,8 +335,8 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                   // Title
                   Text(
                     complaint.title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: cs.onSurface,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
@@ -348,7 +348,7 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                   Text(
                     complaint.description,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
+                      color: cs.onSurface.withOpacity(0.8),
                       fontSize: 16,
                       height: 1.5,
                     ),
@@ -356,7 +356,7 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
 
                   const SizedBox(height: 24),
 
-                  // Escalated to principal banner
+                  // Escalated to principal banner (Role color FIXED)
                   if (complaint.escalatedToPrincipal) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -398,12 +398,12 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                       decoration: BoxDecoration(
                         color: complaint.escalatedToPrincipal
                             ? const Color(0xFF9C27B0).withOpacity(0.1)
-                            : const Color(0xFF00D9FF).withOpacity(0.1),
+                            : cs.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: complaint.escalatedToPrincipal
                               ? const Color(0xFF9C27B0).withOpacity(0.3)
-                              : const Color(0xFF00D9FF).withOpacity(0.3),
+                              : cs.primary.withOpacity(0.3),
                         ),
                       ),
                       child: Column(
@@ -417,7 +417,7 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                                     : Icons.admin_panel_settings,
                                 color: complaint.escalatedToPrincipal
                                     ? const Color(0xFF9C27B0)
-                                    : const Color(0xFF00D9FF),
+                                    : cs.primary,
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -427,7 +427,7 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                                 style: TextStyle(
                                   color: complaint.escalatedToPrincipal
                                       ? const Color(0xFF9C27B0)
-                                      : const Color(0xFF00D9FF),
+                                      : cs.primary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
@@ -437,8 +437,8 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                           const SizedBox(height: 12),
                           Text(
                             complaint.adminResponse!,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: cs.onSurface,
                               fontSize: 14,
                               height: 1.5,
                             ),
@@ -454,6 +454,7 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                     Icons.schedule,
                     'Submitted',
                     _formatFullTime(complaint.createdAt),
+                    cs,
                   ),
 
                   if (complaint.resolvedAt != null) ...[
@@ -462,6 +463,7 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                       Icons.check_circle,
                       'Resolved',
                       _formatFullTime(complaint.resolvedAt!),
+                      cs,
                     ),
                   ],
 
@@ -473,8 +475,8 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00D9FF),
-                        foregroundColor: const Color(0xFF0F1419),
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -498,21 +500,26 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    ColorScheme cs,
+  ) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.white.withOpacity(0.5)),
+        Icon(icon, size: 16, color: cs.onSurface.withOpacity(0.5)),
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
+          style: TextStyle(color: cs.onSurface.withOpacity(0.5), fontSize: 14),
         ),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        Text(value, style: TextStyle(color: cs.onSurface, fontSize: 14)),
       ],
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(ColorScheme cs) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -520,13 +527,13 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
           Icon(
             Icons.report_problem_outlined,
             size: 80,
-            color: Colors.white.withOpacity(0.3),
+            color: cs.onSurface.withOpacity(0.3),
           ),
           const SizedBox(height: 20),
           Text(
             'No complaints submitted',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
+              color: cs.onSurface.withOpacity(0.5),
               fontSize: 18,
             ),
           ),
@@ -534,7 +541,7 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
           Text(
             'Tap the button below to submit a complaint',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.3),
+              color: cs.onSurface.withOpacity(0.3),
               fontSize: 14,
             ),
           ),
@@ -561,26 +568,16 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
   String _formatTime(DateTime time) {
     final now = DateTime.now();
     final difference = now.difference(time);
-
-    if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
-    } else {
-      return '${time.day}/${time.month}/${time.year}';
-    }
+    if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
+    if (difference.inHours < 24) return '${difference.inHours}h ago';
+    if (difference.inDays < 7) return '${difference.inDays}d ago';
+    return '${time.day}/${time.month}/${time.year}';
   }
 
   String _formatFullTime(DateTime time) {
     return '${time.day}/${time.month}/${time.year} at ${time.hour}:${time.minute.toString().padLeft(2, '0')}';
   }
 }
-
-// ============================================================================
-// NEW COMPLAINT SCREEN
-// ============================================================================
 
 class NewComplaintScreen extends StatefulWidget {
   const NewComplaintScreen({super.key});
@@ -619,9 +616,7 @@ class _NewComplaintScreenState extends State<NewComplaintScreen> {
 
   Future<void> _submitComplaint() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isSubmitting = true);
-
     try {
       await ApiService.submitComplaint(
         studentId: SessionManager.studentId!,
@@ -630,7 +625,6 @@ class _NewComplaintScreenState extends State<NewComplaintScreen> {
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
       );
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -647,29 +641,27 @@ class _NewComplaintScreenState extends State<NewComplaintScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1419),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A2332),
         title: const Text('Submit Complaint'),
         actions: [
           if (_isSubmitting)
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.only(right: 16),
                 child: SizedBox(
                   width: 24,
                   height: 24,
                   child: CircularProgressIndicator(
-                    color: Color(0xFF00D9FF),
+                    color: cs.primary,
                     strokeWidth: 2,
                   ),
                 ),
@@ -684,11 +676,10 @@ class _NewComplaintScreenState extends State<NewComplaintScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Category dropdown
-              const Text(
+              Text(
                 'Category',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: cs.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -696,16 +687,9 @@ class _NewComplaintScreenState extends State<NewComplaintScreen> {
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _category,
-                dropdownColor: const Color(0xFF1A2332),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: const Color(0xFF1A2332),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                style: const TextStyle(color: Colors.white),
+                dropdownColor: cs.surface,
+                decoration: const InputDecoration(), // Theme handles styling
+                style: TextStyle(color: cs.onSurface),
                 items: _categories.map((category) {
                   return DropdownMenuItem(
                     value: category,
@@ -717,11 +701,10 @@ class _NewComplaintScreenState extends State<NewComplaintScreen> {
 
               const SizedBox(height: 20),
 
-              // Priority dropdown
-              const Text(
+              Text(
                 'Priority',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: cs.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -729,16 +712,9 @@ class _NewComplaintScreenState extends State<NewComplaintScreen> {
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _priority,
-                dropdownColor: const Color(0xFF1A2332),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: const Color(0xFF1A2332),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                style: const TextStyle(color: Colors.white),
+                dropdownColor: cs.surface,
+                decoration: const InputDecoration(),
+                style: TextStyle(color: cs.onSurface),
                 items: _priorities.map((priority) {
                   return DropdownMenuItem(
                     value: priority,
@@ -750,11 +726,10 @@ class _NewComplaintScreenState extends State<NewComplaintScreen> {
 
               const SizedBox(height: 20),
 
-              // Title field
-              const Text(
+              Text(
                 'Title',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: cs.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -762,32 +737,21 @@ class _NewComplaintScreenState extends State<NewComplaintScreen> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _titleController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
+                style: TextStyle(color: cs.onSurface),
+                decoration: const InputDecoration(
                   hintText: 'Brief title for your complaint',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
-                  filled: true,
-                  fillColor: const Color(0xFF1A2332),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a title';
-                  }
-                  return null;
-                },
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Please enter a title'
+                    : null,
               ),
 
               const SizedBox(height: 20),
 
-              // Description field
-              const Text(
+              Text(
                 'Description',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: cs.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -795,40 +759,30 @@ class _NewComplaintScreenState extends State<NewComplaintScreen> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _descriptionController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: cs.onSurface),
                 maxLines: 6,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Describe your complaint in detail...',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
-                  filled: true,
-                  fillColor: const Color(0xFF1A2332),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
+                  if (value == null || value.trim().isEmpty)
                     return 'Please enter a description';
-                  }
-                  if (value.trim().length < 20) {
+                  if (value.trim().length < 20)
                     return 'Description must be at least 20 characters';
-                  }
                   return null;
                 },
               ),
 
               const SizedBox(height: 32),
 
-              // Submit button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submitComplaint,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00D9FF),
-                    foregroundColor: const Color(0xFF0F1419),
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

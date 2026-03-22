@@ -1,8 +1,7 @@
 // File: lib/screens/admin/admin_profile_screen.dart
-// Admin/HOD profile page with logout button
+// Admin/HOD profile page with logout and account settings
 
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
 
@@ -26,25 +25,32 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   Future<void> _loadDepartment() async {
     setState(() => _isLoading = true);
     try {
-      // ✅ Get department from DB dynamically
       final deptData = await ApiService.getHODDepartment();
-      setState(() {
-        _department =
-            deptData['department_name'] ?? deptData['department'] ?? 'UNKNOWN';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _department =
+              deptData['department_name'] ??
+              deptData['department'] ??
+              'UNKNOWN';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _department = 'UNKNOWN';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _department = 'UNKNOWN';
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _handleLogout() async {
+    final cs = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: cs.surface,
         title: const Text('Logout'),
         content: const Text('Are you sure you want to logout?'),
         actions: [
@@ -54,8 +60,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
-            child: const Text('Logout'),
+            style: ElevatedButton.styleFrom(backgroundColor: cs.error),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -69,6 +75,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   }
 
   void _showChangePasswordDialog() {
+    final cs = Theme.of(context).colorScheme;
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -76,6 +83,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: cs.surface,
         title: const Text('Change Password'),
         content: SingleChildScrollView(
           child: Column(
@@ -95,7 +103,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 obscureText: true,
                 decoration: const InputDecoration(
                   labelText: 'New Password',
-                  prefixIcon: Icon(Icons.lock_outline),
+                  prefixIcon: Icon(Icons.lock_reset),
                 ),
               ),
               const SizedBox(height: 16),
@@ -104,7 +112,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 obscureText: true,
                 decoration: const InputDecoration(
                   labelText: 'Confirm New Password',
-                  prefixIcon: Icon(Icons.lock_outline),
+                  prefixIcon: Icon(Icons.check_circle_outline),
                 ),
               ),
             ],
@@ -118,22 +126,15 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           ElevatedButton(
             onPressed: () async {
               if (newPasswordController.text.length < 6) {
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Password must be at least 6 characters'),
-                    backgroundColor: AppColors.danger,
-                  ),
+                _showSnack(
+                  'Password must be at least 6 characters',
+                  isError: true,
                 );
                 return;
               }
               if (newPasswordController.text !=
                   confirmPasswordController.text) {
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Passwords do not match'),
-                    backgroundColor: AppColors.danger,
-                  ),
-                );
+                _showSnack('Passwords do not match', isError: true);
                 return;
               }
               Navigator.pop(context);
@@ -141,26 +142,11 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 await ApiService.changeAdminPassword(
                   newPassword: newPasswordController.text,
                 );
-                if (mounted) {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Password changed successfully'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                }
+                _showSnack('Password changed successfully');
               } on ApiException catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(
-                      content: Text(e.message),
-                      backgroundColor: AppColors.danger,
-                    ),
-                  );
-                }
+                _showSnack(e.message, isError: true);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
             child: const Text('Change Password'),
           ),
         ],
@@ -168,30 +154,40 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     );
   }
 
+  void _showSnack(String msg, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError
+            ? Theme.of(context).colorScheme.error
+            : const Color(0xFF4CAF50),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(title: const Text('Profile'), centerTitle: true),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: cs.primary))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
                   // Profile Header
                   Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFF6B6B), Color(0xFFFF5252)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
+                      color: cs.primary,
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.danger.withOpacity(0.3),
+                          color: cs.primary.withOpacity(0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -199,66 +195,46 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     ),
                     child: Column(
                       children: [
-                        // Avatar
-                        Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              SessionManager.name
-                                      ?.substring(0, 1)
-                                      .toUpperCase() ??
-                                  'A',
-                              style: const TextStyle(
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFFF6B6B),
-                              ),
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: cs.onPrimary,
+                          child: Text(
+                            SessionManager.name
+                                    ?.substring(0, 1)
+                                    .toUpperCase() ??
+                                'A',
+                            style: TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: cs.primary,
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 16),
-
-                        // Name
                         Text(
                           SessionManager.name ?? 'Administrator',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: cs.onPrimary,
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
                           textAlign: TextAlign.center,
                         ),
-
-                        const SizedBox(height: 4),
-
-                        // Role
+                        const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
-                            vertical: 6,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: cs.onPrimary.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             '$_department HOD',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
+                            style: TextStyle(
+                              color: cs.onPrimary,
+                              fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -269,181 +245,124 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Account Information
+                  // Info Card
                   Container(
-                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.bgCard,
-                      borderRadius: BorderRadius.circular(12),
+                      color: cs.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: cs.onSurface.withOpacity(0.1)),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Account Information',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        _buildInfoRow(
-                          Icons.email,
+                        _buildInfoTile(
+                          Icons.alternate_email,
                           'Email',
                           SessionManager.email ?? 'N/A',
+                          cs,
                         ),
-
-                        const Divider(height: 24),
-
-                        _buildInfoRow(
-                          Icons.business,
-                          'Department',
+                        _buildInfoTile(
+                          Icons.business_outlined,
+                          'Home Department',
                           _department,
+                          cs,
                         ),
-
-                        const Divider(height: 24),
-
-                        _buildInfoRow(
-                          Icons.admin_panel_settings,
-                          'Role',
-                          'Head of Department',
-                        ),
-
-                        const Divider(height: 24),
-
-                        _buildInfoRow(
-                          Icons.badge,
-                          'User ID',
+                        _buildInfoTile(
+                          Icons.badge_outlined,
+                          'Admin User ID',
                           '${SessionManager.userId ?? 'N/A'}',
+                          cs,
                         ),
                       ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Settings Options
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.bgCard,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        _buildActionTile(
-                          icon: Icons.lock_outline,
-                          title: 'Change Password',
-                          color: AppColors.warning,
-                          onTap: _showChangePasswordDialog,
-                        ),
-
-                        const Divider(height: 1),
-
-                        _buildActionTile(
-                          icon: Icons.settings,
-                          title: 'Settings',
-                          color: AppColors.info,
-                          onTap: () {
-                            Navigator.pushNamed(context, '/adminSettings');
-                          },
-                        ),
-
-                        const Divider(height: 1),
-
-                        _buildActionTile(
-                          icon: Icons.help_outline,
-                          title: 'Help & Support',
-                          color: AppColors.primary,
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Contact: support@college.edu'),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Logout Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: _handleLogout,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.danger,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.logout, size: 24),
-                      label: const Text(
-                        'Logout',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                     ),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Version Info
-                  Text(
-                    'Smart Campus Assistant v2.0',
-                    style: TextStyle(color: AppColors.textHint, fontSize: 12),
+                  // Actions Card
+                  Container(
+                    decoration: BoxDecoration(
+                      color: cs.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: cs.onSurface.withOpacity(0.1)),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildActionTile(
+                          icon: Icons.lock_reset_outlined,
+                          title: 'Change Account Password',
+                          color: const Color(0xFFFF9800), // Warning orange
+                          onTap: _showChangePasswordDialog,
+                          cs: cs,
+                        ),
+                        _buildActionTile(
+                          icon: Icons.settings_outlined,
+                          title: 'System Settings',
+                          color: const Color(0xFF2196F3), // Info blue
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/adminSettings'),
+                          cs: cs,
+                        ),
+                      ],
+                    ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
+
+                  // Logout Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton.icon(
+                      onPressed: _handleLogout,
+                      icon: const Icon(Icons.logout),
+                      label: const Text(
+                        'Sign Out',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: cs.error,
+                        side: BorderSide(color: cs.error),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                  Text(
+                    'Campus Assistant Enterprise v2.0.4',
+                    style: TextStyle(
+                      color: cs.onSurface.withOpacity(0.3),
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.danger.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: AppColors.danger, size: 20),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+  Widget _buildInfoTile(
+    IconData icon,
+    String label,
+    String value,
+    ColorScheme cs,
+  ) {
+    return ListTile(
+      leading: Icon(icon, color: cs.primary, size: 22),
+      title: Text(
+        label,
+        style: TextStyle(color: cs.onSurface.withOpacity(0.5), fontSize: 12),
+      ),
+      subtitle: Text(
+        value,
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      ),
     );
   }
 
@@ -452,8 +371,10 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     required String title,
     required Color color,
     required VoidCallback onTap,
+    required ColorScheme cs,
   }) {
     return ListTile(
+      onTap: onTap,
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
@@ -464,17 +385,13 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w600,
-        ),
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       ),
-      trailing: const Icon(
-        Icons.arrow_forward_ios,
-        color: AppColors.textHint,
-        size: 16,
+      trailing: Icon(
+        Icons.chevron_right,
+        size: 18,
+        color: cs.onSurface.withOpacity(0.3),
       ),
-      onTap: onTap,
     );
   }
 }

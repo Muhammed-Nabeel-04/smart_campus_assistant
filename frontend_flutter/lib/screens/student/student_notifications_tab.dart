@@ -53,40 +53,43 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF00D9FF)),
-      );
+      return Center(child: CircularProgressIndicator(color: cs.primary));
     }
 
     if (_notifications.isEmpty) {
-      return _buildEmptyState();
+      return _buildEmptyState(cs);
     }
 
     return RefreshIndicator(
       onRefresh: _loadNotifications,
-      color: const Color(0xFF00D9FF),
+      color: cs.primary,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _notifications.length,
         itemBuilder: (context, index) {
-          return _buildNotificationCard(_notifications[index]);
+          return _buildNotificationCard(_notifications[index], cs);
         },
       ),
     );
   }
 
   // ✅ Changed to CampusNotification
-  Widget _buildNotificationCard(CampusNotification notification) {
+  Widget _buildNotificationCard(
+    CampusNotification notification,
+    ColorScheme cs,
+  ) {
     final iconData = _getIconForType(notification.type);
-    final color = _getColorForType(notification.type);
+    final typeColor = _getColorForType(notification.type);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A2332),
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: typeColor.withOpacity(0.3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -102,10 +105,10 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
+                    color: typeColor.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(iconData, color: color, size: 24),
+                  child: Icon(iconData, color: typeColor, size: 24),
                 ),
 
                 const SizedBox(width: 16),
@@ -122,13 +125,13 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.2),
+                          color: typeColor.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           notification.type.toUpperCase(),
                           style: TextStyle(
-                            color: color,
+                            color: typeColor,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
@@ -140,8 +143,8 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
                       // Title
                       Text(
                         notification.title,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: cs.onSurface,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -155,7 +158,7 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: cs.onSurface.withOpacity(0.6),
                           fontSize: 14,
                         ),
                       ),
@@ -168,13 +171,13 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
                           Icon(
                             Icons.access_time,
                             size: 14,
-                            color: Colors.white.withOpacity(0.4),
+                            color: cs.onSurface.withOpacity(0.4),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             _formatTime(notification.createdAt),
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.4),
+                              color: cs.onSurface.withOpacity(0.4),
                               fontSize: 12,
                             ),
                           ),
@@ -185,7 +188,7 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
                 ),
 
                 // Chevron
-                Icon(Icons.chevron_right, color: Colors.white.withOpacity(0.3)),
+                Icon(Icons.chevron_right, color: cs.onSurface.withOpacity(0.3)),
               ],
             ),
           ),
@@ -196,14 +199,15 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
 
   // ✅ Changed to CampusNotification
   void _showNotificationDetails(CampusNotification notification) {
+    final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A2332),
+      backgroundColor: cs.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        final color = _getColorForType(notification.type);
+        final typeColor = _getColorForType(notification.type);
         return Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -217,13 +221,13 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
+                  color: typeColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   notification.type.toUpperCase(),
                   style: TextStyle(
-                    color: color,
+                    color: typeColor,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -235,8 +239,8 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
               // Title
               Text(
                 notification.title,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
@@ -248,7 +252,7 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
               Text(
                 notification.message,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: cs.onSurface.withOpacity(0.8),
                   fontSize: 16,
                   height: 1.5,
                 ),
@@ -262,13 +266,13 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
                   Icon(
                     Icons.schedule,
                     size: 16,
-                    color: Colors.white.withOpacity(0.5),
+                    color: cs.onSurface.withOpacity(0.5),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     _formatFullTime(notification.createdAt),
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: cs.onSurface.withOpacity(0.5),
                       fontSize: 14,
                     ),
                   ),
@@ -283,8 +287,8 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00D9FF),
-                    foregroundColor: const Color(0xFF0F1419),
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -303,7 +307,7 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(ColorScheme cs) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -311,13 +315,13 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
           Icon(
             Icons.notifications_none,
             size: 80,
-            color: Colors.white.withOpacity(0.3),
+            color: cs.onSurface.withOpacity(0.3),
           ),
           const SizedBox(height: 20),
           Text(
             'No notifications yet',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
+              color: cs.onSurface.withOpacity(0.5),
               fontSize: 18,
             ),
           ),
@@ -325,7 +329,7 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
           Text(
             'You\'ll see important updates here',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.3),
+              color: cs.onSurface.withOpacity(0.3),
               fontSize: 14,
             ),
           ),
@@ -352,13 +356,15 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
   Color _getColorForType(String type) {
     switch (type) {
       case 'info':
-        return const Color(0xFF2196F3);
+        return const Color(0xFF2196F3); // Info (Fixed)
       case 'warning':
-        return const Color(0xFFFF9800);
+        return const Color(0xFFFF9800); // Warning (Fixed)
       case 'urgent':
-        return const Color(0xFFFF5722);
+        return const Color(0xFFFF5722); // Urgent (Fixed)
       case 'announcement':
-        return const Color(0xFF00D9FF);
+        return const Color(
+          0xFF4CAF50,
+        ); // Announcement (Fixed - used success green)
       default:
         return const Color(0xFF9E9E9E);
     }

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:convert';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 
 class FacultyQROnboardingScreen extends StatefulWidget {
   const FacultyQROnboardingScreen({super.key});
@@ -73,10 +72,11 @@ class _FacultyQROnboardingScreenState extends State<FacultyQROnboardingScreen> {
   }
 
   void _showError(String message) {
+    final cs = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppColors.danger,
+        backgroundColor: cs.error,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
       ),
@@ -85,14 +85,16 @@ class _FacultyQROnboardingScreenState extends State<FacultyQROnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text('Faculty Onboarding'),
         centerTitle: true,
       ),
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           // QR Scanner
@@ -120,11 +122,11 @@ class _FacultyQROnboardingScreenState extends State<FacultyQROnboardingScreen> {
                   margin: const EdgeInsets.all(24),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    gradient: AppColors.cardGradient,
+                    color: cs.surface.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: cs.primary.withOpacity(0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -137,25 +139,25 @@ class _FacultyQROnboardingScreenState extends State<FacultyQROnboardingScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.2),
+                          color: cs.primary.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.qr_code_scanner,
                           size: 48,
-                          color: AppColors.primary,
+                          color: cs.primary,
                         ),
                       ),
 
                       const SizedBox(height: 20),
 
                       // Title
-                      const Text(
+                      Text(
                         'Scan Faculty QR Code',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: cs.onSurface,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -167,7 +169,7 @@ class _FacultyQROnboardingScreenState extends State<FacultyQROnboardingScreen> {
                         'Get your unique QR code from the admin to complete setup',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textPrimary.withOpacity(0.7),
+                          color: cs.onSurface.withOpacity(0.7),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -181,25 +183,27 @@ class _FacultyQROnboardingScreenState extends State<FacultyQROnboardingScreen> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.2),
+                          color: const Color(
+                            0xFF4CAF50,
+                          ).withOpacity(0.2), // Success Green
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: AppColors.success.withOpacity(0.5),
+                            color: const Color(0xFF4CAF50).withOpacity(0.5),
                           ),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.verified_user,
                               size: 18,
-                              color: AppColors.success,
+                              color: Color(0xFF4CAF50),
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text(
                               'Secure Setup',
                               style: TextStyle(
-                                color: AppColors.success,
+                                color: Color(0xFF4CAF50),
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -218,39 +222,36 @@ class _FacultyQROnboardingScreenState extends State<FacultyQROnboardingScreen> {
           if (_isProcessing)
             Container(
               color: Colors.black.withOpacity(0.7),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: AppColors.primary),
-                    SizedBox(height: 20),
-                    Text(
+                    CircularProgressIndicator(color: cs.primary),
+                    const SizedBox(height: 20),
+                    const Text(
                       'Validating QR Code...',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ],
                 ),
               ),
             ),
 
-          // Scanning frame
+          // Scanning frame overlay
           Center(
             child: Container(
               width: 280,
               height: 280,
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary, width: 3),
+                border: Border.all(color: cs.primary, width: 3),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Stack(
                 children: [
-                  _buildCornerDecoration(Alignment.topLeft),
-                  _buildCornerDecoration(Alignment.topRight),
-                  _buildCornerDecoration(Alignment.bottomLeft),
-                  _buildCornerDecoration(Alignment.bottomRight),
+                  _buildCornerDecoration(Alignment.topLeft, cs.primary),
+                  _buildCornerDecoration(Alignment.topRight, cs.primary),
+                  _buildCornerDecoration(Alignment.bottomLeft, cs.primary),
+                  _buildCornerDecoration(Alignment.bottomRight, cs.primary),
                 ],
               ),
             ),
@@ -260,7 +261,7 @@ class _FacultyQROnboardingScreenState extends State<FacultyQROnboardingScreen> {
     );
   }
 
-  Widget _buildCornerDecoration(Alignment alignment) {
+  Widget _buildCornerDecoration(Alignment alignment, Color color) {
     return Align(
       alignment: alignment,
       child: Container(
@@ -271,22 +272,22 @@ class _FacultyQROnboardingScreenState extends State<FacultyQROnboardingScreen> {
             top:
                 alignment == Alignment.topLeft ||
                     alignment == Alignment.topRight
-                ? const BorderSide(color: AppColors.primary, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             bottom:
                 alignment == Alignment.bottomLeft ||
                     alignment == Alignment.bottomRight
-                ? const BorderSide(color: AppColors.primary, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             left:
                 alignment == Alignment.topLeft ||
                     alignment == Alignment.bottomLeft
-                ? const BorderSide(color: AppColors.primary, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
             right:
                 alignment == Alignment.topRight ||
                     alignment == Alignment.bottomRight
-                ? const BorderSide(color: AppColors.primary, width: 4)
+                ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
           ),
         ),

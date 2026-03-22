@@ -1,6 +1,7 @@
-// lib/screens/principal/principal_hod_details_screen.dart
+// File: lib/screens/principal/principal_hod_details_screen.dart
+// Principal's detailed view of a specific HOD's profile and department assignment
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 
 class PrincipalHODDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> hod;
@@ -8,138 +9,196 @@ class PrincipalHODDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
-      appBar: AppBar(title: const Text('HOD Details')),
+      appBar: AppBar(title: const Text('HOD Profile'), elevation: 0),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         children: [
-          // Profile header
+          // Profile Header Card
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
+              color: cs.primary,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: cs.primary.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
             child: Column(
               children: [
                 CircleAvatar(
-                  radius: 48,
-                  backgroundColor: Colors.white,
+                  radius: 50,
+                  backgroundColor: cs.onPrimary,
                   child: Text(
                     (hod['name'] ?? 'H')
                         .toString()
                         .substring(0, 1)
                         .toUpperCase(),
-                    style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1565C0)),
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      color: cs.primary,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text(hod['name'] ?? '',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(hod['email'] ?? '',
-                    style: const TextStyle(
-                        color: Colors.white70, fontSize: 14)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 20),
+                Text(
+                  hod['name'] ?? 'Unknown HOD',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: cs.onPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  hod['email'] ?? '',
+                  style: TextStyle(
+                    color: cs.onPrimary.withOpacity(0.7),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 20),
                 if (hod['department_name'] != null)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 6),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
+                      color: cs.onPrimary.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                     child: Text(
                       '${hod['department_code']} — ${hod['department_name']}',
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 13),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: cs.onPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
               ],
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
-          // Info card
+          // Information Section
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.bgCard,
-              borderRadius: BorderRadius.circular(12),
+              color: cs.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: cs.onSurface.withOpacity(0.1)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('HOD Information',
-                    style: TextStyle(
-                        color: AppColors.textPrimary,
+                Row(
+                  children: [
+                    Icon(Icons.badge_outlined, color: cs.primary, size: 20),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Professional Details',
+                      style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                _infoRow('Employee ID', hod['employee_id'] ?? 'N/A'),
-                _infoRow('Phone',
-                    hod['phone'] ?? 'Not provided'),
-                _infoRow('Department',
-                    hod['department_name'] ?? 'Not assigned'),
-                _infoRow('Status',
-                    hod['has_password'] == true ? 'Active' : 'Pending Setup'),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _infoRow(
+                  'Employee ID',
+                  hod['employee_id'] ?? 'Not Assigned',
+                  cs,
+                ),
+                _infoRow('Contact Number', hod['phone'] ?? 'Not Provided', cs),
+                _infoRow(
+                  'Department',
+                  hod['department_name'] ?? 'Unassigned',
+                  cs,
+                ),
+                _infoRow(
+                  'Account Status',
+                  hod['has_password'] == true
+                      ? 'Active & Verified'
+                      : 'Setup Required',
+                  cs,
+                  isStatus: true,
+                  statusValue: hod['has_password'] == true,
+                ),
               ],
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 32),
 
-          // Generate QR button
+          // Action: Generate QR
           SizedBox(
-            height: 52,
+            width: double.infinity,
+            height: 56,
             child: ElevatedButton.icon(
               onPressed: () => Navigator.pushNamed(
                 context,
                 '/principalGenerateHODQR',
                 arguments: hod,
               ),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1565C0)),
-              icon: const Icon(Icons.qr_code),
-              label: const Text('Generate QR Code',
-                  style: TextStyle(fontSize: 16)),
+              icon: const Icon(Icons.qr_code_2_rounded),
+              label: const Text(
+                'Generate Setup QR Code',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  Widget _infoRow(String label, String value) {
+  Widget _infoRow(
+    String label,
+    String value,
+    ColorScheme cs, {
+    bool isStatus = false,
+    bool statusValue = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 18),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
-            child: Text(label,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 14)),
+            width: 110,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: cs.onSurface.withOpacity(0.5),
+                fontSize: 13,
+              ),
+            ),
           ),
           Expanded(
-            child: Text(value,
-                style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500)),
+            child: Text(
+              value,
+              style: TextStyle(
+                color: isStatus
+                    ? (statusValue ? const Color(0xFF4CAF50) : Colors.orange)
+                    : cs.onSurface,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),

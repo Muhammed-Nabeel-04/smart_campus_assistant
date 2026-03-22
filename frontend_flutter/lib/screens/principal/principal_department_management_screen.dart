@@ -1,6 +1,7 @@
-// lib/screens/principal/principal_department_management_screen.dart
+// File: lib/screens/principal/principal_department_management_screen.dart
+// Principal interface to list, edit, and manage all academic departments
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 
 class PrincipalDepartmentManagementScreen extends StatefulWidget {
@@ -38,35 +39,34 @@ class _PrincipalDepartmentManagementScreenState
   }
 
   void _showAddDepartmentDialog() {
+    final cs = Theme.of(context).colorScheme;
     final nameCtrl = TextEditingController();
     final codeCtrl = TextEditingController();
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgCard,
-        title: const Text(
-          'Add Department',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
+        backgroundColor: cs.surface,
+        title: const Text('Add New Department'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameCtrl,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: cs.onSurface),
               decoration: const InputDecoration(
                 labelText: 'Department Name',
-                hintText: 'Computer Science Engineering',
+                hintText: 'e.g. Computer Science',
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextField(
               controller: codeCtrl,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: cs.onSurface),
               textCapitalization: TextCapitalization.characters,
               decoration: const InputDecoration(
                 labelText: 'Department Code',
-                hintText: 'CSE',
+                hintText: 'e.g. CSE',
               ),
             ),
           ],
@@ -77,10 +77,8 @@ class _PrincipalDepartmentManagementScreenState
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6A1B9A),
-            ),
             onPressed: () async {
+              if (nameCtrl.text.isEmpty || codeCtrl.text.isEmpty) return;
               Navigator.pop(ctx);
               try {
                 await ApiService.createDepartment(
@@ -89,17 +87,10 @@ class _PrincipalDepartmentManagementScreenState
                 );
                 _loadDepartments();
               } on ApiException catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(e.message),
-                      backgroundColor: AppColors.danger,
-                    ),
-                  );
-                }
+                if (mounted) _showError(e.message);
               }
             },
-            child: const Text('Add'),
+            child: const Text('Register'),
           ),
         ],
       ),
@@ -107,19 +98,20 @@ class _PrincipalDepartmentManagementScreenState
   }
 
   void _showEditDialog(Map<String, dynamic> dept) {
+    final cs = Theme.of(context).colorScheme;
     final nameCtrl = TextEditingController(text: dept['name']);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgCard,
-        title: Text(
-          'Edit ${dept['code']}',
-          style: const TextStyle(color: AppColors.textPrimary),
-        ),
+        backgroundColor: cs.surface,
+        title: Text('Edit ${dept['code']}'),
         content: TextField(
           controller: nameCtrl,
-          style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(labelText: 'Department Name'),
+          style: TextStyle(color: cs.onSurface),
+          decoration: const InputDecoration(
+            labelText: 'Updated Department Name',
+          ),
         ),
         actions: [
           TextButton(
@@ -127,9 +119,6 @@ class _PrincipalDepartmentManagementScreenState
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6A1B9A),
-            ),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
@@ -139,17 +128,10 @@ class _PrincipalDepartmentManagementScreenState
                 );
                 _loadDepartments();
               } on ApiException catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(e.message),
-                      backgroundColor: AppColors.danger,
-                    ),
-                  );
-                }
+                if (mounted) _showError(e.message);
               }
             },
-            child: const Text('Save'),
+            child: const Text('Save Changes'),
           ),
         ],
       ),
@@ -157,144 +139,144 @@ class _PrincipalDepartmentManagementScreenState
   }
 
   Future<void> _deleteDepartment(Map<String, dynamic> dept) async {
+    final cs = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgCard,
-        title: const Text(
-          'Delete Department',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
+        backgroundColor: cs.surface,
+        title: const Text('Delete Department'),
         content: Text(
-          'Delete ${dept['name']}? This cannot be undone.',
-          style: const TextStyle(color: AppColors.textSecondary),
+          'Are you sure you want to delete ${dept['name']}? This will affect linked HODs and faculty.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(backgroundColor: cs.error),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
+
     if (confirm == true) {
       try {
         await ApiService.deleteDepartment(dept['id']);
         _loadDepartments();
       } on ApiException catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.message),
-              backgroundColor: AppColors.danger,
-            ),
-          );
-        }
+        if (mounted) _showError(e.message);
       }
     }
   }
 
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         title: const Text('Departments'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add_business_outlined),
             onPressed: _showAddDepartmentDialog,
-            tooltip: 'Add Department',
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: cs.primary))
           : _departments.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.account_tree,
-                    size: 80,
-                    color: AppColors.textSecondary.withOpacity(0.4),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No departments yet',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    onPressed: _showAddDepartmentDialog,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6A1B9A),
-                    ),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Department'),
-                  ),
-                ],
-              ),
-            )
+          ? _buildEmptyState(cs)
           : RefreshIndicator(
               onRefresh: _loadDepartments,
+              color: cs.primary,
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: _departments.length,
                 itemBuilder: (ctx, i) {
                   final dept = _departments[i];
+                  final hasHOD = dept['hod'] != null;
+
                   return Card(
+                    elevation: 0,
                     margin: const EdgeInsets.only(bottom: 12),
-                    color: AppColors.bgCard,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: cs.onSurface.withOpacity(0.1)),
+                    ),
                     child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       leading: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF6A1B9A).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
+                          color: cs.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
-                          Icons.account_tree,
-                          color: Color(0xFF6A1B9A),
+                        child: Icon(
+                          Icons.account_tree_outlined,
+                          color: cs.primary,
                         ),
                       ),
                       title: Text(
                         dept['name'] ?? '',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const SizedBox(height: 4),
                           Text(
                             'Code: ${dept['code']}',
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            style: TextStyle(
                               fontSize: 12,
+                              color: cs.onSurface.withOpacity(0.5),
                             ),
                           ),
-                          Text(
-                            dept['hod'] != null
-                                ? 'HOD: ${dept['hod']['name']}'
-                                : 'No HOD assigned',
-                            style: TextStyle(
-                              color: dept['hod'] != null
-                                  ? AppColors.success
-                                  : AppColors.warning,
-                              fontSize: 12,
-                            ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(
+                                hasHOD
+                                    ? Icons.check_circle_outline
+                                    : Icons.error_outline,
+                                size: 14,
+                                color: hasHOD ? Colors.green : Colors.orange,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                hasHOD
+                                    ? 'HOD: ${dept['hod']['name']}'
+                                    : 'No HOD Assigned',
+                                style: TextStyle(
+                                  color: hasHOD ? Colors.green : Colors.orange,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                       trailing: PopupMenuButton<String>(
+                        icon: Icon(
+                          Icons.more_vert,
+                          color: cs.onSurface.withOpacity(0.4),
+                        ),
                         onSelected: (val) {
                           if (val == 'edit') _showEditDialog(dept);
                           if (val == 'delete') _deleteDepartment(dept);
@@ -302,11 +284,30 @@ class _PrincipalDepartmentManagementScreenState
                         itemBuilder: (ctx) => [
                           const PopupMenuItem(
                             value: 'edit',
-                            child: Text('Edit'),
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined, size: 20),
+                                SizedBox(width: 10),
+                                Text('Edit Name'),
+                              ],
+                            ),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'delete',
-                            child: Text('Delete'),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: cs.error,
+                                ),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Delete',
+                                  style: TextStyle(color: cs.error),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -315,6 +316,32 @@ class _PrincipalDepartmentManagementScreenState
                 },
               ),
             ),
+    );
+  }
+
+  Widget _buildEmptyState(ColorScheme cs) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.business_outlined,
+            size: 80,
+            color: cs.onSurface.withOpacity(0.1),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No departments registered',
+            style: TextStyle(color: cs.onSurface.withOpacity(0.4)),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: _showAddDepartmentDialog,
+            icon: const Icon(Icons.add),
+            label: const Text('Add First Department'),
+          ),
+        ],
+      ),
     );
   }
 }

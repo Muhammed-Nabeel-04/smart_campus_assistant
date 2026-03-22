@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
-import '../../core/app_colors.dart';
 
 class FacultyPasswordSetupScreen extends StatefulWidget {
   final Map<String, dynamic> facultyData;
@@ -61,7 +60,10 @@ class _FacultyPasswordSetupScreenState
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } finally {
@@ -73,8 +75,9 @@ class _FacultyPasswordSetupScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -89,33 +92,31 @@ class _FacultyPasswordSetupScreenState
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
-                      ),
+                      color: cs.primary,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF1565C0).withOpacity(0.3),
+                          color: cs.primary.withOpacity(0.3),
                           blurRadius: 30,
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.lock_reset,
                       size: 60,
-                      color: Colors.white,
+                      color: cs.onPrimary,
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 32),
 
-                const Text(
+                Text(
                   'Welcome, Faculty!',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: cs.onSurface,
                   ),
                 ),
 
@@ -125,7 +126,7 @@ class _FacultyPasswordSetupScreenState
                   'Set up your password to continue',
                   style: TextStyle(
                     fontSize: 16,
-                    color: AppColors.textPrimary.withOpacity(0.7),
+                    color: cs.onSurface.withOpacity(0.7),
                   ),
                 ),
 
@@ -135,11 +136,9 @@ class _FacultyPasswordSetupScreenState
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.bgCard,
+                    color: cs.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFF1565C0).withOpacity(0.3),
-                    ),
+                    border: Border.all(color: cs.primary.withOpacity(0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,22 +146,24 @@ class _FacultyPasswordSetupScreenState
                       _buildInfoRow(
                         Icons.person,
                         'Name',
-                        // FIX: backend returns 'full_name', not 'name'
                         widget.facultyData['full_name'] ??
                             widget.facultyData['name'] ??
                             'N/A',
+                        cs,
                       ),
-                      const Divider(height: 24, color: AppColors.bgSeparator),
+                      Divider(height: 24, color: cs.onSurface.withOpacity(0.1)),
                       _buildInfoRow(
                         Icons.badge,
                         'Faculty ID',
                         widget.facultyData['faculty_id']?.toString() ?? 'N/A',
+                        cs,
                       ),
-                      const Divider(height: 24, color: AppColors.bgSeparator),
+                      Divider(height: 24, color: cs.onSurface.withOpacity(0.1)),
                       _buildInfoRow(
                         Icons.school,
                         'Department',
                         widget.facultyData['department'] ?? 'N/A',
+                        cs,
                       ),
                     ],
                   ),
@@ -174,44 +175,19 @@ class _FacultyPasswordSetupScreenState
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: cs.onSurface),
                   decoration: InputDecoration(
                     labelText: 'Create Password',
-                    labelStyle: TextStyle(
-                      color: AppColors.textPrimary.withOpacity(0.7),
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.lock_outline,
-                      color: Color(0xFF1565C0),
-                    ),
+                    prefixIcon: Icon(Icons.lock_outline, color: cs.primary),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: const Color(0xFF1565C0),
+                        color: cs.primary,
                       ),
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                    filled: true,
-                    fillColor: AppColors.bgCard,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: AppColors.bgSeparator,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF1565C0),
-                        width: 2,
-                      ),
                     ),
                   ),
                   validator: (value) {
@@ -231,44 +207,19 @@ class _FacultyPasswordSetupScreenState
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirm,
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: cs.onSurface),
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
-                    labelStyle: TextStyle(
-                      color: AppColors.textPrimary.withOpacity(0.7),
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.lock_outline,
-                      color: Color(0xFF1565C0),
-                    ),
+                    prefixIcon: Icon(Icons.lock_outline, color: cs.primary),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirm
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: const Color(0xFF1565C0),
+                        color: cs.primary,
                       ),
                       onPressed: () =>
                           setState(() => _obscureConfirm = !_obscureConfirm),
-                    ),
-                    filled: true,
-                    fillColor: AppColors.bgCard,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: AppColors.bgSeparator,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF1565C0),
-                        width: 2,
-                      ),
                     ),
                   ),
                   validator: (value) {
@@ -286,20 +237,12 @@ class _FacultyPasswordSetupScreenState
                   height: 56,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleSetup,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1565C0),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
                     child: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             height: 24,
                             width: 24,
                             child: CircularProgressIndicator(
-                              color: Colors.white,
+                              color: cs.onPrimary,
                               strokeWidth: 2,
                             ),
                           )
@@ -318,18 +261,29 @@ class _FacultyPasswordSetupScreenState
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.info.withOpacity(0.1),
+                    color: const Color(
+                      0xFF2196F3,
+                    ).withOpacity(0.1), // Info color
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                    border: Border.all(
+                      color: const Color(0xFF2196F3).withOpacity(0.3),
+                    ),
                   ),
-                  child: Row(
+                  child: const Row(
                     children: [
-                      Icon(Icons.info_outline, color: AppColors.info, size: 20),
-                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.info_outline,
+                        color: Color(0xFF2196F3),
+                        size: 20,
+                      ),
+                      SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Remember this password. You\'ll use it to login.',
-                          style: TextStyle(color: AppColors.info, fontSize: 12),
+                          style: TextStyle(
+                            color: Color(0xFF2196F3),
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ],
@@ -343,10 +297,15 @@ class _FacultyPasswordSetupScreenState
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    ColorScheme cs,
+  ) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF1565C0), size: 20),
+        Icon(icon, color: cs.primary, size: 20),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -355,15 +314,15 @@ class _FacultyPasswordSetupScreenState
               Text(
                 label,
                 style: TextStyle(
-                  color: AppColors.textPrimary.withOpacity(0.5),
+                  color: cs.onSurface.withOpacity(0.5),
                   fontSize: 12,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),

@@ -1,6 +1,8 @@
+// File: lib/screens/faculty/faculty_add_student_screen.dart
+// Faculty form to add new student with personal, contact, and parent details
+
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 
 class FacultyAddStudentScreen extends StatefulWidget {
   final Map<String, dynamic> department;
@@ -81,6 +83,7 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
   }
 
   Future<void> _selectDate() async {
+    final cs = Theme.of(context).colorScheme;
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now().subtract(
@@ -90,10 +93,11 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
       lastDate: DateTime.now(),
       builder: (context, child) {
         return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF1565C0),
-              surface: AppColors.bgCard,
+          data: Theme.of(context).copyWith(
+            colorScheme: cs.copyWith(
+              primary: cs.primary,
+              surface: cs.surface,
+              onSurface: cs.onSurface,
             ),
           ),
           child: child!,
@@ -107,11 +111,12 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
   }
 
   Future<void> _submitForm() async {
+    final cs = Theme.of(context).colorScheme;
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all required fields'),
-          backgroundColor: AppColors.danger,
+        SnackBar(
+          content: const Text('Please fill all required fields'),
+          backgroundColor: cs.error,
         ),
       );
       return;
@@ -154,7 +159,7 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Student added successfully!'),
-            backgroundColor: AppColors.success,
+            backgroundColor: Color(0xFF4CAF50), // Fixed success green
           ),
         );
         Navigator.pop(context);
@@ -162,34 +167,31 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(content: Text(e.message), backgroundColor: cs.error),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
-        backgroundColor: AppColors.bgCard,
-        elevation: 0,
         title: const Text('Add New Student'),
         actions: [
           if (_isSubmitting)
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.only(right: 16),
                 child: SizedBox(
                   width: 24,
                   height: 24,
                   child: CircularProgressIndicator(
-                    color: Color(0xFF1565C0),
+                    color: cs.primary,
                     strokeWidth: 2,
                   ),
                 ),
@@ -202,38 +204,29 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            // Personal Information Section
-            _buildSectionHeader('Personal Information', Icons.person),
+            _buildSectionHeader('Personal Information', Icons.person, cs),
             _buildTextField(
               controller: _fullNameController,
               label: 'Full Name',
               icon: Icons.person_outline,
+              cs: cs,
               validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
             ),
             _buildTextField(
               controller: _registerNumberController,
               label: 'Register Number',
-              icon: Icons.badge,
+              icon: Icons.badge_outlined,
+              cs: cs,
               validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
             ),
 
-            // Date of Birth
             InkWell(
               onTap: _selectDate,
+              borderRadius: BorderRadius.circular(12),
               child: InputDecorator(
                 decoration: InputDecoration(
                   labelText: 'Date of Birth',
-                  labelStyle: const TextStyle(color: AppColors.textSecondary),
-                  prefixIcon: const Icon(
-                    Icons.calendar_today,
-                    color: Color(0xFF1565C0),
-                  ),
-                  filled: true,
-                  fillColor: AppColors.bgCard,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
+                  prefixIcon: Icon(Icons.calendar_today, color: cs.primary),
                 ),
                 child: Text(
                   _dateOfBirth != null
@@ -241,15 +234,14 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
                       : 'Select date',
                   style: TextStyle(
                     color: _dateOfBirth != null
-                        ? AppColors.textPrimary
-                        : AppColors.textHint,
+                        ? cs.onSurface
+                        : cs.onSurface.withOpacity(0.4),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 16),
 
-            // Blood Group & Gender
             Row(
               children: [
                 Expanded(
@@ -258,7 +250,8 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
                     value: _bloodGroup,
                     items: _bloodGroups,
                     onChanged: (v) => setState(() => _bloodGroup = v),
-                    icon: Icons.bloodtype,
+                    icon: Icons.bloodtype_outlined,
+                    cs: cs,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -268,130 +261,141 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
                     value: _gender,
                     items: _genders,
                     onChanged: (v) => setState(() => _gender = v),
-                    icon: Icons.wc,
+                    icon: Icons.wc_outlined,
+                    cs: cs,
                   ),
                 ),
               ],
             ),
 
             const SizedBox(height: 24),
-
-            // Contact Information Section
-            _buildSectionHeader('Contact Information', Icons.phone),
+            _buildSectionHeader('Contact Information', Icons.phone, cs),
             _buildTextField(
               controller: _phoneController,
               label: 'Phone Number',
-              icon: Icons.phone,
+              icon: Icons.phone_android,
               keyboardType: TextInputType.phone,
+              cs: cs,
               validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
             ),
             _buildTextField(
               controller: _emailController,
               label: 'Email',
-              icon: Icons.email,
+              icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
+              cs: cs,
             ),
             _buildTextField(
               controller: _addressController,
               label: 'Address',
-              icon: Icons.location_on,
+              icon: Icons.location_on_outlined,
               maxLines: 3,
+              cs: cs,
             ),
 
             const SizedBox(height: 24),
-
-            // Parent Details Section
-            _buildSectionHeader('Parent Details', Icons.family_restroom),
+            _buildSectionHeader('Parent Details', Icons.family_restroom, cs),
             _buildTextField(
               controller: _parentNameController,
               label: 'Parent Name',
-              icon: Icons.person,
+              icon: Icons.person_outline,
+              cs: cs,
               validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
             ),
             _buildTextField(
               controller: _parentPhoneController,
               label: 'Parent Phone',
-              icon: Icons.phone,
+              icon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
+              cs: cs,
               validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
             ),
             _buildTextField(
               controller: _parentEmailController,
               label: 'Parent Email',
-              icon: Icons.email,
+              icon: Icons.alternate_email,
               keyboardType: TextInputType.emailAddress,
+              cs: cs,
             ),
             _buildDropdown(
               label: 'Relationship',
               value: _parentRelationship,
               items: _relationships,
               onChanged: (v) => setState(() => _parentRelationship = v!),
-              icon: Icons.diversity_3,
+              icon: Icons.diversity_3_outlined,
+              cs: cs,
             ),
 
             const SizedBox(height: 24),
-
-            // Residential Information Section
-            _buildSectionHeader('Residential Information', Icons.home),
-            _buildResidentialTypeSelector(),
+            _buildSectionHeader(
+              'Residential Information',
+              Icons.home_outlined,
+              cs,
+            ),
+            _buildResidentialTypeSelector(cs),
             if (_residentialType == 'Hosteler') ...[
               const SizedBox(height: 16),
               _buildTextField(
                 controller: _hostelNameController,
                 label: 'Hostel Name',
-                icon: Icons.apartment,
+                icon: Icons.apartment_outlined,
+                cs: cs,
               ),
               _buildTextField(
                 controller: _roomNumberController,
                 label: 'Room Number',
-                icon: Icons.meeting_room,
+                icon: Icons.meeting_room_outlined,
+                cs: cs,
               ),
             ],
 
             const SizedBox(height: 24),
-
-            // Emergency Contact Section
-            _buildSectionHeader('Emergency Contact', Icons.local_hospital),
+            _buildSectionHeader(
+              'Emergency Contact',
+              Icons.emergency_outlined,
+              cs,
+            ),
             _buildTextField(
               controller: _emergencyContactNameController,
               label: 'Emergency Contact Name',
-              icon: Icons.person,
+              icon: Icons.contact_phone_outlined,
+              cs: cs,
             ),
             _buildTextField(
               controller: _emergencyContactPhoneController,
               label: 'Emergency Contact Phone',
-              icon: Icons.phone,
+              icon: Icons.phone_callback_outlined,
               keyboardType: TextInputType.phone,
+              cs: cs,
             ),
             _buildTextField(
               controller: _medicalConditionsController,
               label: 'Medical Conditions (if any)',
-              icon: Icons.medical_information,
+              icon: Icons.medical_information_outlined,
               maxLines: 2,
+              cs: cs,
             ),
 
             const SizedBox(height: 32),
 
-            // Submit Button
             SizedBox(
               height: 56,
               child: ElevatedButton.icon(
                 onPressed: _isSubmitting ? null : _submitForm,
-                icon: const Icon(Icons.person_add),
+                icon: const Icon(Icons.person_add_alt_1),
                 label: const Text(
                   'Add Student',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1565C0),
-                  foregroundColor: Colors.white,
+                  backgroundColor: cs.primary,
+                  foregroundColor: cs.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
             ),
-
             const SizedBox(height: 80),
           ],
         ),
@@ -399,17 +403,17 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
+  Widget _buildSectionHeader(String title, IconData icon, ColorScheme cs) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF1565C0), size: 24),
+          Icon(icon, color: cs.primary, size: 24),
           const SizedBox(width: 12),
           Text(
             title,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: cs.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -423,6 +427,7 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    required ColorScheme cs,
     TextInputType? keyboardType,
     int maxLines = 1,
     String? Function(String?)? validator,
@@ -431,27 +436,12 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: controller,
-        style: const TextStyle(color: AppColors.textPrimary),
+        style: TextStyle(color: cs.onSurface),
         keyboardType: keyboardType,
         maxLines: maxLines,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: AppColors.textSecondary),
-          prefixIcon: Icon(icon, color: const Color(0xFF1565C0)),
-          filled: true,
-          fillColor: AppColors.bgCard,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.bgSeparator),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF1565C0), width: 2),
-          ),
+          prefixIcon: Icon(icon, color: cs.primary),
         ),
         validator: validator,
       ),
@@ -464,28 +454,18 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
     required List<String> items,
     required Function(String?) onChanged,
     required IconData icon,
+    required ColorScheme cs,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: DropdownButtonFormField<String>(
         value: value,
-        dropdownColor: AppColors.bgCard,
+        dropdownColor: cs.surface,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: AppColors.textSecondary),
-          prefixIcon: Icon(icon, color: const Color(0xFF1565C0)),
-          filled: true,
-          fillColor: AppColors.bgCard,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.bgSeparator),
-          ),
+          prefixIcon: Icon(icon, color: cs.primary),
         ),
-        style: const TextStyle(color: AppColors.textPrimary),
+        style: TextStyle(color: cs.onSurface),
         items: items.map((item) {
           return DropdownMenuItem(value: item, child: Text(item));
         }).toList(),
@@ -494,43 +474,37 @@ class _FacultyAddStudentScreenState extends State<FacultyAddStudentScreen> {
     );
   }
 
-  Widget _buildResidentialTypeSelector() {
-    return Row(
-      children: [
-        Expanded(
-          child: RadioListTile<String>(
-            title: const Text(
-              'Day Scholar',
-              style: TextStyle(color: AppColors.textPrimary),
-            ),
-            value: 'Day Scholar',
-            groupValue: _residentialType,
-            onChanged: (v) => setState(() => _residentialType = v!),
-            activeColor: const Color(0xFF1565C0),
-            tileColor: AppColors.bgCard,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: RadioListTile<String>(
-            title: const Text(
-              'Hosteler',
-              style: TextStyle(color: AppColors.textPrimary),
-            ),
-            value: 'Hosteler',
-            groupValue: _residentialType,
-            onChanged: (v) => setState(() => _residentialType = v!),
-            activeColor: const Color(0xFF1565C0),
-            tileColor: AppColors.bgCard,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+  Widget _buildResidentialTypeSelector(ColorScheme cs) {
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.onSurface.withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: RadioListTile<String>(
+              title: const Text('Day Scholar', style: TextStyle(fontSize: 14)),
+              value: 'Day Scholar',
+              groupValue: _residentialType,
+              onChanged: (v) => setState(() => _residentialType = v!),
+              activeColor: cs.primary,
+              contentPadding: EdgeInsets.zero,
             ),
           ),
-        ),
-      ],
+          Expanded(
+            child: RadioListTile<String>(
+              title: const Text('Hosteler', style: TextStyle(fontSize: 14)),
+              value: 'Hosteler',
+              groupValue: _residentialType,
+              onChanged: (v) => setState(() => _residentialType = v!),
+              activeColor: cs.primary,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

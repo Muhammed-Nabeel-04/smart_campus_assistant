@@ -1,8 +1,10 @@
+// File: lib/screens/student/student_onboarding_scan_screen.dart
+// QR scan for student onboarding/login
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 import '../../core/session.dart';
 
 class StudentOnboardingScanScreen extends StatefulWidget {
@@ -24,13 +26,11 @@ class _StudentOnboardingScanScreenState
 
     try {
       // QR contains JSON: {"student_id":..., "register_number":..., "token":...}
-      // Extract the token field
       String token;
       try {
         final qrJson = jsonDecode(rawValue);
         token = qrJson['token'];
       } catch (_) {
-        // If not JSON, treat rawValue as plain token
         token = rawValue;
       }
 
@@ -80,8 +80,9 @@ class _StudentOnboardingScanScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         title: const Text('Student Login'),
         actions: [
@@ -92,14 +93,14 @@ class _StudentOnboardingScanScreenState
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  backgroundColor: AppColors.bgCard,
-                  title: const Text(
+                  backgroundColor: cs.surface,
+                  title: Text(
                     'Enter QR Token',
-                    style: TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: cs.onSurface),
                   ),
                   content: TextField(
                     controller: ctrl,
-                    style: const TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: cs.onSurface),
                     decoration: const InputDecoration(
                       hintText: 'Paste token here',
                     ),
@@ -110,6 +111,10 @@ class _StudentOnboardingScanScreenState
                         Navigator.pop(ctx);
                         if (ctrl.text.isNotEmpty) _validateQR(ctrl.text);
                       },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
+                      ),
                       child: const Text('Submit'),
                     ),
                   ],
@@ -132,9 +137,25 @@ class _StudentOnboardingScanScreenState
               }
             },
           ),
+
+          // Scanning Frame Overlay
+          Center(
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                border: Border.all(color: cs.primary, width: 2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+
           if (_processing)
-            const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+            Container(
+              color: Colors.black54,
+              child: Center(
+                child: CircularProgressIndicator(color: cs.primary),
+              ),
             ),
         ],
       ),

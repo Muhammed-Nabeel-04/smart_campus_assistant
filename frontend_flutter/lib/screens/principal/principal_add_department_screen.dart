@@ -1,6 +1,7 @@
-// lib/screens/principal/principal_add_department_screen.dart
+// File: lib/screens/principal/principal_add_department_screen.dart
+// Principal interface to create new academic departments within the system
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 
 class PrincipalAddDepartmentScreen extends StatefulWidget {
@@ -28,21 +29,29 @@ class _PrincipalAddDepartmentScreenState
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
+
     try {
       await ApiService.createDepartment(
         name: _nameCtrl.text.trim(),
         code: _codeCtrl.text.trim().toUpperCase(),
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
             content: Text('Department added successfully'),
-            backgroundColor: AppColors.success));
+            backgroundColor: Color(0xFF4CAF50), // Success Green
+          ),
+        );
         Navigator.pop(context, true);
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.message), backgroundColor: AppColors.danger));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -51,62 +60,67 @@ class _PrincipalAddDepartmentScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(title: const Text('Add Department')),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            // Info banner
+            // Info Banner using Primary color context
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF6A1B9A).withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: const Color(0xFF6A1B9A).withOpacity(0.2)),
+                color: cs.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.primary.withOpacity(0.2)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.info_outline,
-                      color: Color(0xFF6A1B9A), size: 18),
-                  SizedBox(width: 10),
+                  Icon(Icons.info_outline, color: cs.primary, size: 20),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Department code is used across the system (e.g. CSE, ECE). Keep it short and uppercase.',
+                      'The department code (e.g., CSE, AIDS) will be used to link subjects, faculty, and students across the platform.',
                       style: TextStyle(
-                          color: Color(0xFF6A1B9A), fontSize: 12),
+                        color: cs.primary,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 28),
+
+            const SizedBox(height: 32),
 
             TextFormField(
               controller: _nameCtrl,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: cs.onSurface),
               decoration: const InputDecoration(
-                labelText: 'Department Name',
-                hintText: 'e.g. Computer Science Engineering',
-                prefixIcon: Icon(Icons.account_tree),
+                labelText: 'Full Department Name',
+                hintText: 'e.g. Artificial Intelligence & Data Science',
+                prefixIcon: Icon(Icons.account_tree_outlined),
               ),
               validator: (v) =>
                   v == null || v.trim().isEmpty ? 'Required' : null,
             ),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 20),
 
             TextFormField(
               controller: _codeCtrl,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: cs.onSurface),
               textCapitalization: TextCapitalization.characters,
               maxLength: 6,
               decoration: const InputDecoration(
-                labelText: 'Department Code',
-                hintText: 'e.g. CSE',
-                prefixIcon: Icon(Icons.code),
+                labelText: 'Short Code',
+                hintText: 'e.g. AIDS',
+                prefixIcon: Icon(Icons.qr_code_outlined),
+                counterStyle: TextStyle(fontSize: 10),
               ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Required';
@@ -114,25 +128,29 @@ class _PrincipalAddDepartmentScreenState
                 return null;
               },
             ),
-            const SizedBox(height: 32),
+
+            const SizedBox(height: 40),
 
             SizedBox(
-              height: 54,
+              height: 56,
               child: ElevatedButton.icon(
                 onPressed: _isLoading ? null : _handleSubmit,
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6A1B9A)),
                 icon: _isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.check_circle_outline),
+                          strokeWidth: 2,
+                          color: cs.onPrimary,
+                        ),
+                      )
+                    : const Icon(Icons.add_business_outlined),
                 label: Text(
-                  _isLoading ? 'Adding...' : 'Add Department',
+                  _isLoading ? 'Processing...' : 'Register Department',
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

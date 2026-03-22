@@ -1,3 +1,6 @@
+// File: lib/screens/admin/backend_settings_screen.dart
+// Utility screen for developers/principals to configure the API endpoint URL
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../core/app_config.dart';
@@ -19,7 +22,7 @@ class _BackendSettingsScreenState extends State<BackendSettingsScreen> {
   void initState() {
     super.initState();
     _currentUrl = AppConfig.backendUrl;
-    _customUrlController.text = _currentUrl; // Show full URL in custom field
+    _customUrlController.text = _currentUrl;
   }
 
   @override
@@ -43,7 +46,7 @@ class _BackendSettingsScreenState extends State<BackendSettingsScreen> {
         _isTestingConnection = false;
         _connectionStatus = response.statusCode == 200
             ? 'Connected successfully! ✅'
-            : 'Server responded with error';
+            : 'Server reachable, but returned error ${response.statusCode}';
       });
     } catch (e) {
       setState(() {
@@ -54,18 +57,17 @@ class _BackendSettingsScreenState extends State<BackendSettingsScreen> {
   }
 
   Future<void> _saveAndApply() async {
-    // Save current URL
+    // Save current URL to local storage/config
     await AppConfig.setBackendUrl(_currentUrl);
 
-    // Test connection
+    // Re-verify connection after saving
     await _testConnection();
 
-    // Show success message
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Backend URL updated successfully!'),
-          backgroundColor: Colors.green,
+          content: Text('Backend endpoint updated'),
+          backgroundColor: Color(0xFF4CAF50),
           duration: Duration(seconds: 2),
         ),
       );
@@ -83,7 +85,7 @@ class _BackendSettingsScreenState extends State<BackendSettingsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Reset to default (Emulator)'),
+          content: Text('Reset to factory default'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -97,68 +99,58 @@ class _BackendSettingsScreenState extends State<BackendSettingsScreen> {
       } else if (preset == 'localhost') {
         _currentUrl = AppConfig.urlLocalhost;
       }
-      _customUrlController.text = _currentUrl; // Update custom field too
-      _connectionStatus = null;
-    });
-  }
-
-  void _updateCustomUrl() {
-    final url = _customUrlController.text.trim();
-    setState(() {
-      _currentUrl = url;
+      _customUrlController.text = _currentUrl;
       _connectionStatus = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A1628),
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text(
-          'BACKEND SETTINGS',
+          'BACKEND CONFIGURATION',
           style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.1,
           ),
         ),
-        centerTitle: false,
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Current Backend Display
-            _buildSectionTitle('CURRENT BACKEND'),
+            // Active URL Display
+            _buildSectionTitle('ACTIVE ENDPOINT', cs),
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A2942),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF2DD4BF), width: 1.5),
+                color: cs.primary.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: cs.primary.withOpacity(0.3),
+                  width: 2,
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.wifi, color: Color(0xFF2DD4BF), size: 20),
+                  Icon(Icons.lan_outlined, color: cs.primary, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       _currentUrl,
-                      style: const TextStyle(
-                        color: Color(0xFF2DD4BF),
+                      style: TextStyle(
+                        color: cs.primary,
                         fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
                       ),
                     ),
                   ),
@@ -166,205 +158,163 @@ class _BackendSettingsScreenState extends State<BackendSettingsScreen> {
               ),
             ),
 
-            const SizedBox(height: 28),
+            const SizedBox(height: 32),
 
             // Quick Presets
-            _buildSectionTitle('QUICK PRESETS'),
+            _buildSectionTitle('QUICK PRESETS', cs),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: _buildPresetButton(
-                    'Emulator',
+                    'Android Emulator',
+                    'emulator',
                     _currentUrl == AppConfig.urlEmulator,
-                    () => _setPreset('emulator'),
+                    cs,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildPresetButton(
-                    'Localhost',
+                    'Localhost (Web)',
+                    'localhost',
                     _currentUrl == AppConfig.urlLocalhost,
-                    () => _setPreset('localhost'),
+                    cs,
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 28),
+            const SizedBox(height: 32),
 
-            // Custom URL - FULL URL INPUT LIKE YOUR IMAGE
-            _buildSectionTitle('CUSTOM URL'),
+            // Custom URL Input
+            _buildSectionTitle('MANUAL URL OVERRIDE', cs),
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A2942),
+                color: cs.surface,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.onSurface.withOpacity(0.1)),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.link, color: Colors.white54, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _customUrlController,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                      decoration: const InputDecoration(
-                        hintText: 'http://192.168.1.100:8000',
-                        hintStyle: TextStyle(color: Colors.white38),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onChanged: (_) => _updateCustomUrl(),
-                    ),
-                  ),
-                ],
+              child: TextField(
+                controller: _customUrlController,
+                style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+                decoration: InputDecoration(
+                  hintText: 'http://192.168.x.x:8000',
+                  hintStyle: TextStyle(color: cs.onSurface.withOpacity(0.3)),
+                  border: InputBorder.none,
+                  prefixIcon: const Icon(Icons.link, size: 20),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 40),
+                ),
+                onChanged: (val) => setState(() {
+                  _currentUrl = val.trim();
+                  _connectionStatus = null;
+                }),
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // Warning Message
+            // Network Warning
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF854D0E).withOpacity(0.3),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFFCD34D), width: 1),
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withOpacity(0.2)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Icon(
-                    Icons.warning_amber,
-                    color: Color(0xFFFCD34D),
-                    size: 20,
+                    Icons.info_outline,
+                    color: Colors.orange,
+                    size: 18,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'On real device: Use operating OS = use IPv4 WiFi address.',
-                          style: TextStyle(
-                            color: Color(0xFFFCD34D),
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'PC and phone must be on same WiFi.',
-                          style: TextStyle(
-                            color: Color(0xFFFCD34D),
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'For real devices, use your computer\'s IPv4 address. Ensure both devices are on the same WiFi network.',
+                      style: TextStyle(
+                        color: Colors.orange.shade800,
+                        fontSize: 11,
+                        height: 1.5,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 28),
+            const SizedBox(height: 32),
 
-            // Connection Status
+            // Connection Status Feedback
             if (_connectionStatus != null)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
+                margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
                   color: _connectionStatus!.contains('✅')
-                      ? Colors.green.withOpacity(0.2)
-                      : Colors.red.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
+                      ? Colors.green.withOpacity(0.1)
+                      : cs.error.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _connectionStatus!.contains('✅')
                         ? Colors.green
-                        : Colors.red,
+                        : cs.error,
                   ),
                 ),
                 child: Text(
                   _connectionStatus!,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     color: _connectionStatus!.contains('✅')
                         ? Colors.green
-                        : Colors.red,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                        : cs.error,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ),
 
-            // Save & Apply Button
+            // Save Button
             SizedBox(
               width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
+              height: 56,
+              child: ElevatedButton.icon(
                 onPressed: _isTestingConnection ? null : _saveAndApply,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2DD4BF),
-                  foregroundColor: const Color(0xFF0A1628),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isTestingConnection
+                icon: _isTestingConnection
                     ? const SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Color(0xFF0A1628),
-                          ),
+                          color: Colors.white,
                         ),
                       )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.save, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'SAVE & APPLY',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
+                    : const Icon(Icons.save_outlined),
+                label: Text(
+                  _isTestingConnection ? 'TESTING...' : 'SAVE & APPLY',
+                ),
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // Reset Button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: TextButton(
+            // Factory Reset
+            Center(
+              child: TextButton.icon(
                 onPressed: _resetToDefault,
-                style: TextButton.styleFrom(foregroundColor: Colors.white54),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.refresh, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'RESET TO DEFAULT',
-                      style: TextStyle(fontSize: 14, letterSpacing: 0.5),
-                    ),
-                  ],
+                icon: const Icon(Icons.settings_backup_restore, size: 18),
+                label: const Text('RESET TO FACTORY DEFAULT'),
+                style: TextButton.styleFrom(
+                  foregroundColor: cs.onSurface.withOpacity(0.5),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -374,42 +324,45 @@ class _BackendSettingsScreenState extends State<BackendSettingsScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, ColorScheme cs) {
     return Text(
       title,
-      style: const TextStyle(
-        color: Colors.white70,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
+      style: TextStyle(
+        color: cs.onSurface.withOpacity(0.5),
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
       ),
     );
   }
 
-  Widget _buildPresetButton(String label, bool isSelected, VoidCallback onTap) {
+  Widget _buildPresetButton(
+    String label,
+    String preset,
+    bool isSelected,
+    ColorScheme cs,
+  ) {
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      onTap: () => _setPreset(preset),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF2DD4BF).withOpacity(0.2)
-              : const Color(0xFF1A2942),
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? cs.primary.withOpacity(0.1) : cs.surface,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF2DD4BF) : Colors.transparent,
-            width: 1.5,
+            color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.1),
+            width: isSelected ? 2 : 1,
           ),
         ),
         child: Text(
           label,
-          style: TextStyle(
-            color: isSelected ? const Color(0xFF2DD4BF) : Colors.white70,
-            fontSize: 14,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          ),
           textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.7),
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
       ),
     );

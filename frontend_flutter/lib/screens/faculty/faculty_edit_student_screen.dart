@@ -1,5 +1,7 @@
+// File: lib/screens/faculty/faculty_edit_student_screen.dart
+// Faculty form to edit existing student basic details
+
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../services/api_service.dart';
 
 class FacultyEditStudentScreen extends StatefulWidget {
@@ -39,8 +41,19 @@ class _FacultyEditStudentScreenState extends State<FacultyEditStudentScreen> {
     );
 
     phoneController = TextEditingController(
-      text: widget.studentData['phone'] ?? "",
+      text:
+          widget.studentData['phone'] ??
+          widget.studentData['phone_number'] ??
+          "",
     );
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    super.dispose();
   }
 
   Future<void> updateStudent() async {
@@ -50,66 +63,116 @@ class _FacultyEditStudentScreenState extends State<FacultyEditStudentScreen> {
 
     try {
       await ApiService.updateStudent(widget.studentData['id'], {
-        "full_name": nameController.text,
-        "email": emailController.text,
-        "phone_number": phoneController.text,
+        "full_name": nameController.text.trim(),
+        "email": emailController.text.trim(),
+        "phone_number": phoneController.text.trim(),
       });
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Student updated successfully")),
+        const SnackBar(
+          content: Text("Student updated successfully"),
+          backgroundColor: Color(0xFF4CAF50), // Success Green
+        ),
       );
 
       Navigator.pop(context, true);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => loading = false);
     }
-
-    setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(title: const Text("Edit Student")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                "Basic Information",
+                style: TextStyle(
+                  color: cs.primary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+
               TextFormField(
                 controller: nameController,
-                decoration: const InputDecoration(labelText: "Full Name"),
-                validator: (v) => v == null || v.isEmpty ? "Enter name" : null,
+                style: TextStyle(color: cs.onSurface),
+                decoration: const InputDecoration(
+                  labelText: "Full Name",
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? "Enter name" : null,
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
               TextFormField(
                 controller: emailController,
-                decoration: const InputDecoration(labelText: "Email"),
+                style: TextStyle(color: cs.onSurface),
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: "Email Address",
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
               TextFormField(
                 controller: phoneController,
-                decoration: const InputDecoration(labelText: "Phone"),
+                style: TextStyle(color: cs.onSurface),
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: "Phone Number",
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 32),
 
               SizedBox(
                 width: double.infinity,
+                height: 56,
                 child: ElevatedButton(
                   onPressed: loading ? null : updateStudent,
                   child: loading
-                      ? const CircularProgressIndicator()
-                      : const Text("Update Student"),
+                      ? SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: cs.onPrimary,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          "Update Student",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],

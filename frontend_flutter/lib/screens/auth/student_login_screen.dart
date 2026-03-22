@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
-import '../../core/app_colors.dart';
 
 class StudentLoginScreen extends StatefulWidget {
   const StudentLoginScreen({super.key});
@@ -48,12 +47,12 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
         name: response['name'],
         email: response['email'],
         role: response['role'],
-        token: response['token'], // ← ADD THIS
+        token: response['token'],
         studentId: response['student_id'],
         department: response['department'],
         year: response['year'],
-        section: response['section'], // ← ADD THIS
-        registerNumber: response['register_number'], // ← ADD THIS
+        section: response['section'],
+        registerNumber: response['register_number'],
       );
 
       if (mounted) {
@@ -73,17 +72,20 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppColors.danger),
-    );
+    final cs = Theme.of(context).colorScheme;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: cs.error));
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.pop(context),
@@ -101,11 +103,15 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
+                      gradient: LinearGradient(
+                        colors: [cs.primary, cs.secondary],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withOpacity(0.35),
+                          color: cs.primary.withOpacity(0.35),
                           blurRadius: 40,
                           spreadRadius: 2,
                         ),
@@ -120,10 +126,10 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
                   const SizedBox(height: 28),
 
-                  const Text(
+                  Text(
                     'Welcome Back!',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: cs.onBackground,
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                     ),
@@ -131,10 +137,10 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
                   const SizedBox(height: 6),
 
-                  const Text(
+                  Text(
                     'Sign in to your student account',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: cs.onBackground.withOpacity(0.6),
                       fontSize: 14,
                     ),
                   ),
@@ -146,7 +152,6 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
-                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: const InputDecoration(
                       labelText: 'Email',
                       hintText: 'your.email@college.edu',
@@ -168,7 +173,6 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                     obscureText: _obscurePassword,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _handleLogin(),
-                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Password',
                       hintText: 'Enter your password',
@@ -178,7 +182,6 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                           _obscurePassword
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
-                          color: AppColors.primary,
                         ),
                         onPressed: () => setState(
                           () => _obscurePassword = !_obscurePassword,
@@ -202,11 +205,11 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleLogin,
                       child: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 22,
                               width: 22,
                               child: CircularProgressIndicator(
-                                color: AppColors.primaryFg,
+                                color: cs.onTertiary,
                                 strokeWidth: 2.5,
                               ),
                             )

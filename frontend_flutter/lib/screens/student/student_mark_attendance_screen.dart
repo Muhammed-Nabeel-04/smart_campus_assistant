@@ -72,11 +72,12 @@ class _StudentMarkAttendanceScreenState
   }
 
   void _showSuccess() {
+    final cs = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A2332),
+        backgroundColor: cs.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -84,20 +85,16 @@ class _StudentMarkAttendanceScreenState
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF00D9FF).withOpacity(0.2),
+                color: cs.primary.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.check_circle,
-                size: 64,
-                color: Color(0xFF00D9FF),
-              ),
+              child: Icon(Icons.check_circle, size: 64, color: cs.primary),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Attendance Marked!',
               style: TextStyle(
-                color: Colors.white,
+                color: cs.onSurface,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
@@ -106,13 +103,13 @@ class _StudentMarkAttendanceScreenState
             if (_attendanceData != null) ...[
               Text(
                 _attendanceData!['subject_name'] ?? '',
-                style: const TextStyle(color: Color(0xFF00D9FF), fontSize: 16),
+                style: TextStyle(color: cs.primary, fontSize: 16),
               ),
               const SizedBox(height: 8),
               Text(
                 DateTime.now().toString().substring(0, 16),
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                  color: cs.onSurface.withOpacity(0.6),
                   fontSize: 14,
                 ),
               ),
@@ -126,8 +123,8 @@ class _StudentMarkAttendanceScreenState
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00D9FF),
-                  foregroundColor: const Color(0xFF0F1419),
+                  backgroundColor: cs.primary,
+                  foregroundColor: cs.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -149,7 +146,7 @@ class _StudentMarkAttendanceScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: Theme.of(context).colorScheme.error,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -157,13 +154,15 @@ class _StudentMarkAttendanceScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1419),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text('Mark Attendance'),
       ),
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           // QR Scanner
@@ -188,7 +187,7 @@ class _StudentMarkAttendanceScreenState
                 width: 280,
                 height: 280,
                 decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF00D9FF), width: 3),
+                  border: Border.all(color: cs.primary, width: 3),
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
@@ -204,16 +203,11 @@ class _StudentMarkAttendanceScreenState
                 margin: const EdgeInsets.all(24),
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF16213E).withOpacity(0.95),
-                      const Color(0xFF0F3460).withOpacity(0.95),
-                    ],
-                  ),
+                  color: cs.surface.withOpacity(0.95),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00D9FF).withOpacity(0.3),
+                      color: cs.primary.withOpacity(0.3),
                       blurRadius: 20,
                     ),
                   ],
@@ -221,25 +215,21 @@ class _StudentMarkAttendanceScreenState
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.qr_code_scanner,
-                      size: 48,
-                      color: Color(0xFF00D9FF),
-                    ),
+                    Icon(Icons.qr_code_scanner, size: 48, color: cs.primary),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Scan Attendance QR',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: cs.onSurface,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Point your camera at the QR code displayed by your faculty',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: cs.onSurface.withOpacity(0.7),
                         fontSize: 14,
                       ),
                       textAlign: TextAlign.center,
@@ -253,13 +243,13 @@ class _StudentMarkAttendanceScreenState
           if (_isProcessing)
             Container(
               color: Colors.black.withOpacity(0.7),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: Color(0xFF00D9FF)),
-                    SizedBox(height: 20),
-                    Text(
+                    CircularProgressIndicator(color: cs.primary),
+                    const SizedBox(height: 20),
+                    const Text(
                       'Marking Attendance...',
                       style: TextStyle(color: Colors.white, fontSize: 16),
                     ),

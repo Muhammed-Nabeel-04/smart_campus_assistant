@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-import '../../core/app_colors.dart';
 
 class FacultyPostNotificationScreen extends StatefulWidget {
   const FacultyPostNotificationScreen({super.key});
@@ -23,6 +22,13 @@ class _FacultyPostNotificationScreenState
   String _type = 'info'; // 'info', 'warning', 'urgent', 'announcement'
   bool _isSubmitting = false;
 
+  // Fixed Status Colors
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color infoBlue = Color(0xFF2196F3);
+  static const Color warningOrange = Color(0xFFFF9800);
+  static const Color urgentRed = Color(0xFFFF5722);
+  static const Color announcementBlue = Color(0xFF1565C0);
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -31,6 +37,7 @@ class _FacultyPostNotificationScreenState
   }
 
   Future<void> _sendNotification() async {
+    final cs = Theme.of(context).colorScheme;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
@@ -47,7 +54,7 @@ class _FacultyPostNotificationScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Notification sent successfully!'),
-            backgroundColor: AppColors.success,
+            backgroundColor: successGreen,
           ),
         );
         Navigator.pop(context);
@@ -55,7 +62,7 @@ class _FacultyPostNotificationScreenState
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+          SnackBar(content: Text(e.message), backgroundColor: cs.error),
         );
       }
     } finally {
@@ -68,15 +75,15 @@ class _FacultyPostNotificationScreenState
   Color get _typeColor {
     switch (_type) {
       case 'info':
-        return AppColors.info;
+        return infoBlue;
       case 'warning':
-        return AppColors.warning;
+        return warningOrange;
       case 'urgent':
-        return AppColors.urgent;
+        return urgentRed;
       case 'announcement':
-        return const Color(0xFF1565C0);
+        return announcementBlue;
       default:
-        return AppColors.info;
+        return infoBlue;
     }
   }
 
@@ -97,23 +104,20 @@ class _FacultyPostNotificationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
-      appBar: AppBar(
-        backgroundColor: AppColors.bgCard,
-        elevation: 0,
-        title: const Text('Post Notification'),
-      ),
+      appBar: AppBar(title: const Text('Post Notification')),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
             // Target Selection
-            const Text(
+            Text(
               'Send To',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -123,19 +127,24 @@ class _FacultyPostNotificationScreenState
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildTargetChip('All Students', 'all', Icons.people),
-                _buildTargetChip('My Department', 'department', Icons.business),
-                _buildTargetChip('Specific Class', 'class', Icons.class_),
+                _buildTargetChip('All Students', 'all', Icons.people, cs),
+                _buildTargetChip(
+                  'My Department',
+                  'department',
+                  Icons.business,
+                  cs,
+                ),
+                _buildTargetChip('Specific Class', 'class', Icons.class_, cs),
               ],
             ),
 
             const SizedBox(height: 24),
 
             // Type Selection
-            const Text(
+            Text(
               'Notification Type',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -145,24 +154,27 @@ class _FacultyPostNotificationScreenState
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildTypeChip('Info', 'info', Icons.info, AppColors.info),
+                _buildTypeChip('Info', 'info', Icons.info, infoBlue, cs),
                 _buildTypeChip(
                   'Warning',
                   'warning',
                   Icons.warning,
-                  AppColors.warning,
+                  warningOrange,
+                  cs,
                 ),
                 _buildTypeChip(
                   'Urgent',
                   'urgent',
                   Icons.priority_high,
-                  AppColors.urgent,
+                  urgentRed,
+                  cs,
                 ),
                 _buildTypeChip(
                   'Announcement',
                   'announcement',
                   Icons.campaign,
-                  const Color(0xFF1565C0),
+                  announcementBlue,
+                  cs,
                 ),
               ],
             ),
@@ -172,26 +184,10 @@ class _FacultyPostNotificationScreenState
             // Title Field
             TextFormField(
               controller: _titleController,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: cs.onSurface),
               decoration: InputDecoration(
                 labelText: 'Title',
-                labelStyle: const TextStyle(color: AppColors.textSecondary),
-                helperText: '${_titleController.text.length}/100 characters',
-                helperStyle: const TextStyle(
-                  color: AppColors.textHint,
-                  fontSize: 12,
-                ),
                 prefixIcon: Icon(_typeIcon, color: _typeColor),
-                filled: true,
-                fillColor: AppColors.bgCard,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.bgSeparator),
-                ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: _typeColor, width: 2),
@@ -208,26 +204,10 @@ class _FacultyPostNotificationScreenState
             // Message Field
             TextFormField(
               controller: _messageController,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: cs.onSurface),
               decoration: InputDecoration(
                 labelText: 'Message',
-                labelStyle: const TextStyle(color: AppColors.textSecondary),
-                helperText: '${_messageController.text.length}/500 characters',
-                helperStyle: const TextStyle(
-                  color: AppColors.textHint,
-                  fontSize: 12,
-                ),
                 alignLabelWithHint: true,
-                filled: true,
-                fillColor: AppColors.bgCard,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.bgSeparator),
-                ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: _typeColor, width: 2),
@@ -243,10 +223,10 @@ class _FacultyPostNotificationScreenState
             const SizedBox(height: 24),
 
             // Preview
-            const Text(
+            Text(
               'Preview',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -255,7 +235,7 @@ class _FacultyPostNotificationScreenState
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.bgCard,
+                color: cs.surface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: _typeColor.withOpacity(0.3)),
               ),
@@ -280,8 +260,8 @@ class _FacultyPostNotificationScreenState
                               : _titleController.text,
                           style: TextStyle(
                             color: _titleController.text.isEmpty
-                                ? AppColors.textHint
-                                : AppColors.textPrimary,
+                                ? cs.onSurface.withOpacity(0.4)
+                                : cs.onSurface,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -314,8 +294,8 @@ class _FacultyPostNotificationScreenState
                         : _messageController.text,
                     style: TextStyle(
                       color: _messageController.text.isEmpty
-                          ? AppColors.textHint
-                          : AppColors.textSecondary,
+                          ? cs.onSurface.withOpacity(0.4)
+                          : cs.onSurface.withOpacity(0.7),
                       fontSize: 14,
                     ),
                   ),
@@ -347,37 +327,34 @@ class _FacultyPostNotificationScreenState
                 ),
               ),
             ),
-
-            const SizedBox(height: 80),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTargetChip(String label, String value, IconData icon) {
+  Widget _buildTargetChip(
+    String label,
+    String value,
+    IconData icon,
+    ColorScheme cs,
+  ) {
     final isSelected = _target == value;
     return ChoiceChip(
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 18,
-            color: isSelected ? Colors.white : AppColors.textPrimary,
-          ),
+          Icon(icon, size: 18, color: isSelected ? cs.onPrimary : cs.onSurface),
           const SizedBox(width: 8),
           Text(label),
         ],
       ),
       selected: isSelected,
-      onSelected: (selected) {
-        setState(() => _target = value);
-      },
-      backgroundColor: AppColors.bgCard,
-      selectedColor: const Color(0xFF1565C0),
+      onSelected: (selected) => setState(() => _target = value),
+      selectedColor: cs.primary,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : AppColors.textPrimary,
+        color: isSelected ? cs.onPrimary : cs.onSurface,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -387,26 +364,24 @@ class _FacultyPostNotificationScreenState
     String label,
     String value,
     IconData icon,
-    Color color,
+    Color typeColor,
+    ColorScheme cs,
   ) {
     final isSelected = _type == value;
     return ChoiceChip(
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: isSelected ? Colors.white : color),
+          Icon(icon, size: 18, color: isSelected ? Colors.white : typeColor),
           const SizedBox(width: 8),
           Text(label),
         ],
       ),
       selected: isSelected,
-      onSelected: (selected) {
-        setState(() => _type = value);
-      },
-      backgroundColor: AppColors.bgCard,
-      selectedColor: color,
+      onSelected: (selected) => setState(() => _type = value),
+      selectedColor: typeColor,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : AppColors.textPrimary,
+        color: isSelected ? Colors.white : cs.onSurface,
         fontWeight: FontWeight.w600,
       ),
     );

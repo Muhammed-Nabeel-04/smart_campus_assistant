@@ -1,11 +1,7 @@
 // File: lib/screens/principal/principal_login_screen.dart
-// Principal login with setup check
-
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
-import '../../core/app_colors.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class PrincipalLoginScreen extends StatefulWidget {
   const PrincipalLoginScreen({super.key});
@@ -22,6 +18,9 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // Principal role color
+  static const Color _principalColor = Color(0xFF9C27B0);
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -35,7 +34,6 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Step 1: Login
       final response = await ApiService.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -45,7 +43,6 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
         throw Exception('Invalid credentials. Principal access only.');
       }
 
-      // Step 2: Save session
       await SessionManager.saveSession(
         userId: response['user_id'],
         name: response['name'],
@@ -57,7 +54,6 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
       if (mounted) {
         final uid = response['user_id'] as int;
 
-        // ✅ Check from backend — departments exist = setup done
         bool setupDone = false;
         try {
           final status = await ApiService.checkPrincipalSetupStatus();
@@ -77,30 +73,28 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
         }
       }
     } on ApiException catch (e) {
-      if (mounted) {
-        _showError(e.message);
-      }
+      if (mounted) _showError(e.message);
     } catch (e) {
-      if (mounted) {
-        _showError(e.toString());
-      }
+      if (mounted) _showError(e.toString());
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.danger),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -110,19 +104,22 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo/Icon
+                  // ── Logo ─────────────────────────────────────
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF9C27B0), Color(0xFF7B1FA2)],
+                      gradient: LinearGradient(
+                        colors: [
+                          _principalColor,
+                          _principalColor.withOpacity(0.7),
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF9C27B0).withOpacity(0.4),
+                          color: _principalColor.withOpacity(0.4),
                           blurRadius: 30,
                           spreadRadius: 2,
                         ),
@@ -137,11 +134,11 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Title
-                  const Text(
+                  // ── Title ─────────────────────────────────────
+                  Text(
                     'Principal Portal',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: cs.onBackground,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
@@ -152,36 +149,32 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
                   Text(
                     'College Administration',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: cs.onBackground.withOpacity(0.6),
                       fontSize: 14,
                     ),
                   ),
 
                   const SizedBox(height: 48),
 
-                  // Email Field
+                  // ── Email ─────────────────────────────────────
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
                       labelText: 'Principal Email',
-                      prefixIcon: Icon(Icons.email_outlined),
                       hintText: 'principal@college.edu',
+                      prefixIcon: Icon(Icons.email_outlined),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Email is required';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Enter a valid email';
-                      }
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Email is required';
+                      if (!v.contains('@')) return 'Enter a valid email';
                       return null;
                     },
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Password Field
+                  // ── Password ──────────────────────────────────
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
@@ -194,29 +187,31 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
                         ),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Password is required';
-                      }
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Password is required';
                       return null;
                     },
                   ),
 
                   const SizedBox(height: 32),
 
-                  // Login Button
+                  // ── Login Button ──────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF9C27B0),
+                        backgroundColor: _principalColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: _isLoading
                           ? const SizedBox(
@@ -239,13 +234,16 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Back Button
+                  // ── Back Button ───────────────────────────────
                   TextButton.icon(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back),
-                    label: const Text('Back to Role Selection'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
+                    icon: Icon(
+                      Icons.arrow_back,
+                      color: cs.onBackground.withOpacity(0.5),
+                    ),
+                    label: Text(
+                      'Back to Role Selection',
+                      style: TextStyle(color: cs.onBackground.withOpacity(0.5)),
                     ),
                   ),
                 ],

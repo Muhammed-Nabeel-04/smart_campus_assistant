@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
-import '../../core/app_colors.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -20,6 +19,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // HOD role color
+  static const Color _hodColor = Color(0xFFF44336);
+
   @override
   void dispose() {
     _emailCtrl.dispose();
@@ -27,22 +29,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     super.dispose();
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  /// Local flag — no network call needed
   Future<bool> _isSetupDone(int userId) async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('hod_setup_done_$userId') ?? false;
   }
-
-  // ── Login ──────────────────────────────────────────────────────────────────
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
     try {
-      // 1. Authenticate
       final res = await ApiService.login(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text,
@@ -53,24 +49,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         return;
       }
 
-      // 2. Save session
       final int uid = res['user_id'];
-      final String name = res['name'];
-      final String email = res['email'];
-      final String token = res['token'];
 
       await SessionManager.saveSession(
         userId: uid,
-        name: name,
-        email: email,
+        name: res['name'],
+        email: res['email'],
         role: 'admin',
-        token: token,
+        token: res['token'],
         adminId: uid,
       );
 
-      if (!mounted) return;
-
-      // 3. Always go to dashboard — setup wizard only shown after QR onboarding
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/adminDashboard');
     } on ApiException catch (e) {
@@ -84,16 +73,18 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppColors.danger),
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
     );
   }
 
-  // ── UI ─────────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -103,18 +94,19 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // ── Logo ─────────────────────────────────────
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFF6B6B), Color(0xFFFF5252)],
+                      gradient: LinearGradient(
+                        colors: [_hodColor, _hodColor.withOpacity(0.7)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.danger.withOpacity(0.4),
+                          color: _hodColor.withOpacity(0.4),
                           blurRadius: 30,
                           spreadRadius: 2,
                         ),
@@ -126,34 +118,39 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       color: Colors.white,
                     ),
                   ),
+
                   const SizedBox(height: 32),
-                  const Text(
+
+                  // ── Title ─────────────────────────────────────
+                  Text(
                     'HOD Portal',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: cs.onBackground,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
                   const SizedBox(height: 8),
-                  const Text(
+
+                  Text(
                     'Department Administration',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: cs.onBackground.withOpacity(0.6),
                       fontSize: 14,
                     ),
                   ),
+
                   const SizedBox(height: 48),
 
-                  // Email
+                  // ── Email ─────────────────────────────────────
                   TextFormField(
                     controller: _emailCtrl,
                     keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: const InputDecoration(
                       labelText: 'HOD Email',
-                      prefixIcon: Icon(Icons.email_outlined),
                       hintText: 'Enter your HOD email',
+                      prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (v) {
                       if (v == null || v.trim().isEmpty)
@@ -162,13 +159,13 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       return null;
                     },
                   ),
+
                   const SizedBox(height: 16),
 
-                  // Password
+                  // ── Password ──────────────────────────────────
                   TextFormField(
                     controller: _passCtrl,
                     obscureText: _obscurePassword,
-                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline),
@@ -188,16 +185,21 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       return null;
                     },
                   ),
+
                   const SizedBox(height: 32),
 
-                  // Login button
+                  // ── Login Button ──────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.danger,
+                        backgroundColor: _hodColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: _isLoading
                           ? const SizedBox(
@@ -217,31 +219,40 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 24),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
 
-                  // First time? Scan QR
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/hodQROnboarding'),
-                    icon: const Icon(Icons.qr_code_scanner),
-                    label: const Text('First Time? Scan QR'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.danger,
-                      side: const BorderSide(color: AppColors.danger),
-                      minimumSize: const Size(double.infinity, 48),
+                  // ── First Time QR ─────────────────────────────
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/hodQROnboarding'),
+                      icon: const Icon(Icons.qr_code_scanner),
+                      label: const Text('First Time? Scan QR'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _hodColor,
+                        side: BorderSide(color: _hodColor),
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 8),
 
+                  // ── Back Button ───────────────────────────────
                   TextButton.icon(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back),
-                    label: const Text('Back to Role Selection'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
+                    icon: Icon(
+                      Icons.arrow_back,
+                      color: cs.onBackground.withOpacity(0.5),
+                    ),
+                    label: Text(
+                      'Back to Role Selection',
+                      style: TextStyle(color: cs.onBackground.withOpacity(0.5)),
                     ),
                   ),
                 ],
