@@ -141,7 +141,15 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
     user = db.query(User).filter(User.email == payload.email).first()
 
-    if not user or not bcrypt.verify(payload.password, user.password):
+    if not user or not user.password:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    try:
+        password_valid = bcrypt.verify(payload.password, user.password)
+    except Exception:
+        password_valid = False
+
+    if not password_valid:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     # Build token data based on role

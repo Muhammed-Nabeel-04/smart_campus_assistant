@@ -200,6 +200,7 @@ class _HomeTabState extends State<_HomeTab>
   late AnimationController _blinkController;
   late Animation<double> _blinkAnim;
   Timer? _pollTimer;
+  Timer? _notificationTimer;
 
   @override
   void initState() {
@@ -215,7 +216,7 @@ class _HomeTabState extends State<_HomeTab>
       if (mounted) _checkActiveSession();
     });
     // Poll notifications every 30 seconds
-    Timer.periodic(const Duration(seconds: 30), (_) {
+    _notificationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) _checkNewNotifications();
     });
   }
@@ -224,6 +225,7 @@ class _HomeTabState extends State<_HomeTab>
   void dispose() {
     _blinkController.dispose();
     _pollTimer?.cancel();
+    _notificationTimer?.cancel();
     super.dispose();
   }
 

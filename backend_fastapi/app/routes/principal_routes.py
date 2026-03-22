@@ -39,12 +39,29 @@ def get_principal_stats(
     # Departments without HODs
     depts_without_hod = db.query(Department).filter(Department.hod_user_id == None).count()
     
+    # Build departments list for overview
+    all_depts = db.query(Department).all()
+    departments_list = []
+    for dept in all_depts:
+        hod_name = None
+        if dept.hod_user_id:
+            hod_user = db.query(User).filter(User.id == dept.hod_user_id).first()
+            if hod_user:
+                hod_name = hod_user.name
+        departments_list.append({
+            "id": dept.id,
+            "name": dept.name,
+            "code": dept.code,
+            "hod_name": hod_name,
+        })
+
     return {
         "total_departments": total_departments,
         "total_hods": total_hods,
         "total_faculty": total_faculty,
         "total_students": total_students,
-        "departments_without_hod": depts_without_hod
+        "departments_without_hod": depts_without_hod,
+        "departments": departments_list,
     }
 
 

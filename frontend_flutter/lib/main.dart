@@ -4,7 +4,7 @@ import 'package:smart_campus_assistant/core/app_colors.dart';
 import 'screens/auth/role_selection_screen.dart';
 import 'screens/faculty/faculty_dashboard_screen.dart';
 import 'screens/faculty/attendance_qr_screen.dart';
-import 'screens/student/student_login_qr_screen.dart';
+
 import 'screens/faculty/manage_class_screen.dart';
 import 'screens/faculty/manual_attendance_screen.dart';
 import 'screens/faculty/post_notifications_screen.dart';
@@ -160,7 +160,6 @@ class SmartCampusApp extends StatelessWidget {
       routes: {
         '/': (context) => const RoleSelectionScreen(),
         '/attendanceQR': (context) => const AttendanceQRScreen(),
-        '/studentLoginQR': (context) => const StudentLoginQRScreen(),
         '/manageClass': (context) => const ManageClassScreen(),
         '/manualAttendance': (context) => const ManualAttendanceScreen(),
         '/postNotifications': (context) => const PostNotificationsScreen(),

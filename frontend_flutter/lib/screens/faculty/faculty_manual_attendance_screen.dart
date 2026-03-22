@@ -46,8 +46,12 @@ class _FacultyManualAttendanceScreenState
         SessionManager.facultyId!,
       );
       // Find active session for this class+subject
+      final expectedClassName =
+          '${widget.classData['year']} Sec ${widget.classData['section']}';
       final match = sessions.firstWhere(
-        (s) => s['subject_name'] == widget.subject['name'],
+        (s) =>
+            s['subject_name'] == widget.subject['name'] &&
+            s['class_name'] == expectedClassName,
         orElse: () => {},
       );
       if (match.isEmpty) {

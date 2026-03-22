@@ -43,7 +43,7 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
             status: json['status'] ?? 'absent',
             timestamp:
                 DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
-            remarks: json['subject'],
+            remarks: json['subject'] ?? json['remarks'],
           );
         }).toList();
         _isLoading = false;

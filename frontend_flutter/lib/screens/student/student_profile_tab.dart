@@ -73,6 +73,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
     );
 
     if (confirm == true && mounted) {
+      await ApiService.logout();
       await SessionManager.clearSession();
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);

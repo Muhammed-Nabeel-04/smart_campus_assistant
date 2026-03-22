@@ -139,7 +139,7 @@ class _PrincipalGenerateHODQRScreenState
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'QR expires in 10 minutes. HOD must scan this to set their password.',
+                              'QR expires in 1 minutes. HOD must scan this to set their password.',
                               style: TextStyle(
                                 color: AppColors.warning,
                                 fontSize: 12,

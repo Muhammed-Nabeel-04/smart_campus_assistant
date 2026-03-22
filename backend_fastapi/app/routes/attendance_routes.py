@@ -9,6 +9,7 @@ from app.models.attendance import Attendance
 from app.models.student import Student
 from app.models.faculty import Faculty
 from app.models.subject import Subject
+from app.models.class_subject import ClassSubject
 from app.models.department import Department
 from app.models.class_model import ClassModel
 import secrets
@@ -527,15 +528,7 @@ def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db),
             ClassModel.section == student.section,
         ).first()
 
-    # Count total ENDED sessions for this class
-    total_sessions = 0
-    if cls:
-        total_sessions = db.query(AttendanceSession).filter(
-            AttendanceSession.class_id == cls.id,
-            AttendanceSession.status == "ended",
-        ).count()
-
-    # Count present — only from this class's ended sessions (excludes manual entries)
+    # Get all ended sessions for this class (single query)
     ended_session_ids = []
     if cls:
         ended_session_ids = [
@@ -544,6 +537,9 @@ def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db),
                 AttendanceSession.status == "ended",
             ).all()
         ]
+    total_sessions = len(ended_session_ids)
+
+    # Count present — only from this class's ended sessions
     present = db.query(Attendance).filter(
         Attendance.student_id == student_id,
         Attendance.status == "present",
@@ -555,12 +551,51 @@ def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db),
     total = total_sessions
     percentage = round((present / total * 100), 1) if total > 0 else 0
 
+    # Build subject-wise attendance
+    subject_stats = []
+    if cls:
+        class_subjects = db.query(ClassSubject).filter(
+            ClassSubject.class_id == cls.id
+        ).all()
+
+        for cs in class_subjects:
+            subject = db.query(Subject).filter(Subject.id == cs.subject_id).first()
+            if not subject:
+                continue
+
+            # Count ended sessions for this subject in this class
+            subject_sessions = db.query(AttendanceSession).filter(
+                AttendanceSession.class_id == cls.id,
+                AttendanceSession.subject_id == cs.subject_id,
+                AttendanceSession.status == "ended",
+            ).all()
+            subject_session_ids = [s.id for s in subject_sessions]
+            subject_total = len(subject_session_ids)
+
+            if subject_total == 0:
+                continue
+
+            subject_present = db.query(Attendance).filter(
+                Attendance.student_id == student_id,
+                Attendance.session_id.in_(subject_session_ids),
+                Attendance.status == "present",
+            ).count()
+
+            subject_pct = round((subject_present / subject_total * 100), 1)
+
+            subject_stats.append({
+                "subject_name": subject.name,
+                "attended": subject_present,
+                "total": subject_total,
+                "percentage": subject_pct,
+            })
+
     return {
         "overall_percentage": percentage,
         "total_classes": total,
         "attended": present,
         "absent": absent,
-        "subjects": [],
+        "subjects": subject_stats,
     }
 
 

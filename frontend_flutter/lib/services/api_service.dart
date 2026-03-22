@@ -671,7 +671,7 @@ class ApiService {
 
   static Future<List<dynamic>> getHODComplaints({String? status}) async {
     try {
-      String url = "$_baseUrl/complaints/";
+      String url = "$_baseUrl/complaints/department";
       if (status != null) url += "?status=$status";
       final response = await http
           .get(Uri.parse(url), headers: _authHeadersGet)

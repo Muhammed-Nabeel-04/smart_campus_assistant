@@ -19,7 +19,7 @@ class AdminGenerateFacultyQRScreen extends StatefulWidget {
 class _AdminGenerateFacultyQRScreenState
     extends State<AdminGenerateFacultyQRScreen> {
   String? _qrToken;
-  int _secondsRemaining = 300; // 5 minutes
+  int _secondsRemaining = 60; // 1 minutes
   Timer? _timer;
   bool _isLoading = true;
   bool _isExpired = false;
@@ -40,7 +40,7 @@ class _AdminGenerateFacultyQRScreenState
     setState(() {
       _isLoading = true;
       _isExpired = false;
-      _secondsRemaining = 300;
+      _secondsRemaining = 60;
     });
 
     try {
@@ -56,7 +56,7 @@ class _AdminGenerateFacultyQRScreenState
         });
         setState(() {
           _qrToken = qrData;
-          _secondsRemaining = response['expires_in'] ?? 300;
+          _secondsRemaining = response['expires_in'] ?? 60;
           _isLoading = false;
         });
         _startTimer();
@@ -94,8 +94,8 @@ class _AdminGenerateFacultyQRScreenState
   }
 
   Color _getTimerColor() {
-    if (_secondsRemaining > 60) return AppColors.success;
-    if (_secondsRemaining > 30) return AppColors.warning;
+    if (_secondsRemaining > 30) return AppColors.success;
+    if (_secondsRemaining > 10) return AppColors.warning;
     return AppColors.danger;
   }
 
