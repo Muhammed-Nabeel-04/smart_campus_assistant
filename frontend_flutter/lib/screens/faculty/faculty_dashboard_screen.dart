@@ -230,6 +230,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                     if (_activeSessions.isNotEmpty)
                       GestureDetector(
                         onTap: _showActiveSessionsSheet,
+                        behavior: HitTestBehavior.opaque,
                         child: AnimatedBuilder(
                           animation: _blinkAnim,
                           builder: (context, child) => Opacity(
@@ -556,90 +557,94 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     showModalBottomSheet(
       context: context,
       backgroundColor: cs.surface,
+      isScrollControlled: true,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.radio_button_checked,
-                  color: roleHOD,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Active Sessions',
-                  style: TextStyle(
-                    color: cs.onSurface,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+      builder: (ctx) => SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.radio_button_checked,
+                    color: roleHOD,
+                    size: 20,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (_activeSessions.isEmpty)
-              Text(
-                'No active sessions',
-                style: TextStyle(color: cs.onSurface.withOpacity(0.5)),
-              )
-            else
-              ..._activeSessions.map(
-                (s) => Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: cs.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: roleHOD.withOpacity(0.4)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Active Sessions',
+                    style: TextStyle(
+                      color: cs.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              s['subject_name'] ?? '',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              '${s['class_name']} • ${s['students_present']} present',
-                              style: TextStyle(
-                                color: cs.onSurface.withOpacity(0.6),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () async {
-                          Navigator.pop(ctx);
-                          await ApiService.endAttendanceSession(
-                            s['session_id'],
-                          );
-                          _loadStats();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: roleHOD,
-                        ),
-                        child: const Text('End'),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 16),
+              if (_activeSessions.isEmpty)
+                Text(
+                  'No active sessions',
+                  style: TextStyle(color: cs.onSurface.withOpacity(0.5)),
+                )
+              else
+                ..._activeSessions.map(
+                  (s) => Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: cs.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: roleHOD.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s['subject_name'] ?? '',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                '${s['class_name']} • ${s['students_present']} present',
+                                style: TextStyle(
+                                  color: cs.onSurface.withOpacity(0.6),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            await ApiService.endAttendanceSession(
+                              s['session_id'],
+                            );
+                            _loadStats();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: roleHOD,
+                          ),
+                          child: const Text('End'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );

@@ -1851,6 +1851,24 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> ensureHODClass({
+    required String year,
+    required String section,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/hod/classes/ensure"),
+            headers: _authHeaders,
+            body: jsonEncode({'year': year, 'section': section}),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   static Future<Map<String, dynamic>> getCCClass(int facultyId) async {
     try {
       final response = await http

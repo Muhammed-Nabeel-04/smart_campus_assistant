@@ -238,6 +238,7 @@ def get_all_faculty(
             except Exception:
                 assignments = []
                 
+        cc_class = db.query(ClassModel).filter(ClassModel.id == fac.cc_class_id).first() if fac.cc_class_id else None
         result.append({
             "id": fac.id,
             "user_id": fac.user_id,
@@ -248,6 +249,10 @@ def get_all_faculty(
             "phone": fac.phone_number,
             "teaching_assignments": assignments,
             "created_at": fac.created_at.isoformat() if fac.created_at else None,
+            "is_cc": fac.is_cc or False,
+            "cc_class_id": fac.cc_class_id,
+            "cc_year": cc_class.year if cc_class else None,
+            "cc_section": cc_class.section if cc_class else None,
         })
     
     return result

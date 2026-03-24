@@ -478,6 +478,46 @@ def update_hod_subject(
     db.commit()
     return {"message": "Subject updated successfully"}
 
+# ── Ensure class exists (create if missing) ───────────────────
+class EnsureClassRequest(BaseModel):
+    year: str
+    section: str
+
+@router.post("/classes/ensure")
+def ensure_class(
+    payload: EnsureClassRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="HOD access required")
+    dept = db.query(Department).filter(
+        Department.hod_user_id == current_user["user_id"]
+    ).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+
+    # Return existing class if already there
+    existing = db.query(ClassModel).filter(
+        ClassModel.department_id == dept.id,
+        ClassModel.year == payload.year,
+        ClassModel.section == payload.section,
+    ).first()
+    if existing:
+        return {"id": existing.id, "year": existing.year, "section": existing.section}
+
+    # Create it fresh
+    new_class = ClassModel(
+        department_id=dept.id,
+        year=payload.year,
+        section=payload.section,
+        current_semester="Semester 1",
+    )
+    db.add(new_class)
+    db.commit()
+    db.refresh(new_class)
+    return {"id": new_class.id, "year": new_class.year, "section": new_class.section}
+
 # ── Get period timings ────────────────────────────────────────
 @router.get("/period-timings")
 def get_period_timings(

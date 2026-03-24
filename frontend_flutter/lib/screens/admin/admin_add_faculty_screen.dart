@@ -58,9 +58,9 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
       final deptName =
           hodDept['department_name'] ?? hodDept['department'] ?? '';
 
-      // Load all departments for assignment picker
+      // Load all departments for assignment picker (now includes sections_by_year)
       final data = await ApiService.getDepartments();
-      // Load sections for HOD's department
+      // Load sections for HOD's own department (for CC section picker)
       Map<String, List<String>> sectionsByYear = {};
       try {
         sectionsByYear = await ApiService.getHODSections();
@@ -73,12 +73,14 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
           _hodDepartmentName = deptName;
           _pickerDept = deptCode;
           _departments = List<Map<String, dynamic>>.from(data);
-          // Flatten all sections across all years for assignment picker
-          final allSections = sectionsByYear.values
+          // Initialize sections for HOD's own department
+          final hodDeptSections = sectionsByYear.values
               .expand((s) => s)
               .toSet()
               .toList();
-          _sections = allSections.isNotEmpty ? allSections : ['A', 'B', 'C'];
+          _sections = hodDeptSections.isNotEmpty
+              ? hodDeptSections
+              : ['A', 'B', 'C'];
           _loadingDepts = false;
         });
       }
@@ -132,17 +134,28 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
   }
 
   Future<void> _loadSectionsForDept(String deptCode) async {
-    try {
-      // Load per-year sections from HOD
-      final sectionsByYear = await ApiService.getHODSections();
-      // Use sections for currently selected year, or flatten all
-      final yearSections = _pickerYear != null
-          ? (sectionsByYear[_pickerYear] ?? [])
-          : sectionsByYear.values.expand((s) => s).toSet().toList();
-      if (mounted && yearSections.isNotEmpty) {
-        setState(() => _sections = yearSections);
-      }
-    } catch (_) {}
+    // Find the selected department's sections from already-loaded _departments list
+    final dept = _departments.firstWhere(
+      (d) => d['code'] == deptCode,
+      orElse: () => <String, dynamic>{},
+    );
+    final raw = dept['sections_by_year'] as Map<String, dynamic>? ?? {};
+    final sectionsByYear = raw.map(
+      (k, v) => MapEntry(k, List<String>.from(v ?? [])),
+    );
+
+    // Use sections for currently selected year, or flatten all
+    final yearSections = _pickerYear != null
+        ? (sectionsByYear[_pickerYear] ?? [])
+        : sectionsByYear.values.expand((s) => s).toSet().toList();
+
+    if (mounted) {
+      setState(
+        () => _sections = yearSections.isNotEmpty
+            ? yearSections
+            : ['A', 'B', 'C'],
+      );
+    }
   }
 
   Future<int?> _findClassId(String year, String section) async {

@@ -74,6 +74,8 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
 
     _isCc = widget.faculty['is_cc'] == true;
     _ccClassId = widget.faculty['cc_class_id'];
+    _ccYear = widget.faculty['cc_year'];
+    _ccSection = widget.faculty['cc_section'];
 
     _loadDepartments();
   }
@@ -177,6 +179,20 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
 
   Future<void> _handleUpdate() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // If CC is ON and section is selected but classId not resolved yet, resolve now
+    if (_isCc && _ccYear != null && _ccSection != null && _ccClassId == null) {
+      final classId = await _findClassId(_ccYear!, _ccSection!);
+      if (classId == null) {
+        _showSnack(
+          'Class not found for $_ccYear - Sec $_ccSection. Cannot assign CC.',
+          isError: true,
+        );
+        return;
+      }
+      setState(() => _ccClassId = classId);
+    }
+
     setState(() => _isLoading = true);
     try {
       await ApiService.updateFaculty(widget.faculty['id'], {
@@ -648,9 +664,34 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
                           if (_ccClassId == null && _ccSection != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                '⚠ This class has no students yet. CC will be set after class is created.',
-                                style: TextStyle(color: cs.error, fontSize: 12),
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: cs.error.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: cs.error.withOpacity(0.4),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      color: cs.error,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'No class found for $_ccYear - Sec $_ccSection. Please create this class first before assigning a CC.',
+                                        style: TextStyle(
+                                          color: cs.error,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                         ],
@@ -664,7 +705,13 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
                   SizedBox(
                     height: 56,
                     child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _handleUpdate,
+                      onPressed:
+                          (_isLoading ||
+                              (_isCc &&
+                                  _ccSection != null &&
+                                  _ccClassId == null))
+                          ? null
+                          : _handleUpdate,
                       icon: _isLoading
                           ? const SizedBox(
                               width: 20,

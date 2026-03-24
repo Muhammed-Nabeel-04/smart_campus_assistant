@@ -404,18 +404,36 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
   }
 
   Future<void> _loadTimetableForClass(Map<String, dynamic> cls) async {
-    if (cls['id'] == null) {
-      _showSnack(
-        'No students in this class yet. Add faculty with this class assignment first.',
-        isError: true,
-      );
-      return;
+    int? classId = cls['id'];
+
+    // Class doesn't exist in DB yet — auto-create it now
+    if (classId == null) {
+      try {
+        final result = await ApiService.ensureHODClass(
+          year: cls['year'],
+          section: cls['section'],
+        );
+        classId = result['id'];
+        // Update local state so chip reflects real id
+        if (mounted) {
+          setState(() {
+            final idx = _classes.indexWhere(
+              (c) => c['year'] == cls['year'] && c['section'] == cls['section'],
+            );
+            if (idx != -1) _classes[idx] = {..._classes[idx], 'id': classId};
+          });
+        }
+      } catch (e) {
+        _showSnack('Failed to initialise class. Try again.', isError: true);
+        return;
+      }
     }
-    // Push to grid editor
+
+    if (!mounted) return;
     Navigator.pushNamed(
       context,
       '/ccTimetableEditor',
-      arguments: {'class_id': cls['id'], 'faculty_id': SessionManager.userId},
+      arguments: {'class_id': classId, 'faculty_id': SessionManager.userId},
     );
   }
 
