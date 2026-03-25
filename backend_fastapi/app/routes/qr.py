@@ -19,8 +19,8 @@ def start_session(course: str, faculty_id: int, db: Session = Depends(get_db)):
     session = AttendanceSession(
         course=course,
         faculty_id=faculty_id,
-        started_at=datetime.utcnow(),
-        ends_at=datetime.utcnow() + timedelta(hours=1)
+        started_at=datetime.now(),
+        ends_at=datetime.now() + timedelta(hours=1)
     )
 
     db.add(session)
@@ -45,7 +45,7 @@ def refresh_token(session_id: int, db: Session = Depends(get_db)):
     if not session:
         raise HTTPException(status_code=400, detail="Session not found")
 
-    if datetime.utcnow() > session.ends_at:
+    if datetime.now() > session.ends_at:
         raise HTTPException(status_code=400, detail="Session ended")
 
     token = uuid.uuid4().hex[:6]
@@ -53,7 +53,7 @@ def refresh_token(session_id: int, db: Session = Depends(get_db)):
     token_entry = SessionToken(
         session_id=session_id,
         token=token,
-        expires_at=datetime.utcnow() + timedelta(minutes=2)
+        expires_at=datetime.now() + timedelta(minutes=2)
     )
 
     db.add(token_entry)
@@ -87,7 +87,7 @@ def scan_qr(payload: ScanQRRequest, db: Session = Depends(get_db)):
     if not token_entry:
         raise HTTPException(status_code=400, detail="Invalid QR code")
 
-    if datetime.utcnow() > token_entry.expires_at:
+    if datetime.now() > token_entry.expires_at:
         raise HTTPException(status_code=400, detail="QR expired")
 
     # 🔥 Get session separately
@@ -100,7 +100,7 @@ def scan_qr(payload: ScanQRRequest, db: Session = Depends(get_db)):
 
     existing = db.query(Attendance).filter(
         Attendance.student_id == payload.student_id,
-        Attendance.date == datetime.utcnow().date()
+        Attendance.date == datetime.now().date()
     ).first()
 
     if existing:
@@ -110,7 +110,7 @@ def scan_qr(payload: ScanQRRequest, db: Session = Depends(get_db)):
         student_id=payload.student_id,
         course=session.course,
         session_type="morning",
-        date=datetime.utcnow().date(),
+        date=datetime.now().date(),
         status="present"
     )
 

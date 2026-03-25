@@ -36,7 +36,7 @@ def generate_faculty_qr(payload: dict, db: Session = Depends(get_db)):
         token=token,
         role="faculty",
         target_id=faculty_id,
-        expiry_time=datetime.utcnow() + timedelta(minutes=10),
+        expiry_time=datetime.now() + timedelta(minutes=10),
         used=False,
     )
 
@@ -74,7 +74,7 @@ def validate_faculty_qr(payload: dict, db: Session = Depends(get_db)):
     if not onboarding:
         raise HTTPException(status_code=400, detail="Invalid or expired QR code")
 
-    if datetime.utcnow() > onboarding.expiry_time:
+    if datetime.now() > onboarding.expiry_time:
         raise HTTPException(status_code=400, detail="QR code has expired")
 
     faculty = db.query(Faculty).filter(
@@ -159,7 +159,7 @@ def get_faculty_stats(faculty_id: int, db: Session = Depends(get_db)):
         AttendanceSession.faculty_id == faculty_id
     ).count()
 
-    today = datetime.utcnow().date()
+    today = datetime.now().date()
 
     sessions_today = db.query(AttendanceSession).filter(
         AttendanceSession.faculty_id == faculty_id,

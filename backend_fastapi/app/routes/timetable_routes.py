@@ -133,14 +133,16 @@ def create_slot(
                 status_code=403,
                 detail="Only the Class Coordinator can manage this timetable"
             )
+        # Resolve department from the class
+        cls = db.query(ClassModel).filter(ClassModel.id == payload.class_id).first()
+        if not cls:
+            raise HTTPException(status_code=404, detail="Class not found")
+        dept = db.query(Department).filter(Department.id == cls.department_id).first()
+        if not dept:
+            raise HTTPException(status_code=404, detail="Department not found")
     else:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    dept = db.query(Department).filter(
-        Department.hod_user_id == current_user["user_id"]
-    ).first()
-    if not dept:
-        raise HTTPException(status_code=404, detail="Department not found")
 
     if payload.day_of_week not in DAYS:
         raise HTTPException(status_code=400, detail="Invalid day")

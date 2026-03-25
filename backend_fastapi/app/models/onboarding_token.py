@@ -14,4 +14,4 @@ class OnboardingToken(Base):
     used_at = Column(DateTime, nullable=True)
 
     expiry_time = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)

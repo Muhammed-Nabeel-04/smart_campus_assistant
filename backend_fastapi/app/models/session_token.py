@@ -9,4 +9,4 @@ class SessionToken(Base):
     user_id = Column(Integer, nullable=False, unique=True, index=True)
     token = Column(String, unique=True, index=True)
     expires_at = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)

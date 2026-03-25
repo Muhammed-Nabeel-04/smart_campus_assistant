@@ -27,8 +27,8 @@ def start_session(
         course=course,
         faculty_id=faculty_id,
         token=token,
-        started_at=datetime.utcnow(),
-        ends_at=datetime.utcnow() + timedelta(minutes=5)
+        started_at=datetime.now(),
+        ends_at=datetime.now() + timedelta(minutes=5)
     )
     
     db.add(session)
@@ -70,7 +70,7 @@ def scan_qr(
     ).first()
     if not session:
         raise HTTPException(status_code=400, detail="Invalid QR code")
-    if datetime.utcnow() > session.ends_at:
+    if datetime.now() > session.ends_at:
         raise HTTPException(status_code=400, detail="QR code expired")
         
     existing = db.query(Attendance).filter(

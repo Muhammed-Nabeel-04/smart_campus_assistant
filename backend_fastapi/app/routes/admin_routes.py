@@ -197,16 +197,25 @@ def get_all_faculty(
 ):
     """Get all faculty members - filtered by HOD's department"""
     
-    if current_user['role'] != 'admin':
+    if current_user['role'] == 'admin':
+        # HOD — get department from hod_user_id
+        dept = db.query(Department).filter(
+            Department.hod_user_id == current_user['user_id']
+        ).first()
+        hod_dept = dept.code if dept else None
+    elif current_user['role'] == 'faculty':
+        # CC faculty — get department from cc_class_id
+        fac = db.query(Faculty).filter(
+            Faculty.user_id == current_user['user_id'],
+            Faculty.is_cc == True,
+        ).first()
+        if not fac or not fac.cc_class_id:
+            raise HTTPException(status_code=403, detail="CC access required")
+        cls = db.query(ClassModel).filter(ClassModel.id == fac.cc_class_id).first()
+        cc_dept = db.query(Department).filter(Department.id == cls.department_id).first() if cls else None
+        hod_dept = cc_dept.code if cc_dept else None
+    else:
         raise HTTPException(status_code=403, detail="Admin access required")
-
-    # ✅ Get HOD's department from DB (dynamic, not hardcoded)
-    hod_dept = None
-    dept = db.query(Department).filter(
-        Department.hod_user_id == current_user['user_id']
-    ).first()
-    if dept:
-        hod_dept = dept.code
 
     # Filter by department if found
     if hod_dept:
@@ -218,7 +227,9 @@ def get_all_faculty(
     
     result = []
     for fac in faculty_list:
-        if fac.user_id == current_user['user_id']:
+        # Skip HOD from their own faculty list (HODs don't teach)
+        # But CC faculty SHOULD appear since they teach classes
+        if current_user['role'] == 'admin' and fac.user_id == current_user['user_id']:
             continue
         user = db.query(User).filter(User.id == fac.user_id).first()
         assignments = []

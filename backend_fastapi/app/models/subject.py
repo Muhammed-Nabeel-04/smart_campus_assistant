@@ -13,5 +13,5 @@ class Subject(Base):
     semester = Column(Integer, nullable=True)    # 1-8
     credits = Column(Integer, default=3)
     type = Column(String, default="Theory")      # Theory, Lab, Project
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

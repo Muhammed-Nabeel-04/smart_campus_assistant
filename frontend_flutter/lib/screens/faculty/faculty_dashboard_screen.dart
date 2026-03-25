@@ -39,8 +39,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     )..repeat(reverse: true);
     _blinkAnim = Tween<double>(begin: 0.3, end: 1.0).animate(_blinkController);
     _loadStats();
-    // Poll next slot every 5 minutes
-    _nextSlotTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+    // Poll next slot every 1 minute for live countdown
+    _nextSlotTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) _loadNextSlot();
     });
   }
@@ -109,9 +109,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     final cs = Theme.of(context).colorScheme;
     // Navigate directly to start attendance with pre-filled data
     try {
-      // Get class and subject data
-      final depts = await ApiService.getPrincipalDepartments();
-      // Navigate to start attendance
       if (!mounted) return;
       Navigator.pushNamed(
         context,
@@ -272,8 +269,10 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                         ),
                       ),
 
-                    // ── Next Session Card ────────────────────
-                    if (_nextSlot != null) _buildNextSessionCard(cs),
+                    // ── Class Reminder (only shows ≤5 min before class) ──
+                    if (_nextSlot != null &&
+                        (_nextSlot!['minutes_until'] as int? ?? 999) <= 5)
+                      _buildClassReminderBanner(cs),
 
                     const SizedBox(height: 16),
 
@@ -302,16 +301,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                           _showActiveSessionsSheet,
                           cs,
                         ),
-                        _buildTappableStatCard(
-                          'Timetable',
-                          _nextSlot != null
-                              ? _nextSlot!['start_time'] ?? '--:--'
-                              : '--:--',
-                          Icons.calendar_today,
-                          warningOrange,
-                          _showTimetableSheet,
-                          cs,
-                        ),
+                        _buildTimetableCard(cs),
                         _buildStatCard(
                           'Avg Attendance',
                           '${_stats?['average_attendance'] ?? 0}%',
@@ -434,120 +424,260 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     );
   }
 
-  // ── Next Session Card ──────────────────────────────────────
-  Widget _buildNextSessionCard(ColorScheme cs) {
-    final slot = _nextSlot!;
-    final minutesUntil = slot['minutes_until'] as int? ?? 0;
-    final isUrgent = minutesUntil <= 15;
-    final startsToday = slot['starts_today'] as bool? ?? false;
-    final color = isUrgent ? roleHOD : facultyCyan;
-
-    String timeLabel;
-    if (minutesUntil <= 0) {
-      timeLabel = 'Now';
-    } else if (minutesUntil < 60) {
-      timeLabel = 'In ${minutesUntil}m';
-    } else {
-      final h = minutesUntil ~/ 60;
-      final m = minutesUntil % 60;
-      timeLabel = m > 0 ? 'In ${h}h ${m}m' : 'In ${h}h';
-    }
-
+  // ── Timetable card (rich grid cell with class details) ────────
+  Widget _buildTimetableCard(ColorScheme cs) {
     return GestureDetector(
-      onTap: () => _startSessionFromSlot(slot),
+      onTap: _showTimetableSheet,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: cs.surfaceVariant.withOpacity(0.12),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.4)),
+          border: Border.all(color: cs.onSurface.withOpacity(0.06)),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.schedule, color: color, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
+        padding: const EdgeInsets.all(12),
+        child: _nextSlot != null
+            ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Row(
                     children: [
-                      Text(
-                        'Next Session',
-                        style: TextStyle(
-                          color: cs.onSurface.withOpacity(0.5),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: color.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
+                      Icon(Icons.calendar_today, color: warningOrange, size: 16),
+                      const SizedBox(width: 6),
+                      Expanded(
                         child: Text(
-                          timeLabel,
+                          _nextSlot!['subject_name'] ?? '',
                           style: TextStyle(
-                            color: color,
-                            fontSize: 12,
+                            color: cs.onSurface,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    slot['subject_name'] ?? 'Unknown',
+                    '${_nextSlot!['class_name']} • ${_nextSlot!['day_of_week']}',
                     style: TextStyle(
-                      color: cs.onSurface,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      color: cs.onSurface.withOpacity(0.5),
+                      fontSize: 10,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${slot['class_name']} • ${slot['day_of_week']} ${slot['start_time']}',
+                    '${_nextSlot!['start_time']} – ${_nextSlot!['end_time']}',
                     style: TextStyle(
-                      color: cs.onSurface.withOpacity(0.6),
-                      fontSize: 12,
+                      color: cs.primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: warningOrange.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _getCountdownLabel(
+                          _nextSlot!['minutes_until'] as int? ?? 0),
+                      style: TextStyle(
+                        color: warningOrange,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.calendar_today,
+                      color: warningOrange.withOpacity(0.5), size: 28),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No class',
+                    style: TextStyle(
+                      color: cs.onSurface.withOpacity(0.5),
+                      fontSize: 13,
                     ),
                   ),
                 ],
               ),
+      ),
+    );
+  }
+
+  // ── Next Session Card ──────────────────────────────────────
+  // ── Countdown label helper ───────────────────────────────────
+  String _getCountdownLabel(int minutesUntil) {
+    if (minutesUntil <= 0) return 'Now';
+    if (minutesUntil < 60) return '${minutesUntil}m left';
+    if (minutesUntil < 1440) {
+      final h = minutesUntil ~/ 60;
+      final m = minutesUntil % 60;
+      return m > 0 ? '${h}h ${m}m' : '${h}h';
+    }
+    final days = minutesUntil ~/ 1440;
+    return days == 1 ? 'Tomorrow' : '${days}d left';
+  }
+
+  // ── Blinking reminder banner (only shows ≤5 min before class) ──
+  Widget _buildClassReminderBanner(ColorScheme cs) {
+    final slot = _nextSlot!;
+    final minutesUntil = slot['minutes_until'] as int? ?? 0;
+
+    return GestureDetector(
+      onTap: () => _startSessionFromSlot(slot),
+      child: AnimatedBuilder(
+        animation: _blinkAnim,
+        builder: (context, child) => Opacity(
+          opacity: _blinkAnim.value,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: roleHOD.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: roleHOD),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                'Start',
+            child: Row(
+              children: [
+                const Icon(Icons.alarm, color: roleHOD, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    minutesUntil <= 0
+                        ? '🔴 ${slot['subject_name']} is starting NOW — Tap to Start'
+                        : '⏰ ${slot['subject_name']} starts in ${minutesUntil}m — Tap to Start',
+                    style: const TextStyle(
+                      color: roleHOD,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: roleHOD,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Start',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Upcoming Class Info card (always visible) ──────────────────
+  Widget _buildUpcomingClassInfo(ColorScheme cs) {
+    final slot = _nextSlot!;
+    final minutesUntil = slot['minutes_until'] as int? ?? 0;
+    final countdown = _getCountdownLabel(minutesUntil);
+    final canStart = minutesUntil <= 5;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surfaceVariant.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.onSurface.withOpacity(0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.schedule, color: facultyCyan, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Upcoming Class',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
+                  color: cs.onSurface.withOpacity(0.5),
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
                 ),
               ),
-            ),
-          ],
-        ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (canStart ? successGreen : facultyCyan).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  countdown,
+                  style: TextStyle(
+                    color: canStart ? successGreen : facultyCyan,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      slot['subject_name'] ?? 'Unknown',
+                      style: TextStyle(
+                        color: cs.onSurface,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${slot['class_name']} • ${slot['day_of_week']}',
+                      style: TextStyle(
+                        color: cs.onSurface.withOpacity(0.6),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: cs.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${slot['start_time']} – ${slot['end_time']}',
+                  style: TextStyle(
+                    color: cs.primary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -10,6 +10,7 @@ from app.models.subject import Subject
 from app.models.department import Department
 from app.models.class_model import ClassModel
 from app.models.class_subject import ClassSubject
+from app.models.faculty import Faculty
 
 router = APIRouter(prefix="/hod", tags=["HOD Setup"])
 bcrypt = CryptContext(schemes=["bcrypt"])
@@ -524,11 +525,21 @@ def get_period_timings(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="HOD access required")
-    dept = db.query(Department).filter(
-        Department.hod_user_id == current_user["user_id"]
-    ).first()
+    if current_user["role"] == "admin":
+        dept = db.query(Department).filter(
+            Department.hod_user_id == current_user["user_id"]
+        ).first()
+    elif current_user["role"] == "faculty":
+        faculty = db.query(Faculty).filter(
+            Faculty.user_id == current_user["user_id"],
+            Faculty.is_cc == True,
+        ).first()
+        if not faculty or not faculty.cc_class_id:
+            raise HTTPException(status_code=403, detail="CC access required")
+        cls = db.query(ClassModel).filter(ClassModel.id == faculty.cc_class_id).first()
+        dept = db.query(Department).filter(Department.id == cls.department_id).first() if cls else None
+    else:
+        raise HTTPException(status_code=403, detail="Access denied")
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
     import json
@@ -536,15 +547,6 @@ def get_period_timings(
         timings = json.loads(dept.period_timings or "[]")
     except Exception:
         timings = []
-    # Default 5 periods if none set
-    if not timings:
-        timings = [
-            {"period": 1, "start": "09:00", "end": "10:00"},
-            {"period": 2, "start": "10:00", "end": "11:00"},
-            {"period": 3, "start": "11:00", "end": "12:00"},
-            {"period": 4, "start": "13:00", "end": "14:00"},
-            {"period": 5, "start": "14:00", "end": "15:00"},
-        ]
     return {"period_timings": timings}
 
 # ── Update period timings ─────────────────────────────────────
@@ -557,14 +559,89 @@ def update_period_timings(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="HOD access required")
-    dept = db.query(Department).filter(
-        Department.hod_user_id == current_user["user_id"]
-    ).first()
+    if current_user["role"] == "admin":
+        dept = db.query(Department).filter(
+            Department.hod_user_id == current_user["user_id"]
+        ).first()
+    elif current_user["role"] == "faculty":
+        faculty = db.query(Faculty).filter(
+            Faculty.user_id == current_user["user_id"],
+            Faculty.is_cc == True,
+        ).first()
+        if not faculty or not faculty.cc_class_id:
+            raise HTTPException(status_code=403, detail="CC access required")
+        cls = db.query(ClassModel).filter(ClassModel.id == faculty.cc_class_id).first()
+        dept = db.query(Department).filter(Department.id == cls.department_id).first() if cls else None
+    else:
+        raise HTTPException(status_code=403, detail="Access denied")
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
     import json
     dept.period_timings = json.dumps(payload.period_timings)
     db.commit()
     return {"message": "Period timings updated", "period_timings": payload.period_timings}
+
+# ── Get timetable days ────────────────────────────────────────
+@router.get("/timetable-days")
+def get_timetable_days(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] == "admin":
+        dept = db.query(Department).filter(
+            Department.hod_user_id == current_user["user_id"]
+        ).first()
+    elif current_user["role"] == "faculty":
+        faculty = db.query(Faculty).filter(
+            Faculty.user_id == current_user["user_id"],
+            Faculty.is_cc == True,
+        ).first()
+        if not faculty or not faculty.cc_class_id:
+            raise HTTPException(status_code=403, detail="CC access required")
+        cls = db.query(ClassModel).filter(ClassModel.id == faculty.cc_class_id).first()
+        dept = db.query(Department).filter(Department.id == cls.department_id).first() if cls else None
+    else:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    import json
+    try:
+        days = json.loads(dept.timetable_days or "[]")
+    except Exception:
+        days = []
+    # Return default days if none configured
+    if not days:
+        days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    return {"timetable_days": days}
+
+# ── Update timetable days ─────────────────────────────────────
+class TimetableDaysPayload(BaseModel):
+    timetable_days: list
+
+@router.put("/timetable-days")
+def update_timetable_days(
+    payload: TimetableDaysPayload,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] == "admin":
+        dept = db.query(Department).filter(
+            Department.hod_user_id == current_user["user_id"]
+        ).first()
+    elif current_user["role"] == "faculty":
+        faculty = db.query(Faculty).filter(
+            Faculty.user_id == current_user["user_id"],
+            Faculty.is_cc == True,
+        ).first()
+        if not faculty or not faculty.cc_class_id:
+            raise HTTPException(status_code=403, detail="CC access required")
+        cls = db.query(ClassModel).filter(ClassModel.id == faculty.cc_class_id).first()
+        dept = db.query(Department).filter(Department.id == cls.department_id).first() if cls else None
+    else:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    import json
+    dept.timetable_days = json.dumps(payload.timetable_days)
+    db.commit()
+    return {"message": "Timetable days updated", "timetable_days": payload.timetable_days}

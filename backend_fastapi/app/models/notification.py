@@ -17,4 +17,4 @@ class Notification(Base):
 
     sent_by = Column(Integer, ForeignKey("faculty.id"), nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)

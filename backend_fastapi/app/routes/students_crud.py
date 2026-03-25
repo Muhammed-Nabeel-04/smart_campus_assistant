@@ -257,17 +257,17 @@ def generate_student_qr(student_id: int, db: Session = Depends(get_db), current_
     ).all()
     for old in old_tokens:
         old.used = True
-        old.used_at = datetime.utcnow()
+        old.used_at = datetime.now()
     if old_tokens:
         db.commit()
 
     token = secrets.token_urlsafe(32)
 
-    qqr_token = OnboardingToken(
+    qr_token = OnboardingToken(
         token=token,
         role="student",
         target_id=student_id,
-        expiry_time=datetime.utcnow() + timedelta(minutes=1),
+        expiry_time=datetime.now() + timedelta(minutes=1),
         used=False
     )
 

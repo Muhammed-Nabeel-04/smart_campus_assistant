@@ -52,7 +52,7 @@ if not cursor.fetchone():
     hashed = bcrypt_ctx.hash("principal@123")
     cursor.execute(
         "INSERT INTO users (name, email, password, role, created_at) VALUES (?, ?, ?, ?, ?)",
-        ("Principal", "principal@college.edu", hashed, "principal", datetime.utcnow().isoformat())
+        ("Principal", "principal@college.edu", hashed, "principal", datetime.now().isoformat())
     )
     conn.commit()
     print("✅ Principal account created!")

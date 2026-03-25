@@ -37,6 +37,15 @@ app.add_middleware(
 # ── Startup event ──
 @app.on_event("startup")
 def startup():
+    # Auto-migrate: add new columns to existing tables
+    from sqlalchemy import inspect, text
+    with engine.connect() as conn:
+        inspector = inspect(engine)
+        dept_cols = [c['name'] for c in inspector.get_columns('departments')]
+        if 'timetable_days' not in dept_cols:
+            conn.execute(text("ALTER TABLE departments ADD COLUMN timetable_days TEXT"))
+            conn.commit()
+            print("✅ Added timetable_days column to departments table")
     print("🚀 Smart Campus API started")
 
 # ── Routes imports ──

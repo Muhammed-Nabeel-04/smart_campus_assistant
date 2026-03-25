@@ -14,3 +14,4 @@ class Department(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     period_timings = Column(Text, nullable=True)  # JSON: [{"period":1,"start":"09:00","end":"10:00"}]
+    timetable_days = Column(Text, nullable=True)  # JSON: ["Monday","Tuesday",...,"Saturday"]

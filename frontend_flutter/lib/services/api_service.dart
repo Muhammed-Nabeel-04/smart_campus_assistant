@@ -1828,6 +1828,37 @@ class ApiService {
     }
   }
 
+  // ── Timetable Days ─────────────────────────────────────────────
+  static Future<List<String>> getTimetableDays() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/hod/timetable-days"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      final data = _handleResponse(response) as Map<String, dynamic>;
+      return List<String>.from(data['timetable_days'] ?? []);
+    } catch (e) {
+      return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    }
+  }
+
+  static Future<void> updateTimetableDays(List<String> days) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse("$_baseUrl/hod/timetable-days"),
+            headers: _authHeaders,
+            body: jsonEncode({'timetable_days': days}),
+          )
+          .timeout(_timeout);
+      _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // ── CC ────────────────────────────────────────────────────────
   static Future<Map<String, dynamic>> setCCFaculty({
     required int facultyId,

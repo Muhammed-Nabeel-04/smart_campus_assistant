@@ -199,7 +199,7 @@ def escalate_complaint(
         raise HTTPException(status_code=400, detail="Already escalated to principal")
 
     complaint.escalated_to_principal = 1
-    complaint.escalated_at = datetime.utcnow()
+    complaint.escalated_at = datetime.now()
     complaint.escalated_by = current_user['user_id']
     complaint.status = "escalated"
     db.commit()
@@ -232,10 +232,10 @@ def update_complaint(
     complaint.status = payload.status
     if payload.admin_response:
         complaint.admin_response = payload.admin_response
-    complaint.updated_at = datetime.utcnow()
+    complaint.updated_at = datetime.now()
 
     if payload.status == "resolved":
-        complaint.resolved_at = datetime.utcnow()
+        complaint.resolved_at = datetime.now()
 
     db.commit()
 

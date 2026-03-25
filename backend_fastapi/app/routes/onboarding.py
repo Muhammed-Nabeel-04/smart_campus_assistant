@@ -37,7 +37,7 @@ def validate_faculty_qr(payload: dict, db: Session = Depends(get_db)):
     if not onboarding:
         raise HTTPException(status_code=400, detail="Invalid or expired QR code")
 
-    if datetime.utcnow() > onboarding.expiry_time:
+    if datetime.now() > onboarding.expiry_time:
         raise HTTPException(status_code=400, detail="QR code has expired")
 
     faculty = db.query(Faculty).filter(
@@ -81,7 +81,7 @@ def set_faculty_password(payload: dict, db: Session = Depends(get_db)):
         ).first()
         if onboarding:
             onboarding.used = True
-            onboarding.used_at = datetime.utcnow()
+            onboarding.used_at = datetime.now()
 
     faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
     if not faculty:
@@ -121,12 +121,12 @@ def set_faculty_password(payload: dict, db: Session = Depends(get_db)):
     ).first()
     if existing:
         existing.token = jwt_token
-        existing.expires_at = datetime.utcnow() + timedelta(days=30)
+        existing.expires_at = datetime.now() + timedelta(days=30)
     else:
         db.add(SessionToken(
             user_id=user_id,
             token=jwt_token,
-            expires_at=datetime.utcnow() + timedelta(days=30)
+            expires_at=datetime.now() + timedelta(days=30)
         ))
     db.commit()
 
@@ -163,7 +163,7 @@ def validate_student_qr(payload: dict, db: Session = Depends(get_db)):
     if not onboarding:
         raise HTTPException(status_code=400, detail="Invalid or expired QR code")
 
-    if datetime.utcnow() > onboarding.expiry_time:
+    if datetime.now() > onboarding.expiry_time:
         raise HTTPException(status_code=400, detail="QR code has expired")
 
     student = db.query(Student).filter(
@@ -207,7 +207,7 @@ def complete_student_registration(payload: dict, db: Session = Depends(get_db)):
     if not onboarding:
         raise HTTPException(status_code=400, detail="Invalid or expired QR code")
 
-    if datetime.utcnow() > onboarding.expiry_time:
+    if datetime.now() > onboarding.expiry_time:
         raise HTTPException(status_code=400, detail="QR code has expired")
 
     student = db.query(Student).filter(
@@ -240,7 +240,7 @@ def complete_student_registration(payload: dict, db: Session = Depends(get_db)):
 
     # Mark token as used
     onboarding.used = True
-    onboarding.used_at = datetime.utcnow()
+    onboarding.used_at = datetime.now()
     db.commit()
 
     # Return JWT token so student is logged in immediately
@@ -257,12 +257,12 @@ def complete_student_registration(payload: dict, db: Session = Depends(get_db)):
     ).first()
     if existing:
         existing.token = jwt_token
-        existing.expires_at = datetime.utcnow() + timedelta(days=30)
+        existing.expires_at = datetime.now() + timedelta(days=30)
     else:
         db.add(SessionToken(
             user_id=user_id,
             token=jwt_token,
-            expires_at=datetime.utcnow() + timedelta(days=30)
+            expires_at=datetime.now() + timedelta(days=30)
         ))
     db.commit()
 
@@ -300,7 +300,7 @@ def validate_hod_qr(payload: dict, db: Session = Depends(get_db)):
     if not onboarding:
         raise HTTPException(status_code=400, detail="Invalid or expired QR code")
 
-    if datetime.utcnow() > onboarding.expiry_time:
+    if datetime.now() > onboarding.expiry_time:
         raise HTTPException(status_code=400, detail="QR code has expired")
 
     hod_user = db.query(User).filter(
@@ -343,7 +343,7 @@ def set_hod_password(payload: dict, db: Session = Depends(get_db)):
         ).first()
         if onboarding:
             onboarding.used = True
-            onboarding.used_at = datetime.utcnow()
+            onboarding.used_at = datetime.now()
 
     hod_user = db.query(User).filter(
         User.id == hod_id,
@@ -371,12 +371,12 @@ def set_hod_password(payload: dict, db: Session = Depends(get_db)):
     ).first()
     if existing:
         existing.token = jwt_token
-        existing.expires_at = datetime.utcnow() + timedelta(days=30)
+        existing.expires_at = datetime.now() + timedelta(days=30)
     else:
         db.add(SessionToken(
             user_id=user_id,
             token=jwt_token,
-            expires_at=datetime.utcnow() + timedelta(days=30)
+            expires_at=datetime.now() + timedelta(days=30)
         ))
     db.commit()
     

@@ -18,5 +18,5 @@ class Faculty(Base):
     assigned_classes = Column(String, nullable=True)
     is_cc       = Column(Boolean, default=False)
     cc_class_id = Column(Integer, ForeignKey("classes.id"), nullable=True)
-    created_at  = Column(DateTime, default=datetime.utcnow)
-    updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at  = Column(DateTime, default=datetime.now)
+    updated_at  = Column(DateTime, default=datetime.now, onupdate=datetime.now)

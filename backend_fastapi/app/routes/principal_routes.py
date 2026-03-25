@@ -432,7 +432,7 @@ def generate_hod_qr(
     
     # Generate token
     token = str(uuid.uuid4())
-    expiry = datetime.utcnow() + timedelta(minutes=1)
+    expiry = datetime.now() + timedelta(minutes=1)
     
     onboarding_token = OnboardingToken(
         token=token,

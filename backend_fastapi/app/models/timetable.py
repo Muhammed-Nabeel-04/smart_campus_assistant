@@ -14,7 +14,7 @@ class TimetableSlot(Base):
     start_time    = Column(String, nullable=False)  # "09:00"
     end_time      = Column(String, nullable=False)  # "10:00"
     room          = Column(String, nullable=True)
-    created_at    = Column(DateTime, default=datetime.utcnow)
+    created_at    = Column(DateTime, default=datetime.now)
 
 class TimetablePDF(Base):
     __tablename__ = "timetable_pdfs"
@@ -24,4 +24,4 @@ class TimetablePDF(Base):
     class_id      = Column(Integer, ForeignKey("classes.id"), nullable=False)
     file_data     = Column(Text, nullable=False)  # base64 encoded PDF
     file_name     = Column(String, nullable=False)
-    uploaded_at   = Column(DateTime, default=datetime.utcnow)
+    uploaded_at   = Column(DateTime, default=datetime.now)
