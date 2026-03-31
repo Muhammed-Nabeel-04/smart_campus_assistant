@@ -88,7 +88,7 @@ def start_session(
     from datetime import timedelta
     auto_end_at = None
     if payload.duration_minutes:
-        auto_end_at = datetime.utcnow() + timedelta(minutes=payload.duration_minutes)
+        auto_end_at = datetime.now() + timedelta(minutes=payload.duration_minutes)
 
     session = AttendanceSession(
         class_id=payload.class_id,
@@ -96,7 +96,7 @@ def start_session(
         faculty_id=faculty_id,
         token=token,
         status="active",
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(),
     )
 
     db.add(session)
@@ -114,7 +114,9 @@ def start_session(
 
 
 @router.post("/sessions/{session_id}/refresh-token/")
-def refresh_session_token(session_id: int, db: Session = Depends(get_db)):
+def refresh_session_token(session_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in ['faculty', 'admin']:
+        raise HTTPException(status_code=403, detail="Access denied")
     session = db.query(AttendanceSession).filter(
         AttendanceSession.id == session_id,
         AttendanceSession.status == "active",
@@ -142,7 +144,7 @@ def end_session(session_id: int, db: Session = Depends(get_db), current_user: di
         raise HTTPException(status_code=400, detail="Session already ended")
 
     session.status = "ended"
-    session.ended_at = datetime.utcnow()
+    session.ended_at = datetime.now()
     db.commit()
 
     # Count how many marked attendance
@@ -159,7 +161,9 @@ def end_session(session_id: int, db: Session = Depends(get_db), current_user: di
 
 
 @router.get("/session/{session_id}")
-def get_session_attendance(session_id: int, db: Session = Depends(get_db)):
+def get_session_attendance(session_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in ['faculty', 'admin']:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     session = db.query(AttendanceSession).filter(
         AttendanceSession.id == session_id
@@ -201,8 +205,10 @@ def get_session_attendance(session_id: int, db: Session = Depends(get_db)):
 # ============================================================================
 
 @router.get("/active-for-student/{student_id}")
-def get_active_session_for_student(student_id: int, db: Session = Depends(get_db)):
+def get_active_session_for_student(student_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """Check if there's an active session for the student's class"""
+    if current_user['role'] not in ['student', 'faculty', 'admin']:
+        raise HTTPException(status_code=403, detail="Access denied")
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         return {"active": False}
@@ -320,8 +326,8 @@ def mark_attendance(
         session_id=session.id,
         student_id=student_id,
         status="present",
-        date=datetime.utcnow().date(),
-        timestamp=datetime.utcnow(),
+        date=datetime.now().date(),
+        timestamp=datetime.now(),
     )
 
     db.add(attendance)
@@ -334,7 +340,7 @@ def mark_attendance(
         "student_id": student_id,
         "full_name": student.full_name,
         "status": "present",
-        "time": datetime.utcnow().strftime("%H:%M"),
+        "time": datetime.now().strftime("%H:%M"),
         "subject_name": subject.name if subject else "",
     }
 
@@ -351,10 +357,12 @@ def get_attendance_reports(
     to_date: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    # Get all sessions for this class+subject
+    # Get only ENDED sessions — active sessions excluded since students
+    # cannot be marked absent from a session that hasn't finished yet
     sessions = db.query(AttendanceSession).filter(
         AttendanceSession.class_id == class_id,
         AttendanceSession.subject_id == subject_id,
+        AttendanceSession.status == "ended",
     ).all()
 
     session_ids = [s.id for s in sessions]
@@ -446,15 +454,32 @@ def submit_manual_attendance(
 
     added = 0
 
+    # Bulk-load all needed data upfront
+    record_student_ids = list({r.student_id for r in payload.records})
+    students_map = {
+        s.id: s for s in db.query(Student).filter(Student.id.in_(record_student_ids)).all()
+    }
+    all_depts = db.query(Department).all()
+    dept_map = {d.code.lower(): d for d in all_depts}
+    active_sessions = db.query(AttendanceSession).filter(
+        AttendanceSession.status == "active"
+    ).all()
+    active_session_by_class = {s.class_id: s for s in active_sessions}
+    already_marked_set = set()
+    if active_sessions:
+        active_session_ids = [s.id for s in active_sessions]
+        marked_records = db.query(Attendance).filter(
+            Attendance.session_id.in_(active_session_ids),
+            Attendance.student_id.in_(record_student_ids),
+        ).all()
+        already_marked_set = {(a.session_id, a.student_id) for a in marked_records}
+
     for record in payload.records:
-        # Find the active session for this student's class
-        student = db.query(Student).filter(Student.id == record.student_id).first()
+        student = students_map.get(record.student_id)
         if not student:
             continue
 
-        dept = db.query(Department).filter(
-            Department.code.ilike(student.department)
-        ).first()
+        dept = dept_map.get((student.department or '').lower())
         if not dept:
             continue
 
@@ -466,27 +491,19 @@ def submit_manual_attendance(
         if not cls:
             continue
 
-        active_session = db.query(AttendanceSession).filter(
-            AttendanceSession.class_id == cls.id,
-            AttendanceSession.status == "active",
-        ).first()
+        active_session = active_session_by_class.get(cls.id)
         if not active_session:
             continue
 
-        # Check not already marked for this session (same as QR)
-        already_marked = db.query(Attendance).filter(
-            Attendance.session_id == active_session.id,
-            Attendance.student_id == record.student_id,
-        ).first()
-        if already_marked:
+        if (active_session.id, record.student_id) in already_marked_set:
             continue
 
         attendance = Attendance(
             session_id=active_session.id,
             student_id=record.student_id,
             status=record.status,
-            date=datetime.utcnow().date(),
-            timestamp=datetime.utcnow(),
+            date=datetime.now().date(),
+            timestamp=datetime.now(),
             remarks="Manual entry",
         )
 

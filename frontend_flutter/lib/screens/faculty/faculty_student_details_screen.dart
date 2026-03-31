@@ -70,8 +70,11 @@ class FacultyStudentDetailsScreen extends StatelessWidget {
                     _infoRow("Email", student['email'], cs),
                     _infoRow("Address", student['address'], cs),
                     _infoRow("Residential", student['residential_type'], cs),
-                    _infoRow("Hostel", student['hostel_name'], cs),
-                    _infoRow("Room No", student['room_number'], cs),
+                    if (student['residential_type'] != null &&
+                        student['residential_type'] != 'Day Scholar') ...[
+                      _infoRow("Hostel", student['hostel_name'], cs),
+                      _infoRow("Room No", student['room_number'], cs),
+                    ],
                     _infoRow("Parent Name", student['parent_name'], cs),
                     _infoRow("Parent Phone", student['parent_phone'], cs),
                     _infoRow("Parent Email", student['parent_email'], cs),

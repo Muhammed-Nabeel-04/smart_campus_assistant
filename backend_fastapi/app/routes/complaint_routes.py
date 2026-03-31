@@ -24,12 +24,12 @@ class UpdateComplaintRequest(BaseModel):
     admin_response: Optional[str] = None
 
 
-def _complaint_dict(c: Complaint, db: Session) -> dict:
-    student = db.query(Student).filter(Student.id == c.student_id).first()
+def _complaint_dict(c: Complaint, student_map: dict) -> dict:
+    student_name = student_map.get(c.student_id, "Unknown")
     return {
         "id": c.id,
         "student_id": c.student_id,
-        "student_name": student.full_name if student else "Unknown",
+        "student_name": student_name,
         "category": c.category,
         "priority": c.priority,
         "title": c.title,
@@ -42,6 +42,14 @@ def _complaint_dict(c: Complaint, db: Session) -> dict:
         "updated_at": c.updated_at.isoformat() if c.updated_at else None,
         "resolved_at": c.resolved_at.isoformat() if c.resolved_at else None,
     }
+
+
+def _build_student_map(complaints: list, db: Session) -> dict:
+    ids = list({c.student_id for c in complaints})
+    if not ids:
+        return {}
+    students = db.query(Student).filter(Student.id.in_(ids)).all()
+    return {s.id: s.full_name for s in students}
 
 
 # ============================================================================
@@ -101,7 +109,8 @@ def get_student_complaints(
         Complaint.student_id == student_id
     ).order_by(Complaint.created_at.desc()).all()
 
-    return [_complaint_dict(c, db) for c in complaints]
+    student_map = _build_student_map(complaints, db)
+    return [_complaint_dict(c, student_map) for c in complaints]
 
 
 # ============================================================================
@@ -141,7 +150,8 @@ def get_hod_complaints(
         query = query.filter(Complaint.status == status)
 
     complaints = query.order_by(Complaint.created_at.desc()).all()
-    return [_complaint_dict(c, db) for c in complaints]
+    student_map = _build_student_map(complaints, db)
+    return [_complaint_dict(c, student_map) for c in complaints]
 
 
 # ============================================================================
@@ -175,7 +185,8 @@ def get_principal_complaints(
         query = query.filter(Complaint.status == status)
 
     complaints = query.order_by(Complaint.created_at.desc()).all()
-    return [_complaint_dict(c, db) for c in complaints]
+    student_map = _build_student_map(complaints, db)
+    return [_complaint_dict(c, student_map) for c in complaints]
 
 
 # ============================================================================

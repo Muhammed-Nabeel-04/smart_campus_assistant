@@ -155,8 +155,10 @@ def get_my_classes(
 # ============================================================================
 
 @router.post("/generate-qr")
-def generate_faculty_qr(payload: dict, db: Session = Depends(get_db)):
+def generate_faculty_qr(payload: dict, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """Admin generates QR for faculty onboarding"""
+    if current_user['role'] not in ['admin', 'principal']:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     faculty_id = payload.get("faculty_id")
     if not faculty_id:
@@ -296,6 +298,12 @@ def get_faculty_stats(
     if current_user['role'] not in ['faculty', 'admin']:
         raise HTTPException(status_code=403, detail="Access denied")
 
+    # Faculty can only read their own stats
+    if current_user['role'] == 'faculty':
+        own = db.query(Faculty).filter(Faculty.user_id == current_user['user_id']).first()
+        if not own or own.id != faculty_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+
     total_sessions = db.query(AttendanceSession).filter(
         AttendanceSession.faculty_id == faculty_id,
         AttendanceSession.status == "ended"
@@ -379,7 +387,13 @@ def get_faculty_stats(
 
 
 @router.get("/{faculty_id}/active-sessions")
-def get_active_sessions(faculty_id: int, db: Session = Depends(get_db)):
+def get_active_sessions(faculty_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in ['faculty', 'admin']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if current_user['role'] == 'faculty':
+        own = db.query(Faculty).filter(Faculty.user_id == current_user['user_id']).first()
+        if not own or own.id != faculty_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     sessions = db.query(AttendanceSession).filter(
         AttendanceSession.faculty_id == faculty_id,
         AttendanceSession.status == "active"
@@ -404,8 +418,15 @@ def get_active_sessions(faculty_id: int, db: Session = Depends(get_db)):
 def get_sessions_by_period(
     faculty_id: int,
     period: str = "all",
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
+    if current_user['role'] not in ['faculty', 'admin']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if current_user['role'] == 'faculty':
+        own = db.query(Faculty).filter(Faculty.user_id == current_user['user_id']).first()
+        if not own or own.id != faculty_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     from datetime import timedelta
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
@@ -439,7 +460,13 @@ def get_sessions_by_period(
 
 
 @router.get("/{faculty_id}/recent-sessions")
-def get_recent_sessions(faculty_id: int, db: Session = Depends(get_db)):
+def get_recent_sessions(faculty_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in ['faculty', 'admin']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if current_user['role'] == 'faculty':
+        own = db.query(Faculty).filter(Faculty.user_id == current_user['user_id']).first()
+        if not own or own.id != faculty_id:
+            raise HTTPException(status_code=403, detail="Access denied")
 
     sessions = db.query(AttendanceSession).filter(
         AttendanceSession.faculty_id == faculty_id

@@ -21,6 +21,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   late AnimationController _blinkController;
   late Animation<double> _blinkAnim;
   Timer? _nextSlotTimer;
+  Timer? _countdownTimer;
+  DateTime? _targetClassTime;
   bool _alertSent = false;
 
   static const Color roleHOD = Color(0xFFF44336);
@@ -39,9 +41,17 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     )..repeat(reverse: true);
     _blinkAnim = Tween<double>(begin: 0.3, end: 1.0).animate(_blinkController);
     _loadStats();
-    // Poll next slot every 1 minute for live countdown
+
+    // Timer to fetch backend data every minute
     _nextSlotTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) _loadNextSlot();
+    });
+
+    // Timer to update the UI countdown every second
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _targetClassTime != null) {
+        setState(() {}); // Triggers rebuild to update the countdown text
+      }
     });
   }
 
@@ -49,6 +59,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   void dispose() {
     _blinkController.dispose();
     _nextSlotTimer?.cancel();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -57,7 +68,24 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
       final facultyId = SessionManager.facultyId!;
       final slot = await ApiService.getNextSlotFaculty(facultyId);
       if (mounted) {
-        setState(() => _nextSlot = slot.isNotEmpty ? slot : null);
+        setState(() {
+          _nextSlot = slot.isNotEmpty ? slot : null;
+          if (slot.isNotEmpty) {
+            int mins = slot['minutes_until'] as int? ?? 0;
+            DateTime fetchedTarget = DateTime.now().add(
+              Duration(minutes: mins),
+            );
+
+            // Only update target if it's null, or if the server sync is off by > 1 minute (prevents UI jumping)
+            if (_targetClassTime == null ||
+                _targetClassTime!.difference(fetchedTarget).abs().inMinutes >
+                    1) {
+              _targetClassTime = fetchedTarget;
+            }
+          } else {
+            _targetClassTime = null;
+          }
+        });
         _checkAndAlert(slot);
       }
     } catch (_) {}
@@ -75,7 +103,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
             '${slot['subject_name']} — ${slot['class_name']} in $minutesUntil min',
       );
     }
-    // Reset alert flag after class starts
     if (minutesUntil <= 0) _alertSent = false;
   }
 
@@ -107,7 +134,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
 
   Future<void> _startSessionFromSlot(Map<String, dynamic> slot) async {
     final cs = Theme.of(context).colorScheme;
-    // Navigate directly to start attendance with pre-filled data
     try {
       if (!mounted) return;
       Navigator.pushNamed(
@@ -158,8 +184,9 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     if (confirm == true && mounted) {
       await ApiService.logout();
       await SessionManager.clearSession();
-      if (mounted)
+      if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
+      }
     }
   }
 
@@ -184,6 +211,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
       canPop: false,
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading:
+              false, // <-- Add this line to hide the back button
           elevation: 0,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,43 +257,41 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                       GestureDetector(
                         onTap: _showActiveSessionsSheet,
                         behavior: HitTestBehavior.opaque,
-                        child: AnimatedBuilder(
-                          animation: _blinkAnim,
-                          builder: (context, child) => Opacity(
-                            opacity: _blinkAnim.value,
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: roleHOD.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: roleHOD),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: roleHOD.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: roleHOD),
+                          ),
+                          child: Row(
+                            children: [
+                              // FIX: only the icon blinks, not the whole banner
+                              AnimatedBuilder(
+                                animation: _blinkAnim,
+                                builder: (context, child) => Icon(
+                                  Icons.radio_button_checked,
+                                  color: roleHOD.withOpacity(_blinkAnim.value),
+                                  size: 20,
+                                ),
                               ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.radio_button_checked,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  '${_activeSessions.length} Active Session${_activeSessions.length > 1 ? 's' : ''} Running — Tap to manage',
+                                  style: const TextStyle(
                                     color: roleHOD,
-                                    size: 20,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      '${_activeSessions.length} Active Session${_activeSessions.length > 1 ? 's' : ''} Running — Tap to manage',
-                                      style: const TextStyle(
-                                        color: roleHOD,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.arrow_forward_ios,
-                                    color: roleHOD,
-                                    size: 14,
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                color: roleHOD,
+                                size: 14,
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -277,37 +304,54 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                     const SizedBox(height: 16),
 
                     // ── Stats Grid ───────────────────────────
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.3,
+                    Column(
                       children: [
-                        _buildTappableStatCard(
-                          'Total Classes',
-                          '${_stats?['total_sessions'] ?? 0}',
-                          Icons.class_,
-                          successGreen,
-                          _showSessionsSheet,
-                          cs,
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: _buildTappableStatCard(
+                                  'Total Classes',
+                                  '${_stats?['total_sessions'] ?? 0}',
+                                  Icons.class_,
+                                  successGreen,
+                                  _showSessionsSheet,
+                                  cs,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildTappableStatCard(
+                                  'Active Sessions',
+                                  '${_activeSessions.length}',
+                                  Icons.play_circle,
+                                  infoBlue,
+                                  _showActiveSessionsSheet,
+                                  cs,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        _buildTappableStatCard(
-                          'Active Sessions',
-                          '${_activeSessions.length}',
-                          Icons.play_circle,
-                          infoBlue,
-                          _showActiveSessionsSheet,
-                          cs,
-                        ),
-                        _buildTimetableCard(cs),
-                        _buildStatCard(
-                          'Avg Attendance',
-                          '${_stats?['average_attendance'] ?? 0}%',
-                          Icons.trending_up,
-                          principalPurple,
-                          cs,
+                        const SizedBox(height: 12),
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(child: _buildTimetableCard(cs)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildStatCard(
+                                  'Avg Attendance',
+                                  '${_stats?['average_attendance'] ?? 0}%',
+                                  Icons.trending_up,
+                                  principalPurple,
+                                  cs,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -326,76 +370,100 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
 
                     const SizedBox(height: 12),
 
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.2,
+                    Column(
                       children: [
-                        _buildActionCard(
-                          'Start Attendance',
-                          Icons.qr_code,
-                          cs.primary,
-                          () => Navigator.pushNamed(
-                            context,
-                            '/facultyDepartmentSelect',
-                            arguments: 'attendance',
-                          ),
-                          cs,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildActionCard(
+                                'Start Attendance',
+                                Icons.qr_code,
+                                cs.primary,
+                                () => Navigator.pushNamed(
+                                  context,
+                                  '/facultyDepartmentSelect',
+                                  arguments: 'attendance',
+                                ),
+                                cs,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildActionCard(
+                                'Manual Attendance',
+                                Icons.fact_check,
+                                roleHOD,
+                                () => Navigator.pushNamed(
+                                  context,
+                                  '/facultyDepartmentSelect',
+                                  arguments: 'manual',
+                                ),
+                                cs,
+                              ),
+                            ),
+                          ],
                         ),
-                        _buildActionCard(
-                          'Manual Attendance',
-                          Icons.fact_check,
-                          roleHOD,
-                          () => Navigator.pushNamed(
-                            context,
-                            '/facultyDepartmentSelect',
-                            arguments: 'manual',
-                          ),
-                          cs,
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildActionCard(
+                                'Manage Classes',
+                                Icons.class_,
+                                successGreen,
+                                () => Navigator.pushNamed(
+                                  context,
+                                  '/facultyDepartmentSelect',
+                                  arguments: 'classroom',
+                                ),
+                                cs,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildActionCard(
+                                'View Reports',
+                                Icons.assessment,
+                                principalPurple,
+                                () => Navigator.pushNamed(
+                                  context,
+                                  '/facultyDepartmentSelect',
+                                  arguments: 'reports',
+                                ),
+                                cs,
+                              ),
+                            ),
+                          ],
                         ),
-                        _buildActionCard(
-                          'Manage Classes',
-                          Icons.class_,
-                          successGreen,
-                          () => Navigator.pushNamed(
-                            context,
-                            '/facultyDepartmentSelect',
-                            arguments: 'classroom',
-                          ),
-                          cs,
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildActionCard(
+                                'Post Notice',
+                                Icons.notifications,
+                                warningOrange,
+                                () => Navigator.pushNamed(
+                                  context,
+                                  '/facultyPostNotification',
+                                ),
+                                cs,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _stats?['is_cc'] == true
+                                  ? _buildActionCard(
+                                      'Manage Timetable',
+                                      Icons.calendar_month,
+                                      const Color(0xFF00BCD4),
+                                      () => _openCCTimetable(),
+                                      cs,
+                                    )
+                                  : const SizedBox(),
+                            ),
+                          ],
                         ),
-                        _buildActionCard(
-                          'View Reports',
-                          Icons.assessment,
-                          principalPurple,
-                          () => Navigator.pushNamed(
-                            context,
-                            '/facultyDepartmentSelect',
-                            arguments: 'reports',
-                          ),
-                          cs,
-                        ),
-                        _buildActionCard(
-                          'Post Notice',
-                          Icons.notifications,
-                          warningOrange,
-                          () => Navigator.pushNamed(
-                            context,
-                            '/facultyPostNotification',
-                          ),
-                          cs,
-                        ),
-                        if (_stats?['is_cc'] == true)
-                          _buildActionCard(
-                            'Manage Timetable',
-                            Icons.calendar_month,
-                            const Color(0xFF00BCD4),
-                            () => _openCCTimetable(),
-                            cs,
-                          ),
                       ],
                     ),
 
@@ -442,7 +510,11 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, color: warningOrange, size: 16),
+                      Icon(
+                        Icons.calendar_today,
+                        color: warningOrange,
+                        size: 16,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -477,14 +549,16 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: warningOrange.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      _getCountdownLabel(
-                          _nextSlot!['minutes_until'] as int? ?? 0),
+                      _getRealtimeCountdownLabel(),
                       style: TextStyle(
                         color: warningOrange,
                         fontSize: 12,
@@ -497,8 +571,11 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.calendar_today,
-                      color: warningOrange.withOpacity(0.5), size: 28),
+                  Icon(
+                    Icons.calendar_today,
+                    color: warningOrange.withOpacity(0.5),
+                    size: 28,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     'No class',
@@ -513,73 +590,84 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     );
   }
 
-  // ── Next Session Card ──────────────────────────────────────
-  // ── Countdown label helper ───────────────────────────────────
-  String _getCountdownLabel(int minutesUntil) {
-    if (minutesUntil <= 0) return 'Now';
-    if (minutesUntil < 60) return '${minutesUntil}m left';
-    if (minutesUntil < 1440) {
-      final h = minutesUntil ~/ 60;
-      final m = minutesUntil % 60;
-      return m > 0 ? '${h}h ${m}m' : '${h}h';
+  // ── Real-time Countdown label helper ─────────────────────────
+  String _getRealtimeCountdownLabel() {
+    if (_targetClassTime == null) return 'Now';
+    final diff = _targetClassTime!.difference(DateTime.now());
+
+    if (diff.inSeconds <= 0) return 'Now';
+
+    if (diff.inHours > 24) {
+      final days = diff.inHours ~/ 24;
+      return days == 1 ? 'Tomorrow' : '${days}d left';
     }
-    final days = minutesUntil ~/ 1440;
-    return days == 1 ? 'Tomorrow' : '${days}d left';
+
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = diff.inHours;
+    final minutes = twoDigits(diff.inMinutes.remainder(60));
+    final seconds = twoDigits(diff.inSeconds.remainder(60));
+
+    if (hours > 0) {
+      return '${twoDigits(hours)}:$minutes:$seconds';
+    }
+    return '$minutes:$seconds';
   }
 
   // ── Blinking reminder banner (only shows ≤5 min before class) ──
+  // FIX: Container is always visible; only the icon blinks
   Widget _buildClassReminderBanner(ColorScheme cs) {
     final slot = _nextSlot!;
     final minutesUntil = slot['minutes_until'] as int? ?? 0;
 
     return GestureDetector(
       onTap: () => _startSessionFromSlot(slot),
-      child: AnimatedBuilder(
-        animation: _blinkAnim,
-        builder: (context, child) => Opacity(
-          opacity: _blinkAnim.value,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: roleHOD.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: roleHOD),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: roleHOD.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: roleHOD),
+        ),
+        child: Row(
+          children: [
+            AnimatedBuilder(
+              animation: _blinkAnim,
+              builder: (context, child) => Icon(
+                Icons.alarm,
+                color: roleHOD.withOpacity(_blinkAnim.value),
+                size: 22,
+              ),
             ),
-            child: Row(
-              children: [
-                const Icon(Icons.alarm, color: roleHOD, size: 22),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    minutesUntil <= 0
-                        ? '🔴 ${slot['subject_name']} is starting NOW — Tap to Start'
-                        : '⏰ ${slot['subject_name']} starts in ${minutesUntil}m — Tap to Start',
-                    style: const TextStyle(
-                      color: roleHOD,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _getRealtimeCountdownLabel() == 'Now'
+                    ? '🔴 ${slot['subject_name']} is starting NOW — Tap to Start'
+                    : '⏰ ${slot['subject_name']} starts in ${_getRealtimeCountdownLabel()} — Tap to Start',
+                style: const TextStyle(
+                  color: roleHOD,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: roleHOD,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'Start',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: roleHOD,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Start',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -589,7 +677,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   Widget _buildUpcomingClassInfo(ColorScheme cs) {
     final slot = _nextSlot!;
     final minutesUntil = slot['minutes_until'] as int? ?? 0;
-    final countdown = _getCountdownLabel(minutesUntil);
+    final countdown = _getRealtimeCountdownLabel();
     final canStart = minutesUntil <= 5;
 
     return Container(
@@ -618,9 +706,14 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
-                  color: (canStart ? successGreen : facultyCyan).withOpacity(0.15),
+                  color: (canStart ? successGreen : facultyCyan).withOpacity(
+                    0.15,
+                  ),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -661,7 +754,10 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: cs.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
@@ -697,7 +793,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
           padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
                 children: [
@@ -726,6 +822,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
               else
                 ..._activeSessions.map(
                   (s) => Container(
+                    // FIX: full width so text doesn't render vertically
+                    width: double.infinity,
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -765,6 +863,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: roleHOD,
+                            minimumSize:
+                                Size.zero, // Fixes the infinite width issue
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
                           ),
                           child: const Text('End'),
                         ),
@@ -849,10 +953,11 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                       period: period,
                     ),
                     builder: (ctx, snap) {
-                      if (snap.connectionState == ConnectionState.waiting)
+                      if (snap.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
+                      }
                       final sessions = snap.data ?? [];
-                      if (sessions.isEmpty)
+                      if (sessions.isEmpty) {
                         return Center(
                           child: Text(
                             'No sessions found',
@@ -861,6 +966,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                             ),
                           ),
                         );
+                      }
                       return ListView.builder(
                         controller: scroll,
                         itemCount: sessions.length,
@@ -911,6 +1017,14 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   void _showTimetableSheet() {
     final cs = Theme.of(context).colorScheme;
 
+    // FIX 1: Move state variables OUTSIDE the builder so they don't reset on every tap!
+    bool _showWeekly = false;
+
+    // FIX 2: Cache the API call OUTSIDE so it only fetches once when the sheet opens
+    final _timetableFuture = ApiService.getFacultyTimetable(
+      SessionManager.facultyId!,
+    );
+
     showModalBottomSheet(
       context: context,
       backgroundColor: cs.surface,
@@ -920,8 +1034,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
-          bool _showWeekly = false;
-
           return DraggableScrollableSheet(
             expand: false,
             initialChildSize: 0.6,
@@ -929,7 +1041,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
             builder: (ctx, scroll) => Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // ── Header ──────────────────────────────
                   Row(
@@ -949,7 +1061,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                         ),
                       ),
                       const Spacer(),
-                      // Toggle today / weekly
                       SegmentedButton<bool>(
                         segments: const [
                           ButtonSegment(
@@ -1024,49 +1135,66 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                               ],
                             ),
                           ),
-                          // Start Attendance button
-                          ElevatedButton(
-                            onPressed: () async {
-                              Navigator.pop(ctx);
-                              // Confirm dialog
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (c) => AlertDialog(
-                                  title: const Text('Start Class?'),
-                                  content: Text(
-                                    'Start attendance for ${_nextSlot!['subject_name']} — ${_nextSlot!['class_name']}?',
+                          StreamBuilder(
+                            stream: Stream.periodic(const Duration(seconds: 1)),
+                            builder: (context, _) {
+                              final timerText = _getRealtimeCountdownLabel();
+                              final isTimeToStart = timerText == 'Now';
+
+                              return ElevatedButton(
+                                onPressed: isTimeToStart
+                                    ? () async {
+                                        Navigator.pop(ctx);
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (c) => AlertDialog(
+                                            title: const Text('Start Class?'),
+                                            content: Text(
+                                              'Start attendance for ${_nextSlot!['subject_name']} — ${_nextSlot!['class_name']}?',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(c, false),
+                                                child: const Text('Cancel'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(c, true),
+                                                child: const Text('Start'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true && mounted) {
+                                          _startSessionFromSlot(_nextSlot!);
+                                        }
+                                      }
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: warningOrange,
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: warningOrange
+                                      .withOpacity(0.15),
+                                  disabledForegroundColor: warningOrange
+                                      .withOpacity(0.8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
                                   ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(c, false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () => Navigator.pop(c, true),
-                                      child: const Text('Start'),
-                                    ),
-                                  ],
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  minimumSize: Size.zero,
+                                ),
+                                child: Text(
+                                  isTimeToStart ? 'Start' : timerText,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               );
-                              if (confirm == true && mounted) {
-                                _startSessionFromSlot(_nextSlot!);
-                              }
                             },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: warningOrange,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text(
-                              'Start',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
                           ),
                         ],
                       ),
@@ -1077,9 +1205,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                   // ── Timetable list ───────────────────────
                   Expanded(
                     child: FutureBuilder<Map<String, dynamic>>(
-                      future: ApiService.getFacultyTimetable(
-                        SessionManager.facultyId!,
-                      ),
+                      // Uses the cached future so it doesn't flicker/reload!
+                      future: _timetableFuture,
                       builder: (ctx, snap) {
                         if (snap.connectionState == ConnectionState.waiting) {
                           return Center(
@@ -1087,24 +1214,31 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                           );
                         }
 
-                        final schedule =
+                        // FIX 3: Robust parsing. Makes everything lowercase and removes spaces
+                        // so database formatting errors don't hide your classes.
+                        final rawSchedule =
                             (snap.data?['schedule'] as Map<String, dynamic>?) ??
                             {};
+                        final schedule = <String, List<dynamic>>{};
+                        rawSchedule.forEach((key, value) {
+                          schedule[key.trim().toLowerCase()] =
+                              List<dynamic>.from(value as List? ?? []);
+                        });
 
-                        final today = _todayName();
+                        final today = _todayName().toLowerCase();
                         final days = _showWeekly
                             ? [
-                                'Monday',
-                                'Tuesday',
-                                'Wednesday',
-                                'Thursday',
-                                'Friday',
-                                'Saturday',
+                                'monday',
+                                'tuesday',
+                                'wednesday',
+                                'thursday',
+                                'friday',
+                                'saturday',
                               ]
                             : [today];
 
                         final hasAny = days.any(
-                          (d) => (schedule[d] as List?)?.isNotEmpty == true,
+                          (d) => schedule[d]?.isNotEmpty == true,
                         );
 
                         if (!hasAny) {
@@ -1134,12 +1268,16 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                         return ListView(
                           controller: scroll,
                           children: days.map((day) {
-                            final slots = (schedule[day] as List?) ?? [];
+                            final slots = schedule[day] ?? [];
                             if (slots.isEmpty) return const SizedBox();
+
+                            // Re-capitalize the day for the UI
+                            final displayDay =
+                                day[0].toUpperCase() + day.substring(1);
+
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Day label
                                 Padding(
                                   padding: const EdgeInsets.only(
                                     bottom: 8,
@@ -1161,7 +1299,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                           ),
                                         ),
                                         child: Text(
-                                          day == today ? 'Today' : day,
+                                          day == today ? 'Today' : displayDay,
                                           style: TextStyle(
                                             color: day == today
                                                 ? cs.onPrimary
@@ -1174,10 +1312,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                     ],
                                   ),
                                 ),
-                                // Slots
                                 ...slots.map(
-                                  (slot) =>
-                                      _buildTimetableSlotTile(slot, cs, ctx),
+                                  (slot) => _buildTimetableSlotTile(
+                                    slot as Map<String, dynamic>,
+                                    cs,
+                                    ctx,
+                                  ),
                                 ),
                                 const SizedBox(height: 12),
                               ],
@@ -1215,6 +1355,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     BuildContext sheetCtx,
   ) {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1224,7 +1365,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
       ),
       child: Row(
         children: [
-          // Time column
           Column(
             children: [
               Text(
@@ -1269,36 +1409,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
               ],
             ),
           ),
-          // Quick start button
-          IconButton(
-            icon: Icon(Icons.play_circle_outline, color: cs.primary, size: 26),
-            tooltip: 'Start Attendance',
-            onPressed: () async {
-              Navigator.pop(sheetCtx);
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (c) => AlertDialog(
-                  title: const Text('Start Class?'),
-                  content: Text(
-                    'Start attendance for ${slot['subject_name']} — ${slot['class_name']}?',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(c, false),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(c, true),
-                      child: const Text('Start'),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true && mounted) {
-                _startSessionFromSlot(slot);
-              }
-            },
-          ),
+          // The IconButton (play button) has been removed from here!
         ],
       ),
     );
@@ -1405,41 +1516,37 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     VoidCallback onTap,
     ColorScheme cs,
   ) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.3)),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 32),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  color: cs.onSurface,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
+              child: Icon(icon, color: color, size: 32),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
@@ -1448,33 +1555,53 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   List<Widget> _buildRecentSessions(List<dynamic> sessions, ColorScheme cs) {
     return sessions.take(5).map((session) {
       final isActive = session['status'] == 'active';
-      return Card(
+      return Container(
+        width: double.infinity,
         margin: const EdgeInsets.only(bottom: 12),
-        shape: RoundedRectangleBorder(
-          side: BorderSide(
-            color: isActive ? roleHOD.withOpacity(0.4) : Colors.transparent,
-          ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: cs.surface,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isActive
+                ? roleHOD.withOpacity(0.4)
+                : cs.onSurface.withOpacity(0.08),
+          ),
         ),
-        child: ListTile(
-          leading: Icon(
-            isActive ? Icons.radio_button_checked : Icons.schedule,
-            color: isActive ? roleHOD : cs.primary,
-          ),
-          title: Text(
-            session['subject_name'] ?? 'Subject',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: Text(
-            '${session['class_name']} • ${session['students_present']} present',
-          ),
-          trailing: Text(
-            session['started_at']?.toString().substring(11, 16) ?? '',
-            style: TextStyle(
-              fontSize: 11,
-              color: cs.onSurface.withOpacity(0.4),
+        child: Row(
+          children: [
+            Icon(
+              isActive ? Icons.radio_button_checked : Icons.schedule,
+              color: isActive ? roleHOD : cs.primary,
+              size: 24,
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    session['subject_name'] ?? 'Subject',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '${session['class_name']} • ${session['students_present']} present',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: cs.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              session['started_at']?.toString().substring(11, 16) ?? '',
+              style: TextStyle(
+                fontSize: 11,
+                color: cs.onSurface.withOpacity(0.4),
+              ),
+            ),
+          ],
         ),
       );
     }).toList();

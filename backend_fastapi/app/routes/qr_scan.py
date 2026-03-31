@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
-from app.services.deps import get_db
+from app.services.deps import get_db, get_current_user
 from app.models.attendance_session import AttendanceSession
 from app.models.attendance import Attendance
 
@@ -43,7 +43,8 @@ def start_session(
 @router.post("/refresh-token")
 def refresh_token(
     session_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     session = db.query(AttendanceSession).filter(
         AttendanceSession.id == session_id

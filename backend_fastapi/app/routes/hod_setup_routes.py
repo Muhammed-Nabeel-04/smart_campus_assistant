@@ -21,7 +21,36 @@ bcrypt = CryptContext(schemes=["bcrypt"])
 # ============================================================================
 
 class ChangePasswordRequest(BaseModel):
+    old_password: str
     new_password: str
+
+class VerifiedChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password-verified")
+def change_password_verified(
+    payload: VerifiedChangePasswordRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    user = db.query(User).filter(User.id == current_user['user_id']).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not bcrypt.verify(payload.current_password, user.password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    if len(payload.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+
+    user.password = bcrypt.hash(payload.new_password)
+    db.commit()
+    return {"message": "Password changed successfully"}
 
 
 @router.post("/change-password")
@@ -36,6 +65,12 @@ def change_password(
     user = db.query(User).filter(User.id == current_user['user_id']).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    if not bcrypt.verify(payload.old_password, user.password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    if len(payload.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
 
     user.password = bcrypt.hash(payload.new_password)
     db.commit()
@@ -84,11 +119,13 @@ def create_subjects_batch(
                 department=subject_data.department,
                 year=subject_data.year,
                 semester=subject_data.semester,
-                code=f"{subject_data.department[:3].upper()}{subject_data.semester}{len(created_subjects)+1:02d}"
+                code="TEMP"
             )
             db.add(sub)
             db.commit()
             db.refresh(sub)
+            sub.code = f"{subject_data.department[:3].upper()}{subject_data.semester}{sub.id:03d}"
+            db.commit()
             created_subjects.append(sub)
 
         dept = db.query(Department).filter(
@@ -285,13 +322,9 @@ def add_subject(
     if existing:
         raise HTTPException(status_code=400, detail="Subject already exists")
 
-    count = db.query(Subject).filter(
-        Subject.department == dept.code
-    ).count()
-
     new_sub = Subject(
         name=payload.name,
-        code=f"{dept.code[:3].upper()}{payload.semester}{count+1:02d}",
+        code="TEMP",
         department=dept.code,
         year=payload.year,
         semester=payload.semester,
@@ -301,6 +334,8 @@ def add_subject(
     db.add(new_sub)
     db.commit()
     db.refresh(new_sub)
+    new_sub.code = f"{dept.code[:3].upper()}{payload.semester}{new_sub.id:03d}"
+    db.commit()
 
     classes = db.query(ClassModel).filter(
         ClassModel.department_id == dept.id,

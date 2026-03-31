@@ -41,11 +41,27 @@ def startup():
     from sqlalchemy import inspect, text
     with engine.connect() as conn:
         inspector = inspect(engine)
+
+        # Departments: timetable_days
         dept_cols = [c['name'] for c in inspector.get_columns('departments')]
         if 'timetable_days' not in dept_cols:
             conn.execute(text("ALTER TABLE departments ADD COLUMN timetable_days TEXT"))
             conn.commit()
             print("✅ Added timetable_days column to departments table")
+
+        # Students: add columns that were added later
+        stu_cols = [c['name'] for c in inspector.get_columns('students')]
+        new_stu_cols = [
+            'parent_relationship', 'hostel_name', 'room_number',
+            'emergency_contact_name', 'emergency_contact_phone',
+            'medical_conditions',
+        ]
+        for col in new_stu_cols:
+            if col not in stu_cols:
+                conn.execute(text(f"ALTER TABLE students ADD COLUMN {col} TEXT"))
+                print(f"✅ Added {col} column to students table")
+        conn.commit()
+
     print("🚀 Smart Campus API started")
 
 # ── Routes imports ──

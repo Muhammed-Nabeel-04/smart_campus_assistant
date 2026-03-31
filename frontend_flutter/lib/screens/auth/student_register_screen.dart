@@ -14,6 +14,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _registerNumberController = TextEditingController();
   final _departmentController = TextEditingController();
   final _yearController = TextEditingController();
 
@@ -28,6 +29,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _registerNumberController.dispose();
     _departmentController.dispose();
     _yearController.dispose();
     super.dispose();
@@ -43,6 +45,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        registerNumber: _registerNumberController.text.trim(),
         department: _departmentController.text.trim(),
         year: _selectedYear ?? _yearController.text.trim(),
       );
@@ -138,6 +141,22 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                     if (!v.contains('@')) return 'Enter a valid email';
                     return null;
                   },
+                ),
+
+                const SizedBox(height: 14),
+
+                // Register Number
+                TextFormField(
+                  controller: _registerNumberController,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    labelText: 'Register Number',
+                    hintText: 'e.g. 22CS001',
+                    prefixIcon: Icon(Icons.badge_outlined),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Enter your register number'
+                      : null,
                 ),
 
                 const SizedBox(height: 14),

@@ -225,13 +225,17 @@ def get_all_faculty(
     else:
         faculty_list = db.query(Faculty).all()
     
+    # Bulk-load users and departments to avoid N+1
+    user_ids = [f.user_id for f in faculty_list]
+    users_map = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()}
+    all_depts = db.query(Department).all()
+    dept_name_map = {d.code.lower(): d.name for d in all_depts}
+
     result = []
     for fac in faculty_list:
-        # Skip HOD from their own faculty list (HODs don't teach)
-        # But CC faculty SHOULD appear since they teach classes
         if current_user['role'] == 'admin' and fac.user_id == current_user['user_id']:
             continue
-        user = db.query(User).filter(User.id == fac.user_id).first()
+        user = users_map.get(fac.user_id)
         assignments = []
         # ✅ FIX: Direct SQL query to bypass SQLAlchemy model cache
         raw = db.execute(
@@ -256,7 +260,7 @@ def get_all_faculty(
             "name": fac.full_name,
             "email": fac.email or (user.email if user else None),
             "employee_id": fac.employee_id,
-            "department": db.query(Department).filter(Department.code.ilike(fac.department)).first().name if db.query(Department).filter(Department.code.ilike(fac.department)).first() else fac.department,
+            "department": dept_name_map.get((fac.department or '').lower(), fac.department),
             "phone": fac.phone_number,
             "teaching_assignments": assignments,
             "created_at": fac.created_at.isoformat() if fac.created_at else None,
@@ -429,7 +433,7 @@ def update_faculty(
                         ).all()
                         for session in active_sessions:
                             session.status = "ended"
-                            session.ended_at = datetime.utcnow()
+                            session.ended_at = datetime.now()
 
         db.execute(
             __import__('sqlalchemy').text(
@@ -438,7 +442,7 @@ def update_faculty(
             {"ac": json.dumps(assignments_list), "id": faculty_id}
         )
 
-    faculty.updated_at = datetime.utcnow()
+    faculty.updated_at = datetime.now()
 
     db.commit()
     db.refresh(faculty)
@@ -468,7 +472,7 @@ def delete_faculty(
     ).all()
     for session in active_sessions:
         session.status = "ended"
-        session.ended_at = datetime.utcnow()
+        session.ended_at = datetime.now()
     if active_sessions:
         db.commit()
 
@@ -523,7 +527,7 @@ def generate_faculty_qr(
     ).all()
     for old in old_tokens:
         old.used = True
-        old.used_at = datetime.utcnow()
+        old.used_at = datetime.now()
     if old_tokens:
         db.commit()
 
@@ -535,7 +539,7 @@ def generate_faculty_qr(
         token=token,
         role="faculty",
         target_id=faculty_id,
-        expiry_time=datetime.utcnow() + timedelta(minutes=1),
+        expiry_time=datetime.now() + timedelta(minutes=1),
         used=False
     )
     
@@ -616,7 +620,7 @@ def update_complaint(
     if payload.admin_response:
         complaint.admin_response = payload.admin_response
     
-    complaint.updated_at = datetime.utcnow()
+    complaint.updated_at = datetime.now()
     
     db.commit()
     db.refresh(complaint)

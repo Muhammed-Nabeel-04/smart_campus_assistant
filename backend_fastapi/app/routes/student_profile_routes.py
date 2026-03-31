@@ -42,4 +42,10 @@ def get_student_profile(student_id: int, db: Session = Depends(get_db), current_
         "parent_name": student.parent_name,
         "parent_phone": student.parent_phone,
         "parent_email": student.parent_email,
+        "parent_relationship": student.parent_relationship,
+        "hostel_name": student.hostel_name,
+        "room_number": student.room_number,
+        "emergency_contact_name": student.emergency_contact_name,
+        "emergency_contact_phone": student.emergency_contact_phone,
+        "medical_conditions": student.medical_conditions,
     }

@@ -33,6 +33,12 @@ class AddStudentRequest(BaseModel):
     parent_name: Optional[str] = None
     parent_phone: Optional[str] = None
     parent_email: Optional[str] = None
+    parent_relationship: Optional[str] = None
+    hostel_name: Optional[str] = None
+    room_number: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    medical_conditions: Optional[str] = None
 
 # ✅ Added Partial Update Model for Flutter
 class UpdateStudentRequest(BaseModel):
@@ -47,6 +53,12 @@ class UpdateStudentRequest(BaseModel):
     parent_name: Optional[str] = None
     parent_phone: Optional[str] = None
     parent_email: Optional[str] = None
+    parent_relationship: Optional[str] = None
+    hostel_name: Optional[str] = None
+    room_number: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    medical_conditions: Optional[str] = None
 
 
 # ===============================
@@ -96,7 +108,18 @@ def get_students(
             "phone_number": s.phone_number,
             "gender": s.gender,
             "blood_group": s.blood_group,
+            "date_of_birth": s.date_of_birth,
             "residential_type": s.residential_type,
+            "address": s.address,
+            "parent_name": s.parent_name,
+            "parent_phone": s.parent_phone,
+            "parent_email": s.parent_email,
+            "parent_relationship": s.parent_relationship,
+            "hostel_name": s.hostel_name,
+            "room_number": s.room_number,
+            "emergency_contact_name": s.emergency_contact_name,
+            "emergency_contact_phone": s.emergency_contact_phone,
+            "medical_conditions": s.medical_conditions,
         }
         for s in students
     ]
@@ -137,6 +160,12 @@ def add_student(payload: AddStudentRequest, db: Session = Depends(get_db), curre
         parent_name=payload.parent_name,
         parent_phone=payload.parent_phone,
         parent_email=payload.parent_email,
+        parent_relationship=payload.parent_relationship,
+        hostel_name=payload.hostel_name,
+        room_number=payload.room_number,
+        emergency_contact_name=payload.emergency_contact_name,
+        emergency_contact_phone=payload.emergency_contact_phone,
+        medical_conditions=payload.medical_conditions,
     )
 
     db.add(student)
@@ -185,6 +214,12 @@ def update_student(
     if payload.parent_name is not None: student.parent_name = payload.parent_name
     if payload.parent_phone is not None: student.parent_phone = payload.parent_phone
     if payload.parent_email is not None: student.parent_email = payload.parent_email
+    if payload.parent_relationship is not None: student.parent_relationship = payload.parent_relationship
+    if payload.hostel_name is not None: student.hostel_name = payload.hostel_name
+    if payload.room_number is not None: student.room_number = payload.room_number
+    if payload.emergency_contact_name is not None: student.emergency_contact_name = payload.emergency_contact_name
+    if payload.emergency_contact_phone is not None: student.emergency_contact_phone = payload.emergency_contact_phone
+    if payload.medical_conditions is not None: student.medical_conditions = payload.medical_conditions
 
     db.commit()
     db.refresh(student)
@@ -229,6 +264,12 @@ def get_student(student_id: int, db: Session = Depends(get_db), current_user: di
         "parent_name": student.parent_name,
         "parent_phone": student.parent_phone,
         "parent_email": student.parent_email,
+        "parent_relationship": student.parent_relationship,
+        "hostel_name": student.hostel_name,
+        "room_number": student.room_number,
+        "emergency_contact_name": student.emergency_contact_name,
+        "emergency_contact_phone": student.emergency_contact_phone,
+        "medical_conditions": student.medical_conditions,
     }
 
 

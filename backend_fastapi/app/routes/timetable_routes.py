@@ -16,7 +16,7 @@ from app.models.user import User
 
 router = APIRouter(prefix="/timetable", tags=["Timetable"])
 
-DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 # ── Pydantic Models ───────────────────────────────────────────
 
@@ -73,14 +73,21 @@ def _get_next_slot(slots: list, db: Session) -> Optional[dict]:
     today = now.strftime("%A")  # "Monday", "Tuesday" etc.
     current_minutes = now.hour * 60 + now.minute
 
-    day_order = {d: i for i, d in enumerate(DAYS)}
-    today_idx = day_order.get(today, 0)
+    # Only schedule days (exclude Sunday from slot lookup)
+    SCHEDULE_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    day_order = {d: i for i, d in enumerate(SCHEDULE_DAYS)}
+
+    # If today is Sunday, treat as 6 so all weekday slots are "ahead"
+    today_idx = day_order.get(today, 6)
 
     best_slot = None
     best_delta = float('inf')
 
     for slot in slots:
-        slot_day_idx = day_order.get(slot.day_of_week, 0)
+        slot_day_idx = day_order.get(slot.day_of_week)
+        if slot_day_idx is None:
+            continue  # Skip any slot with an unrecognised day
+
         slot_minutes = _minutes_from_midnight(slot.start_time)
 
         # Days until this slot

@@ -24,6 +24,7 @@ class StudentRegisterRequest(BaseModel):
     password: str
     department: str
     year: str
+    register_number: str
 
 class FacultyRegisterRequest(BaseModel):
     name: str
@@ -55,16 +56,22 @@ def register_student(payload: StudentRegisterRequest, db: Session = Depends(get_
         email=payload.email,
         password=bcrypt.hash(payload.password),
         role="student",
-        created_at=datetime.utcnow()
+        created_at=datetime.now()
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
+    existing_reg = db.query(Student).filter(
+        Student.register_number == payload.register_number
+    ).first()
+    if existing_reg:
+        raise HTTPException(status_code=400, detail="Register number already exists")
+
     new_student = Student(
         user_id=new_user.id,
         full_name=payload.name,
-        register_number=payload.email,
+        register_number=payload.register_number,
         department=payload.department,
         year=payload.year,
         section="A",
@@ -111,7 +118,7 @@ def register_faculty(payload: FacultyRegisterRequest, db: Session = Depends(get_
         email=payload.email,
         password=bcrypt.hash(payload.password),
         role="faculty",
-        created_at=datetime.utcnow()
+        created_at=datetime.now()
     )
     db.add(new_user)
     db.commit()
@@ -190,12 +197,12 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     ).first()
     if existing_session:
         existing_session.token = token
-        existing_session.expires_at = datetime.utcnow() + timedelta(days=30)
+        existing_session.expires_at = datetime.now() + timedelta(days=30)
     else:
         db.add(SessionToken(
             user_id=user.id,
             token=token,
-            expires_at=datetime.utcnow() + timedelta(days=30)
+            expires_at=datetime.now() + timedelta(days=30)
         ))
     db.commit()
 
@@ -260,7 +267,7 @@ def student_qr_login(payload: dict, db: Session = Depends(get_db)):
     if not onboarding:
         raise HTTPException(status_code=400, detail="Invalid or expired QR code")
 
-    if datetime.utcnow() > onboarding.expiry_time:
+    if datetime.now() > onboarding.expiry_time:
         raise HTTPException(status_code=400, detail="QR code has expired")
 
     from app.models.student import Student
@@ -291,7 +298,7 @@ def student_qr_login(payload: dict, db: Session = Depends(get_db)):
 
     # Mark token as used
     onboarding.used = True
-    onboarding.used_at = datetime.utcnow()
+    onboarding.used_at = datetime.now()
     db.commit()
 
     # Generate JWT
@@ -308,12 +315,12 @@ def student_qr_login(payload: dict, db: Session = Depends(get_db)):
     ).first()
     if existing:
         existing.token = jwt_token
-        existing.expires_at = datetime.utcnow() + timedelta(days=30)
+        existing.expires_at = datetime.now() + timedelta(days=30)
     else:
         db.add(SessionToken(
             user_id=user.id,
             token=jwt_token,
-            expires_at=datetime.utcnow() + timedelta(days=30)
+            expires_at=datetime.now() + timedelta(days=30)
         ))
     db.commit()
 

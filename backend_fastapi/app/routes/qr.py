@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import uuid
 
-from app.services.deps import get_db
+from app.services.deps import get_db, get_current_user
 from app.models.attendance_session import AttendanceSession
 from app.models.session_token import SessionToken
 from app.models.attendance import Attendance
@@ -37,7 +37,7 @@ def start_session(course: str, faculty_id: int, db: Session = Depends(get_db)):
 # REFRESH TOKEN (Every 3 sec)
 # ----------------------------
 @router.post("/refresh-token")
-def refresh_token(session_id: int, db: Session = Depends(get_db)):
+def refresh_token(session_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     session = db.query(AttendanceSession).filter(
         AttendanceSession.id == session_id
     ).first()

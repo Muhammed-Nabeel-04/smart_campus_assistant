@@ -35,6 +35,7 @@ class ApiService {
     required String password,
     required String department,
     required String year,
+    required String registerNumber,
   }) async {
     try {
       final response = await http
@@ -47,6 +48,7 @@ class ApiService {
               "password": password,
               "department": department,
               "year": year,
+              "register_number": registerNumber,
             }),
           )
           .timeout(_timeout);
@@ -1286,22 +1288,7 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> changeAdminPassword({
-    required String newPassword,
-  }) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse("$_baseUrl/hod/change-password"),
-            headers: _authHeaders,
-            body: jsonEncode({'new_password': newPassword}),
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
+  // Removed: changeAdminPassword — use changeHODPassword instead
 
   // ============================================================================
   // HOD SUBJECT MANAGEMENT
@@ -1840,7 +1827,14 @@ class ApiService {
       final data = _handleResponse(response) as Map<String, dynamic>;
       return List<String>.from(data['timetable_days'] ?? []);
     } catch (e) {
-      return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      return [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+      ];
     }
   }
 
