@@ -308,7 +308,6 @@ def create_faculty(
     db.refresh(new_user)
 
     # Process teaching assignments — auto-creates depts, classes, subjects
-    print(f"DEBUG assignments received: {payload.teaching_assignments}")
     assignments_list = []
     if payload.teaching_assignments:
         for ta in payload.teaching_assignments:
@@ -870,7 +869,7 @@ class HODChangePasswordPayload(BaseModel):
     current_password: str
     new_password: str
 
-@router.post("/admin/hod/change-password-verified")
+@router.post("/hod/change-password-verified")
 def change_hod_password_verified(
     payload: HODChangePasswordPayload,
     current_user: dict = Depends(get_current_user),
@@ -895,7 +894,7 @@ class HODChangeEmailPayload(BaseModel):
     new_email: str
     password: str
 
-@router.post("/admin/hod/change-email")
+@router.post("/hod/change-email")
 def change_hod_email(
     payload: HODChangeEmailPayload,
     current_user: dict = Depends(get_current_user),

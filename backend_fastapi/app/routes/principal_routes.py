@@ -32,10 +32,14 @@ def get_principal_stats(
     if current_user['role'] != 'principal':
         raise HTTPException(status_code=403, detail="Principal access required")
     
+    from app.models.faculty import Faculty
+    from app.models.student import Student
+
     total_departments = db.query(Department).count()
     total_hods = db.query(User).filter(User.role == "admin").count()
-    total_faculty = db.query(User).filter(User.role == "faculty").count()
-    total_students = db.query(User).filter(User.role == "student").count()
+    # Count actual faculty/student records, not just those with user accounts
+    total_faculty = db.query(Faculty).count()
+    total_students = db.query(Student).count()
     
     # Departments without HODs
     depts_without_hod = db.query(Department).filter(Department.hod_user_id == None).count()
@@ -198,12 +202,42 @@ def delete_department(
     dept = db.query(Department).filter(Department.id == department_id).first()
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
-    
-    # TODO: Check if department has students/faculty before deleting
-    
+
+    # Block deletion if department still has active data
+    from app.models.class_model import ClassModel
+    from app.models.faculty import Faculty
+    from app.models.student import Student
+
+    has_classes = db.query(ClassModel).filter(
+        ClassModel.department_id == department_id
+    ).first()
+    if has_classes:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete department: it still has classes. Remove all classes first."
+        )
+
+    has_faculty = db.query(Faculty).filter(
+        Faculty.department.ilike(dept.code)
+    ).first()
+    if has_faculty:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete department: it still has faculty members. Remove them first."
+        )
+
+    has_students = db.query(Student).filter(
+        Student.department.ilike(dept.code)
+    ).first()
+    if has_students:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete department: it still has students enrolled."
+        )
+
     db.delete(dept)
     db.commit()
-    
+
     return {"message": "Department deleted successfully"}
 
 
@@ -479,8 +513,13 @@ def update_principal_profile(
     # For phone/college we store in a dedicated table or reuse notice/meta
     # Simplest: store in user table extra fields via JSON in existing text column
     import json
+    from app.models.notice import Notice
+
+    # Store principal meta in a dedicated notice row keyed by user_id
+    meta_key = f"__principal_meta_{current_user['user_id']}__"
+    meta_row = db.query(Notice).filter(Notice.title == meta_key).first()
     try:
-        meta = json.loads(user.employee_id or '{}')
+        meta = json.loads(meta_row.content or '{}') if meta_row else {}
     except Exception:
         meta = {}
 
@@ -491,7 +530,10 @@ def update_principal_profile(
     if payload.college_code is not None:
         meta['college_code'] = payload.college_code
 
-    user.employee_id = json.dumps(meta)
+    if meta_row:
+        meta_row.content = json.dumps(meta)
+    else:
+        db.add(Notice(title=meta_key, content=json.dumps(meta), target_role="principal"))
     db.commit()
 
     return {
@@ -515,8 +557,11 @@ def get_principal_profile(
         raise HTTPException(status_code=404, detail="User not found")
 
     import json
+    from app.models.notice import Notice
+    meta_key = f"__principal_meta_{current_user['user_id']}__"
+    meta_row = db.query(Notice).filter(Notice.title == meta_key).first()
     try:
-        meta = json.loads(user.employee_id or '{}')
+        meta = json.loads(meta_row.content or '{}') if meta_row else {}
     except Exception:
         meta = {}
 
@@ -526,7 +571,7 @@ def get_principal_profile(
         "phone": meta.get('phone', ''),
         "college_name": meta.get('college_name', ''),
         "college_code": meta.get('college_code', ''),
-    }    
+    }
 
 # ── Get department sections ───────────────────────────────────
 @router.get("/departments/{dept_id}/sections")

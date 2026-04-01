@@ -115,18 +115,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               const SizedBox(height: 16),
               _RoleButton(
                 icon: Icons.badge_rounded,
-                label: 'Faculty',
-                subtitle: 'Manage sessions & post notifications',
+                label: 'Faculty / HOD',
+                subtitle: 'Manage sessions, classes & complaints',
                 color: const Color(0xFF00BCD4),
                 onTap: () => Navigator.pushNamed(context, '/facultyLogin'),
-              ),
-              const SizedBox(height: 16),
-              _RoleButton(
-                icon: Icons.admin_panel_settings_rounded,
-                label: 'Admin / HOD',
-                subtitle: 'Manage campus & resolve complaints',
-                color: const Color(0xFFF44336),
-                onTap: () => Navigator.pushNamed(context, '/adminLogin'),
               ),
               const SizedBox(height: 16),
               _RoleButton(

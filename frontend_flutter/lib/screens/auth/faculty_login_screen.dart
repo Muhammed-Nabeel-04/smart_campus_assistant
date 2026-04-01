@@ -36,22 +36,27 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
         password: _passwordController.text,
       );
 
-      if (response['role'] != 'faculty') {
-        throw Exception('Invalid credentials. Faculty access only.');
+      final role = response['role'] as String? ?? '';
+
+      if (role != 'faculty' && role != 'admin') {
+        throw Exception('Invalid credentials. Faculty / HOD access only.');
       }
 
       await SessionManager.saveSession(
         userId: response['user_id'],
         name: response['name'],
         email: response['email'],
-        role: 'faculty',
+        role: role,
         token: response['token'],
         facultyId: response['faculty_id'],
         department: response['department'],
       );
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/facultyDashboard');
+        Navigator.pushReplacementNamed(
+          context,
+          role == 'admin' ? '/adminDashboard' : '/facultyDashboard',
+        );
       }
     } on ApiException catch (e) {
       if (mounted) _showError(e.message);
@@ -110,9 +115,8 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
 
                   const SizedBox(height: 32),
 
-                  // ── Title ─────────────────────────────────────
                   Text(
-                    'Faculty Portal',
+                    'Faculty / HOD Portal',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -227,7 +231,7 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
 
                   const SizedBox(height: 16),
 
-                  // ── First Time Setup ──────────────────────────
+                  // ── First Time Setup (Faculty) ─────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -236,7 +240,27 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
                           Navigator.pushNamed(context, '/facultyQrOnboarding'),
                       icon: const Icon(Icons.qr_code_scanner, size: 24),
                       label: const Text(
-                        'First Time Setup',
+                        'First Time Setup (Faculty)',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // ── First Time Setup (HOD) ────────────────────
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/hodQROnboarding'),
+                      icon: const Icon(Icons.qr_code_scanner, size: 24),
+                      label: const Text(
+                        'First Time Setup (HOD)',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -261,7 +285,7 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'New faculty? Get your setup QR from admin.',
+                            'New faculty or HOD? Get your setup QR from admin.',
                             style: TextStyle(color: cs.primary, fontSize: 12),
                           ),
                         ),

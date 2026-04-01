@@ -71,13 +71,45 @@ def get_student_notifications(student_id: int, db: Session = Depends(get_db), cu
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    # Get all notifications relevant to students
-    # Includes: all, student, department, class targets
+    # Get student's class info for filtering
+    from app.models.department import Department
+    from app.models.class_model import ClassModel
+
+    dept = db.query(Department).filter(
+        Department.code.ilike(student.department)
+    ).first()
+
+    cls = None
+    if dept:
+        cls = db.query(ClassModel).filter(
+            ClassModel.department_id == dept.id,
+            ClassModel.year == student.year,
+            ClassModel.section == student.section,
+        ).first()
+
+    # Build filter — only show notifications relevant to this student
+    from sqlalchemy import or_
+    filters = [
+        Notification.target_role == "all",
+        Notification.target_role == "student",
+    ]
+
+    # Department-targeted: only if matches student's department
+    if dept:
+        filters.append(
+            (Notification.target_role == "department") &
+            (Notification.target_department_id == dept.id)
+        )
+
+    # Class-targeted: only if matches student's exact class
+    if cls:
+        filters.append(
+            (Notification.target_role == "class") &
+            (Notification.target_class_id == cls.id)
+        )
+
     notifications = db.query(Notification).filter(
-        (Notification.target_role == "all") |
-        (Notification.target_role == "student") |
-        (Notification.target_role == "department") |
-        (Notification.target_role == "class")
+        or_(*filters)
     ).order_by(Notification.created_at.desc()).limit(50).all()
 
     return [
@@ -97,7 +129,12 @@ def get_student_notifications(student_id: int, db: Session = Depends(get_db), cu
 # ============================================================================
 
 @router.get("/")
-def get_all_notifications(db: Session = Depends(get_db)):
+def get_all_notifications(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user['role'] not in ['faculty', 'admin', 'principal']:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     notifications = db.query(Notification).order_by(
         Notification.created_at.desc()

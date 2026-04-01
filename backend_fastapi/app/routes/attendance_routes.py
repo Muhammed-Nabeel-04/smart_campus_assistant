@@ -355,8 +355,11 @@ def get_attendance_reports(
     subject_id: int,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
+    if current_user['role'] not in ['faculty', 'admin', 'principal']:
+        raise HTTPException(status_code=403, detail="Access denied")
     # Get only ENDED sessions — active sessions excluded since students
     # cannot be marked absent from a session that hasn't finished yet
     sessions = db.query(AttendanceSession).filter(
@@ -642,25 +645,35 @@ def get_student_attendance_history(student_id: int, db: Session = Depends(get_db
 
     result = []
 
-  # Get all ENDED sessions for this class
+    # Get all ENDED sessions for this class
     if cls:
         all_sessions = db.query(AttendanceSession).filter(
             AttendanceSession.class_id == cls.id,
             AttendanceSession.status == "ended",
         ).order_by(AttendanceSession.started_at.desc()).limit(50).all()
 
+        # Bulk-load subjects and attendance records — eliminates N+1
+        session_ids = [s.id for s in all_sessions]
+        subject_ids = list({s.subject_id for s in all_sessions})
+
+        subjects_map = {
+            s.id: s for s in db.query(Subject).filter(
+                Subject.id.in_(subject_ids)
+            ).all()
+        }
+
+        attendance_map = {
+            a.session_id: a for a in db.query(Attendance).filter(
+                Attendance.session_id.in_(session_ids),
+                Attendance.student_id == student_id,
+            ).all()
+        }
+
         for session in all_sessions:
-            subject = db.query(Subject).filter(
-                Subject.id == session.subject_id
-            ).first()
+            subject = subjects_map.get(session.subject_id)
             subject_name = subject.name if subject else "Unknown"
 
-            # Check if student was present
-            attendance = db.query(Attendance).filter(
-                Attendance.session_id == session.id,
-                Attendance.student_id == student_id,
-            ).first()
-
+            attendance = attendance_map.get(session.id)
             status = attendance.status if attendance else "absent"
 
             result.append({

@@ -234,55 +234,7 @@ def validate_faculty_qr(payload: dict, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/set-password")
-def set_faculty_password(payload: dict, db: Session = Depends(get_db)):
-    """Faculty sets password after scanning onboarding QR"""
-    from passlib.hash import bcrypt
 
-    faculty_id = payload.get("faculty_id")
-    password = payload.get("password")
-
-    if not faculty_id or not password:
-        raise HTTPException(status_code=400, detail="faculty_id and password are required")
-
-    if len(password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
-
-    faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
-    if not faculty:
-        raise HTTPException(status_code=404, detail="Faculty not found")
-
-    existing_user = db.query(User).filter(User.id == faculty.user_id).first()
-
-    if existing_user:
-        existing_user.password = bcrypt.hash(password)
-        db.commit()
-        user_id = existing_user.id
-    else:
-        new_user = User(
-            name=faculty.full_name,
-            email=faculty.email,
-            password=bcrypt.hash(password),
-            role="faculty",
-        )
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-
-        faculty.user_id = new_user.id
-        db.commit()
-
-        user_id = new_user.id
-
-    return {
-        "message": "Password set successfully",
-        "user_id": user_id,
-        "faculty_id": faculty.id,
-        "full_name": faculty.full_name,
-        "department": faculty.department,
-        "email": faculty.email,
-        "role": "faculty",
-    }
 
 
 # ============================================================================
