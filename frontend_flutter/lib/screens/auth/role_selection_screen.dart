@@ -20,6 +20,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // Hides the back arrow
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -53,28 +54,24 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             children: [
               const SizedBox(height: 12),
 
-              // ── Logo ───────────────────────────────────────────
+              // ── Logo (Floating Emblem with Soft Glow) ─────────────
               Container(
-                padding: const EdgeInsets.all(24),
+                width: 120, // Slightly larger to show off the details
+                height: 120,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [cs.primary, cs.secondary],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: cs.primary.withOpacity(0.35),
-                      blurRadius: 40,
-                      spreadRadius: 4,
+                      color: cs.primary.withOpacity(0.25), // Soft ambient glow
+                      blurRadius:
+                          60, // Wide blur so it doesn't look like a solid shape
+                      spreadRadius: 5,
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.school_rounded,
-                  size: 64,
-                  color: Colors.white,
+                child: Image.asset(
+                  'assets/images/college_logo.png',
+                  fit: BoxFit.contain,
                 ),
               ),
 
@@ -82,7 +79,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
               // ── Title ──────────────────────────────────────────
               Text(
-                'Smart Campus',
+                'Dhaanish-itech',
                 style: TextStyle(
                   color: cs.onSurface,
                   fontSize: 28,
@@ -92,7 +89,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Assistant',
+                'Smart Campus',
                 style: TextStyle(
                   color: cs.primary,
                   fontSize: 18,
@@ -139,7 +136,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 }
 
 // ────────────────────────────────────────────────────────────────
-//  Role Button Component (Unchanged)
+//  Role Button Component
 // ────────────────────────────────────────────────────────────────
 
 class _RoleButton extends StatelessWidget {

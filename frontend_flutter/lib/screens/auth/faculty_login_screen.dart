@@ -88,28 +88,25 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ── Logo ─────────────────────────────────────
+                  // ── Logo (Floating Emblem with Soft Glow) ─────────────
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    width: 110,
+                    height: 110,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [cs.primary, cs.secondary],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: cs.primary.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                          color:
+                              cs.primary.withOpacity(0.25), // Soft ambient glow
+                          blurRadius:
+                              50, // Wide blur so it doesn't look like a solid shape
+                          spreadRadius: 4,
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.school,
-                      size: 80,
-                      color: Colors.white,
+                    child: Image.asset(
+                      'assets/images/college_logo.png',
+                      fit: BoxFit.contain,
                     ),
                   ),
 

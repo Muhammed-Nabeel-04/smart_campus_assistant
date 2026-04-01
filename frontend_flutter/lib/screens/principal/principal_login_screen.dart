@@ -104,31 +104,25 @@ class _PrincipalLoginScreenState extends State<PrincipalLoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ── Logo ─────────────────────────────────────
+                  // ── Logo (Floating Emblem with Soft Glow) ─────────────
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    width: 110,
+                    height: 110,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          _principalColor,
-                          _principalColor.withOpacity(0.7),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: _principalColor.withOpacity(0.4),
-                          blurRadius: 30,
-                          spreadRadius: 2,
+                          color: _principalColor
+                              .withOpacity(0.35), // Soft purple ambient glow
+                          blurRadius:
+                              50, // Wide blur so it doesn't look like a solid shape
+                          spreadRadius: 4,
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.school_rounded,
-                      size: 64,
-                      color: Colors.white,
+                    child: Image.asset(
+                      'assets/images/college_logo.png',
+                      fit: BoxFit.contain,
                     ),
                   ),
 

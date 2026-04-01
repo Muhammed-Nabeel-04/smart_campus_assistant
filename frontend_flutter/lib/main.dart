@@ -136,7 +136,7 @@ class _SmartCampusAppState extends State<SmartCampusApp> {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-      title: 'Smart Campus Assistant',
+      title: 'Dhaanishitech Campus',
       themeMode: _themeMode,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

@@ -117,10 +117,10 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.school_rounded,
-                      size: 60,
-                      color: Colors.white,
+                    child: Image.asset(
+                      'assets/images/college_logo.png',
+                      width: 70,
+                      height: 70,
                     ),
                   ),
 
