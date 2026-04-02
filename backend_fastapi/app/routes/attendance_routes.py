@@ -559,16 +559,23 @@ def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db),
         ]
     total_sessions = len(ended_session_ids)
 
-    # Count present — only from this class's ended sessions
-    present = db.query(Attendance).filter(
+    # Count present — from ended sessions
+    session_present = db.query(Attendance).filter(
         Attendance.student_id == student_id,
         Attendance.status == "present",
         Attendance.session_id.in_(ended_session_ids),
     ).count() if ended_session_ids else 0
 
-    # Absent = total ended sessions - present
-    absent = max(total_sessions - present, 0)
-    total = total_sessions
+    # Count manual entries (session_id == 0)
+    manual_present = db.query(Attendance).filter(
+        Attendance.student_id == student_id,
+        Attendance.status == "present",
+        Attendance.session_id == 0,
+    ).count()
+
+    present = session_present + manual_present
+    absent = max(total_sessions - session_present, 0)
+    total = total_sessions + manual_present
     percentage = round((present / total * 100), 1) if total > 0 else 0
 
     # Build subject-wise attendance
@@ -609,6 +616,8 @@ def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db),
                 "total": subject_total,
                 "percentage": subject_pct,
             })
+
+    percentage = round((present / total * 100), 1) if total > 0 else 0
 
     return {
         "overall_percentage": percentage,

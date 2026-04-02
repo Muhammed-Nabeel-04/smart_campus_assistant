@@ -259,19 +259,29 @@ def get_all_hods(
     
     result = []
     for hod in hods:
-        # Find department assigned to this HOD
         dept = db.query(Department).filter(Department.hod_user_id == hod.id).first()
-        
+        # Get faculty record for employee_id and phone
+        faculty = db.query(Faculty).filter(Faculty.user_id == hod.id).first()
+
         result.append({
             "id": hod.id,
             "name": hod.name,
             "email": hod.email,
+            # Flat fields the Flutter screen needs
+            "employee_id": faculty.employee_id if faculty else None,
+            "phone": faculty.phone_number if faculty else None,
+            "department_name": dept.name if dept else None,
+            "department_code": dept.code if dept else None,
+            "department_id": dept.id if dept else None,
+            # has_password: empty string means QR not yet scanned
+            "has_password": bool(hod.password and len(hod.password) > 10),
+            # Keep nested dept for backward compat
             "department": {
                 "id": dept.id,
                 "name": dept.name,
                 "code": dept.code
             } if dept else None,
-            "created_at": hod.created_at.isoformat() if hod.created_at else None
+            "created_at": hod.created_at.isoformat() if hod.created_at else None,
         })
     
     return result
@@ -509,9 +519,6 @@ def update_principal_profile(
     if payload.name:
         user.name = payload.name
 
-    # Store extra fields in a JSON column or as separate — we use user.name
-    # For phone/college we store in a dedicated table or reuse notice/meta
-    # Simplest: store in user table extra fields via JSON in existing text column
     import json
     from app.models.notice import Notice
 

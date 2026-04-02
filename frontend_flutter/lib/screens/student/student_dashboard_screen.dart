@@ -1,7 +1,7 @@
 // File: lib/screens/student/student_dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:io';
+import 'package:flutter/services.dart';
 import '../../core/session.dart';
 import '../../core/notification_service.dart';
 import '../../services/api_service.dart';
@@ -32,11 +32,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
         if (_currentIndex != 0) {
           setState(() => _currentIndex = 0);
-          return false;
+          return;
         }
         final exitApp = await showDialog<bool>(
           context: context,
@@ -55,8 +57,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ],
           ),
         );
-        if (exitApp == true) exit(0);
-        return false;
+        if (exitApp == true) SystemNavigator.pop();
       },
       child: Scaffold(
         appBar: AppBar(
@@ -162,12 +163,15 @@ class _HomeTabState extends State<_HomeTab>
   Map<String, dynamic>? _stats;
   Map<String, dynamic>? _activeSession;
   Map<String, dynamic>? _nextSlot;
+  int? _classId; // cached — avoids 5 chained API calls on timetable open
   bool _isLoading = true;
   late AnimationController _blinkController;
   late Animation<double> _blinkAnim;
   Timer? _pollTimer;
   Timer? _notificationTimer;
   Timer? _nextSlotTimer;
+  Timer? _countdownTimer;
+  DateTime? _targetClassTime;
   int _lastNotificationCount = -1;
   bool _alertSent = false;
 
@@ -189,6 +193,11 @@ class _HomeTabState extends State<_HomeTab>
     _nextSlotTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       if (mounted) _loadNextSlot();
     });
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _targetClassTime != null) {
+        setState(() {});
+      }
+    });
   }
 
   @override
@@ -197,6 +206,7 @@ class _HomeTabState extends State<_HomeTab>
     _pollTimer?.cancel();
     _notificationTimer?.cancel();
     _nextSlotTimer?.cancel();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -239,7 +249,20 @@ class _HomeTabState extends State<_HomeTab>
         SessionManager.studentId!,
       );
       if (mounted) {
-        setState(() => _nextSlot = slot.isNotEmpty ? slot : null);
+        setState(() {
+          _nextSlot = slot.isNotEmpty ? slot : null;
+          if (slot.isNotEmpty) {
+            final mins = slot['minutes_until'] as int? ?? 0;
+            final fetchedTarget = DateTime.now().add(Duration(minutes: mins));
+            if (_targetClassTime == null ||
+                _targetClassTime!.difference(fetchedTarget).abs().inMinutes >
+                    1) {
+              _targetClassTime = fetchedTarget;
+            }
+          } else {
+            _targetClassTime = null;
+          }
+        });
         _checkAndAlert(slot);
       }
     } catch (_) {}
@@ -260,6 +283,22 @@ class _HomeTabState extends State<_HomeTab>
     if (minutesUntil <= 0) _alertSent = false;
   }
 
+  String _getRealtimeCountdownLabel() {
+    if (_targetClassTime == null) return 'Now';
+    final diff = _targetClassTime!.difference(DateTime.now());
+    if (diff.inSeconds <= 0) return 'Now';
+    if (diff.inHours > 24) {
+      final days = diff.inHours ~/ 24;
+      return days == 1 ? 'Tomorrow' : '${days}d left';
+    }
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = diff.inHours;
+    final minutes = twoDigits(diff.inMinutes.remainder(60));
+    final seconds = twoDigits(diff.inSeconds.remainder(60));
+    if (hours > 0) return '${twoDigits(hours)}:$minutes:$seconds';
+    return '$minutes:$seconds';
+  }
+
   Future<void> _loadStats() async {
     try {
       final stats = await ApiService.getStudentAttendance(
@@ -271,6 +310,27 @@ class _HomeTabState extends State<_HomeTab>
         );
         if (profile['department'] != null) {
           await SessionManager.updateProfile(department: profile['department']);
+        }
+        if (_classId == null) {
+          final depts = await ApiService.getDepartments();
+          final dept = depts.firstWhere(
+            (d) =>
+                d['code'].toString().toLowerCase() ==
+                (profile['department'] ?? '').toLowerCase(),
+            orElse: () => {},
+          );
+          if (dept.isNotEmpty) {
+            final classes = await ApiService.getClassesByDepartment(dept['id']);
+            final cls = (classes as List).firstWhere(
+              (c) =>
+                  c['year'] == profile['year'] &&
+                  c['section'] == profile['section'],
+              orElse: () => {},
+            );
+            if (cls.isNotEmpty && mounted) {
+              setState(() => _classId = cls['id']);
+            }
+          }
         }
       } catch (_) {}
       await _checkActiveSession();
@@ -514,16 +574,7 @@ class _HomeTabState extends State<_HomeTab>
     final isBlinking = minutesUntil <= 5 && minutesUntil > 0;
     final color = isUrgent ? const Color(0xFFF44336) : cs.primary;
 
-    String timeLabel;
-    if (minutesUntil <= 0) {
-      timeLabel = 'Now';
-    } else if (minutesUntil < 60) {
-      timeLabel = 'In ${minutesUntil}m';
-    } else {
-      final h = minutesUntil ~/ 60;
-      final m = minutesUntil % 60;
-      timeLabel = m > 0 ? 'In ${h}h ${m}m' : 'In ${h}h';
-    }
+    final timeLabel = _getRealtimeCountdownLabel();
 
     final card = Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -634,6 +685,7 @@ class _HomeTabState extends State<_HomeTab>
   }
 
   void _showTimetableSheet(ColorScheme cs) {
+    bool showWeekly = false;
     showModalBottomSheet(
       context: context,
       backgroundColor: cs.surface,
@@ -643,8 +695,6 @@ class _HomeTabState extends State<_HomeTab>
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
-          bool showWeekly = false;
-
           return DraggableScrollableSheet(
             expand: false,
             initialChildSize: 0.6,
@@ -751,9 +801,7 @@ class _HomeTabState extends State<_HomeTab>
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              _nextSlot!['minutes_until'] <= 0
-                                  ? 'Now'
-                                  : 'In ${_nextSlot!['minutes_until']}m',
+                              _getRealtimeCountdownLabel(),
                               style: TextStyle(
                                 color: cs.primary,
                                 fontSize: 12,
@@ -770,44 +818,9 @@ class _HomeTabState extends State<_HomeTab>
                   // ── Timetable list ───────────────────────
                   Expanded(
                     child: FutureBuilder<Map<String, dynamic>>(
-                      future:
-                          ApiService.getNextSlotStudent(
-                            SessionManager.studentId!,
-                          ).then((_) async {
-                            // Get student's class timetable
-                            // First find class_id from student profile
-                            try {
-                              final profile =
-                                  await ApiService.getStudentProfile(
-                                    SessionManager.studentId!,
-                                  );
-                              final depts =
-                                  await ApiService.getPrincipalDepartments();
-                              final dept = depts.firstWhere(
-                                (d) =>
-                                    d['code'].toString().toLowerCase() ==
-                                    (profile['department'] ?? '').toLowerCase(),
-                                orElse: () => {},
-                              );
-                              if (dept.isEmpty) return {};
-                              final classes =
-                                  await ApiService.getClassesByDepartment(
-                                    dept['id'],
-                                  );
-                              final cls = (classes as List).firstWhere(
-                                (c) =>
-                                    c['year'] == profile['year'] &&
-                                    c['section'] == profile['section'],
-                                orElse: () => {},
-                              );
-                              if (cls.isEmpty) return {};
-                              return await ApiService.getClassTimetable(
-                                cls['id'],
-                              );
-                            } catch (_) {
-                              return {};
-                            }
-                          }),
+                      future: _classId != null
+                          ? ApiService.getClassTimetable(_classId!)
+                          : Future.value({}),
                       builder: (ctx, snap) {
                         if (snap.connectionState == ConnectionState.waiting) {
                           return Center(
@@ -817,7 +830,7 @@ class _HomeTabState extends State<_HomeTab>
 
                         final slots =
                             (snap.data?['slots'] as Map<String, dynamic>?) ??
-                            {};
+                                {};
                         final today = _todayName();
                         final days = showWeekly
                             ? [

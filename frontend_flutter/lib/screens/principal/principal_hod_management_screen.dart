@@ -59,19 +59,19 @@ class _PrincipalHODManagementScreenState
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: cs.primary))
           : _hods.isEmpty
-          ? _buildEmptyState(cs)
-          : RefreshIndicator(
-              onRefresh: _loadHODs,
-              color: cs.primary,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _hods.length,
-                itemBuilder: (ctx, i) {
-                  final hod = _hods[i];
-                  return _buildHODCard(hod, cs);
-                },
-              ),
-            ),
+              ? _buildEmptyState(cs)
+              : RefreshIndicator(
+                  onRefresh: _loadHODs,
+                  color: cs.primary,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _hods.length,
+                    itemBuilder: (ctx, i) {
+                      final hod = _hods[i];
+                      return _buildHODCard(hod, cs);
+                    },
+                  ),
+                ),
     );
   }
 
@@ -122,8 +122,8 @@ class _PrincipalHODManagementScreenState
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                hod['department'] != null
-                    ? 'Dept: ${hod['department']['code']}'
+                hod['department_name'] != null
+                    ? hod['department_name']
                     : 'Unassigned',
                 style: TextStyle(
                   color: hod['department'] != null

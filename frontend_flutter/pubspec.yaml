@@ -33,4 +33,4 @@ flutter_launcher_icons:
   image_path: "assets/images/college_logo.png" 
   min_sdk_android: 21
   adaptive_icon_background: "#FFFFFF" 
-  adaptive_icon_foreground: "assets/images/college_logo.png" 
+  adaptive_icon_foreground: "assets/images/college_logo_icon.png" 
