@@ -64,16 +64,21 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           color: cs.surface,
-          child: SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'all', label: Text('All')),
-              ButtonSegment(value: 'present', label: Text('Present')),
-              ButtonSegment(value: 'absent', label: Text('Absent')),
-            ],
-            selected: {_filterBy},
-            onSelectionChanged: (Set<String> selected) {
-              setState(() => _filterBy = selected.first);
-            },
+          // We wrap the button in a SizedBox to force it to full width
+          child: SizedBox(
+            width: double.infinity, // <-- This is the magic line
+            child: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 'all', label: Text('All')),
+                ButtonSegment(value: 'present', label: Text('Present')),
+                ButtonSegment(value: 'absent', label: Text('Absent')),
+              ],
+              selected: {_filterBy},
+              onSelectionChanged: (Set<String> selected) {
+                setState(() => _filterBy = selected.first);
+              },
+            ),
           ),
         ),
 
@@ -82,17 +87,17 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
           child: _isLoading
               ? Center(child: CircularProgressIndicator(color: cs.primary))
               : _filteredRecords.isEmpty
-              ? _buildEmptyState(cs)
-              : RefreshIndicator(
-                  onRefresh: _loadRecords,
-                  color: cs.primary,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filteredRecords.length,
-                    itemBuilder: (context, index) =>
-                        _buildRecordCard(_filteredRecords[index], cs),
-                  ),
-                ),
+                  ? _buildEmptyState(cs)
+                  : RefreshIndicator(
+                      onRefresh: _loadRecords,
+                      color: cs.primary,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _filteredRecords.length,
+                        itemBuilder: (context, index) =>
+                            _buildRecordCard(_filteredRecords[index], cs),
+                      ),
+                    ),
         ),
       ],
     );

@@ -163,7 +163,7 @@ class _HomeTabState extends State<_HomeTab>
   Map<String, dynamic>? _stats;
   Map<String, dynamic>? _activeSession;
   Map<String, dynamic>? _nextSlot;
-  int? _classId; // cached — avoids 5 chained API calls on timetable open
+  int? _classId;
   bool _isLoading = true;
   late AnimationController _blinkController;
   late Animation<double> _blinkAnim;
@@ -251,6 +251,10 @@ class _HomeTabState extends State<_HomeTab>
       if (mounted) {
         setState(() {
           _nextSlot = slot.isNotEmpty ? slot : null;
+          // Cache class_id directly from slot — no extra API calls needed
+          if (slot.isNotEmpty && slot['class_id'] != null && _classId == null) {
+            _classId = slot['class_id'] as int;
+          }
           if (slot.isNotEmpty) {
             final mins = slot['minutes_until'] as int? ?? 0;
             final fetchedTarget = DateTime.now().add(Duration(minutes: mins));
@@ -311,30 +315,10 @@ class _HomeTabState extends State<_HomeTab>
         if (profile['department'] != null) {
           await SessionManager.updateProfile(department: profile['department']);
         }
-        if (_classId == null) {
-          final depts = await ApiService.getDepartments();
-          final dept = depts.firstWhere(
-            (d) =>
-                d['code'].toString().toLowerCase() ==
-                (profile['department'] ?? '').toLowerCase(),
-            orElse: () => {},
-          );
-          if (dept.isNotEmpty) {
-            final classes = await ApiService.getClassesByDepartment(dept['id']);
-            final cls = (classes as List).firstWhere(
-              (c) =>
-                  c['year'] == profile['year'] &&
-                  c['section'] == profile['section'],
-              orElse: () => {},
-            );
-            if (cls.isNotEmpty && mounted) {
-              setState(() => _classId = cls['id']);
-            }
-          }
-        }
+        // class_id is set in _loadNextSlot from the timetable slot directly
       } catch (_) {}
-      await _checkActiveSession();
       await _loadNextSlot();
+      await _checkActiveSession();
       if (mounted) {
         setState(() {
           _stats = stats;
@@ -486,26 +470,6 @@ class _HomeTabState extends State<_HomeTab>
 
           const SizedBox(height: 24),
 
-          // ── Subject-wise Attendance ───────────────────────
-          Text(
-            'Subject-wise Attendance',
-            style: TextStyle(
-              color: cs.onBackground,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          if (_stats?['subjects'] != null &&
-              (_stats!['subjects'] as List).isNotEmpty)
-            ..._buildSubjectCards(_stats!['subjects'], cs)
-          else
-            _buildEmptyState('No subjects data available', cs),
-
-          const SizedBox(height: 24),
-
           // ── Quick Stats Grid ──────────────────────────────
           Row(
             children: [
@@ -560,6 +524,26 @@ class _HomeTabState extends State<_HomeTab>
               ),
             ],
           ),
+
+          const SizedBox(height: 24),
+
+          // ── Subject-wise Attendance ───────────────────────
+          Text(
+            'Subject-wise Attendance',
+            style: TextStyle(
+              color: cs.onBackground,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          if (_stats?['subjects'] != null &&
+              (_stats!['subjects'] as List).isNotEmpty)
+            ..._buildSubjectCards(_stats!['subjects'], cs)
+          else
+            _buildEmptyState('No subjects data available', cs),
 
           const SizedBox(height: 80),
         ],
@@ -686,6 +670,11 @@ class _HomeTabState extends State<_HomeTab>
 
   void _showTimetableSheet(ColorScheme cs) {
     bool showWeekly = false;
+    // Use _classId if set, otherwise fall back to class_id from _nextSlot
+    final effectiveClassId = _classId ?? (_nextSlot?['class_id'] as int?);
+    final timetableFuture = effectiveClassId != null
+        ? ApiService.getClassTimetable(effectiveClassId)
+        : Future.value(<String, dynamic>{});
     showModalBottomSheet(
       context: context,
       backgroundColor: cs.surface,
@@ -818,9 +807,7 @@ class _HomeTabState extends State<_HomeTab>
                   // ── Timetable list ───────────────────────
                   Expanded(
                     child: FutureBuilder<Map<String, dynamic>>(
-                      future: _classId != null
-                          ? ApiService.getClassTimetable(_classId!)
-                          : Future.value({}),
+                      future: timetableFuture,
                       builder: (ctx, snap) {
                         if (snap.connectionState == ConnectionState.waiting) {
                           return Center(
@@ -828,23 +815,29 @@ class _HomeTabState extends State<_HomeTab>
                           );
                         }
 
-                        final slots =
+                        final rawSlots =
                             (snap.data?['slots'] as Map<String, dynamic>?) ??
                                 {};
-                        final today = _todayName();
+                        // Normalize keys to lowercase — same fix as faculty dashboard
+                        final slots = <String, List<dynamic>>{};
+                        rawSlots.forEach((key, value) {
+                          slots[key.trim().toLowerCase()] =
+                              List<dynamic>.from(value as List? ?? []);
+                        });
+                        final today = _todayName().toLowerCase();
                         final days = showWeekly
                             ? [
-                                'Monday',
-                                'Tuesday',
-                                'Wednesday',
-                                'Thursday',
-                                'Friday',
-                                'Saturday',
+                                'monday',
+                                'tuesday',
+                                'wednesday',
+                                'thursday',
+                                'friday',
+                                'saturday',
                               ]
                             : [today];
 
                         final hasAny = days.any(
-                          (d) => (slots[d] as List?)?.isNotEmpty == true,
+                          (d) => slots[d]?.isNotEmpty == true,
                         );
 
                         if (snap.data == null ||
@@ -901,7 +894,10 @@ class _HomeTabState extends State<_HomeTab>
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
-                                      day == today ? 'Today' : day,
+                                      day == today
+                                          ? 'Today'
+                                          : day[0].toUpperCase() +
+                                              day.substring(1),
                                       style: TextStyle(
                                         color: day == today
                                             ? cs.onPrimary
