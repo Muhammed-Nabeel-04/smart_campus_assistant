@@ -1,6 +1,6 @@
 // lib/screens/admin/admin_login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../services/api_service.dart';
 import '../../core/session.dart';
 
@@ -27,11 +27,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
-  }
-
-  Future<bool> _isSetupDone(int userId) async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('hod_setup_done_$userId') ?? false;
   }
 
   Future<void> _handleLogin() async {

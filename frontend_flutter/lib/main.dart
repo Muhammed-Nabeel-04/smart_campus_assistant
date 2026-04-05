@@ -13,7 +13,7 @@ import 'screens/student/student_dashboard_screen.dart';
 import 'screens/student/student_onboarding_screen.dart';
 import 'screens/auth/student_login_screen.dart';
 import 'screens/auth/student_register_screen.dart';
-import 'screens/faculty/student_onboarding_qr_screen.dart';
+//import 'screens/faculty/student_onboarding_qr_screen.dart';
 import 'screens/student/student_onboarding_scan_screen.dart';
 import 'core/app_config.dart';
 import 'core/notification_service.dart';
@@ -147,7 +147,7 @@ class _SmartCampusAppState extends State<SmartCampusApp> {
         '/': (context) => const RoleSelectionScreen(),
         '/attendanceQR': (context) => const AttendanceQRScreen(),
         '/viewAttendance': (context) => const ViewAttendanceScreen(),
-        '/studentOnboardingQR': (context) => const StudentOnboardingQRScreen(),
+        //'/studentOnboardingQR': (context) => const StudentOnboardingQRScreen(),
         '/scanQR': (context) => const ScanQRScreen(),
         '/studentOnboardingScan': (context) =>
             const StudentOnboardingScanScreen(),

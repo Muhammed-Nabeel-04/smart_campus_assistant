@@ -673,111 +673,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     );
   }
 
-  // ── Upcoming Class Info card (always visible) ──────────────────
-  Widget _buildUpcomingClassInfo(ColorScheme cs) {
-    final slot = _nextSlot!;
-    final minutesUntil = slot['minutes_until'] as int? ?? 0;
-    final countdown = _getRealtimeCountdownLabel();
-    final canStart = minutesUntil <= 5;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cs.surfaceVariant.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.onSurface.withOpacity(0.08)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.schedule, color: facultyCyan, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                'Upcoming Class',
-                style: TextStyle(
-                  color: cs.onSurface.withOpacity(0.5),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: (canStart ? successGreen : facultyCyan).withOpacity(
-                    0.15,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  countdown,
-                  style: TextStyle(
-                    color: canStart ? successGreen : facultyCyan,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      slot['subject_name'] ?? 'Unknown',
-                      style: TextStyle(
-                        color: cs.onSurface,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${slot['class_name']} • ${slot['day_of_week']}',
-                      style: TextStyle(
-                        color: cs.onSurface.withOpacity(0.6),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: cs.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '${slot['start_time']} – ${slot['end_time']}',
-                  style: TextStyle(
-                    color: cs.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showActiveSessionsSheet() {
     final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
@@ -933,9 +828,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                             child: Text(
                               p[0].toUpperCase() + p.substring(1),
                               style: TextStyle(
-                                color: period == p
-                                    ? cs.onPrimary
-                                    : cs.onSurface,
+                                color:
+                                    period == p ? cs.onPrimary : cs.onSurface,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -1174,10 +1068,10 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: warningOrange,
                                   foregroundColor: Colors.white,
-                                  disabledBackgroundColor: warningOrange
-                                      .withOpacity(0.15),
-                                  disabledForegroundColor: warningOrange
-                                      .withOpacity(0.8),
+                                  disabledBackgroundColor:
+                                      warningOrange.withOpacity(0.15),
+                                  disabledForegroundColor:
+                                      warningOrange.withOpacity(0.8),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 14,
                                     vertical: 10,
@@ -1218,7 +1112,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                         // so database formatting errors don't hide your classes.
                         final rawSchedule =
                             (snap.data?['schedule'] as Map<String, dynamic>?) ??
-                            {};
+                                {};
                         final schedule = <String, List<dynamic>>{};
                         rawSchedule.forEach((key, value) {
                           schedule[key.trim().toLowerCase()] =

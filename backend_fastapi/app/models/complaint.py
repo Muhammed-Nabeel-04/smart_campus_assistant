@@ -16,10 +16,8 @@ class Complaint(Base):
     status = Column(String, default="pending")  # pending, in_progress, resolved, rejected, escalated
     admin_response = Column(String, nullable=True)
     resolved_at = Column(DateTime, nullable=True)
-    escalated_to_principal = Column(Integer, default=0)  # 0=no, 1=yes
+    escalated_to_principal = Column(Integer, default=0)  # 0=No, 1=Yes
     escalated_at = Column(DateTime, nullable=True)
     escalated_by = Column(Integer, nullable=True)  # HOD user_id
-
-    escalated_to_principal = Column(Integer, default=0)  # 0=No, 1=Yes
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

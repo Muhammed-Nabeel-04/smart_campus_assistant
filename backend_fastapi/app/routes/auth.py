@@ -86,6 +86,15 @@ def register_student(payload: StudentRegisterRequest, db: Session = Depends(get_
         "student_id": new_student.id,
     })
 
+    # Save session token — single device enforcement
+    from app.models.session_token import SessionToken
+    db.add(SessionToken(
+        user_id=new_user.id,
+        token=token,
+        expires_at=datetime.now() + timedelta(days=30)
+    ))
+    db.commit()
+
     return {
         "message": "Registration successful",
         "token": token,
@@ -128,6 +137,15 @@ def register_faculty(payload: FacultyRegisterRequest, db: Session = Depends(get_
         "user_id": new_user.id,
         "role": "faculty",
     })
+
+    # Save session token — single device enforcement
+    from app.models.session_token import SessionToken
+    db.add(SessionToken(
+        user_id=new_user.id,
+        token=token,
+        expires_at=datetime.now() + timedelta(days=30)
+    ))
+    db.commit()
 
     return {
         "message": "Faculty registration successful",

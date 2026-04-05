@@ -356,55 +356,57 @@ class _HomeTabState extends State<_HomeTab>
             GestureDetector(
               onTap: () =>
                   Navigator.pushNamed(context, '/studentMarkAttendance'),
-              child: AnimatedBuilder(
-                animation: _blinkAnim,
-                builder: (context, child) => Opacity(
-                  opacity: _blinkAnim.value,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50).withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF4CAF50)),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF4CAF50)),
+                ),
+                child: Row(
+                  children: [
+                    // ✅ ONLY ICON BLINKS (FIXED)
+                    AnimatedBuilder(
+                      animation: _blinkAnim,
+                      builder: (context, child) => Icon(
+                        Icons.radio_button_checked,
+                        color: const Color(0xFF4CAF50)
+                            .withOpacity(_blinkAnim.value),
+                        size: 20,
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.radio_button_checked,
-                          color: Color(0xFF4CAF50),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${_activeSession!['subject_name']} class is ongoing!',
-                                style: const TextStyle(
-                                  color: Color(0xFF4CAF50),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                'by ${_activeSession!['faculty_name']} — Tap to mark attendance',
-                                style: const TextStyle(
-                                  color: Color(0xFF4CAF50),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${_activeSession!['subject_name']} class is ongoing!',
+                            style: const TextStyle(
+                              color: Color(0xFF4CAF50),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Color(0xFF4CAF50),
-                          size: 14,
-                        ),
-                      ],
+                          Text(
+                            'by ${_activeSession!['faculty_name']} — Tap to mark attendance',
+                            style: const TextStyle(
+                              color: Color(0xFF4CAF50),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Color(0xFF4CAF50),
+                      size: 14,
+                    ),
+                  ],
                 ),
               ),
             ),

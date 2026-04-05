@@ -12,7 +12,6 @@ from app.models.class_model import ClassModel
 from app.models.user import User
 from app.models.faculty import Faculty
 from app.models.department import Department
-from app.models.class_model import ClassModel
 from app.models.onboarding_token import OnboardingToken
 import secrets
 import json

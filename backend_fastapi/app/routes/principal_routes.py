@@ -474,10 +474,22 @@ def generate_hod_qr(
     if not user:
         raise HTTPException(status_code=404, detail="HOD not found")
     
+    # Invalidate all previous unused tokens for this HOD
+    old_tokens = db.query(OnboardingToken).filter(
+        OnboardingToken.target_id == hod_id,
+        OnboardingToken.role == "admin",
+        OnboardingToken.used == False
+    ).all()
+    for old in old_tokens:
+        old.used = True
+        old.used_at = datetime.now()
+    if old_tokens:
+        db.commit()
+
     # Generate token
     token = str(uuid.uuid4())
     expiry = datetime.now() + timedelta(minutes=1)
-    
+
     onboarding_token = OnboardingToken(
         token=token,
         role="admin",  # HOD role

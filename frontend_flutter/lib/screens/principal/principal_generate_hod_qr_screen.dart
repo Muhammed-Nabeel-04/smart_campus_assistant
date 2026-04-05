@@ -19,7 +19,7 @@ class _PrincipalGenerateHODQRScreenState
   bool _isLoading = false;
   String? _qrData;
   String? _error;
-  int _expiresIn = 600; // seconds
+  int _expiresIn = 60; // seconds — matches backend 1-minute expiry
 
   @override
   void initState() {
@@ -66,8 +66,8 @@ class _PrincipalGenerateHODQRScreenState
           child: _isLoading
               ? CircularProgressIndicator(color: cs.primary)
               : _error != null
-              ? _buildErrorState(cs)
-              : _buildQRContent(cs),
+                  ? _buildErrorState(cs)
+                  : _buildQRContent(cs),
         ),
       ),
     );

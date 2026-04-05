@@ -2,10 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
-from app.services.deps import get_db
-from app.models.notification import Notification
-from app.models.student import Student
 from app.services.deps import get_db, get_current_user
+from app.models.notification import Notification
 from app.models.student import Student
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])

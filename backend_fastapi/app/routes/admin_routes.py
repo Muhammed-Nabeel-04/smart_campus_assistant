@@ -533,7 +533,7 @@ def generate_faculty_qr(
     # Generate unique token
     token = secrets.token_urlsafe(32)
     
-    # Create onboarding token (5-minute expiry)
+    # Create onboarding token (1-minute expiry)
     qr_token = OnboardingToken(
         token=token,
         role="faculty",
@@ -677,7 +677,7 @@ def get_system_reports(
     
     # Attendance sessions count
     session_query = db.query(AttendanceSession).filter(
-        AttendanceSession.started_at >= start_datetime.isoformat()
+        AttendanceSession.started_at >= start_datetime
     )
     if filtered_class_ids:
         session_query = session_query.filter(
@@ -687,7 +687,7 @@ def get_system_reports(
     
     # Attendance stats
     ended_query = db.query(AttendanceSession).filter(
-        AttendanceSession.started_at >= start_datetime.isoformat(),
+        AttendanceSession.started_at >= start_datetime,
         AttendanceSession.status == 'ended'
     )
     if filtered_class_ids is not None:
@@ -719,7 +719,7 @@ def get_system_reports(
         Attendance.session_id == 0,
         Attendance.status == 'present',
         Attendance.student_id.in_(dept_student_ids),
-        Attendance.timestamp >= start_datetime.isoformat(),
+        Attendance.timestamp >= start_datetime,
     ).count() if dept_student_ids else 0
 
     total_present += manual_present
@@ -779,7 +779,7 @@ def get_system_reports(
 
             dept_sessions = db.query(AttendanceSession).filter(
                 AttendanceSession.class_id.in_(class_ids),
-                AttendanceSession.started_at >= start_datetime.isoformat(),
+                AttendanceSession.started_at >= start_datetime,
                 AttendanceSession.status == 'ended'
             ).all()
             session_ids = [s.id for s in dept_sessions]
@@ -894,7 +894,7 @@ class HODChangeEmailPayload(BaseModel):
     new_email: str
     password: str
 
-@router.post("/hod/change-email")
+@router.post("/hod/change-email-admin")
 def change_hod_email(
     payload: HODChangeEmailPayload,
     current_user: dict = Depends(get_current_user),

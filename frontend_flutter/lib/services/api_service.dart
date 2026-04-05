@@ -15,15 +15,15 @@ class ApiService {
   // ============================================================================
 
   static Map<String, String> get _authHeaders => {
-    "Content-Type": "application/json",
-    if (SessionManager.token != null)
-      "Authorization": "Bearer ${SessionManager.token}",
-  };
+        "Content-Type": "application/json",
+        if (SessionManager.token != null)
+          "Authorization": "Bearer ${SessionManager.token}",
+      };
 
   static Map<String, String> get _authHeadersGet => {
-    if (SessionManager.token != null)
-      "Authorization": "Bearer ${SessionManager.token}",
-  };
+        if (SessionManager.token != null)
+          "Authorization": "Bearer ${SessionManager.token}",
+      };
 
   // ============================================================================
   // AUTHENTICATION APIs
@@ -282,9 +282,8 @@ class ApiService {
 
   static Future<List<dynamic>> getDepartments() async {
     try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/departments/"))
-          .timeout(_timeout);
+      final response =
+          await http.get(Uri.parse("$_baseUrl/departments/")).timeout(_timeout);
       return _handleResponse(response) as List<dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -1464,7 +1463,7 @@ class ApiService {
     try {
       final response = await http
           .post(
-            Uri.parse("$_baseUrl/hod/change-email"),
+            Uri.parse("$_baseUrl/admin/hod/change-email-admin"),
             headers: _authHeaders,
             body: jsonEncode({'new_email': newEmail, 'password': password}),
           )

@@ -136,7 +136,10 @@ app.include_router(
     principal_router,
     dependencies=[Depends(get_current_user)]
 )
-app.include_router(timetable_router)
+app.include_router(
+    timetable_router,
+    dependencies=[Depends(get_current_user)]
+)
 
 # ── Root route ──
 @app.get("/")
