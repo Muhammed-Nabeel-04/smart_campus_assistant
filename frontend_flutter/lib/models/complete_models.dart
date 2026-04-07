@@ -41,17 +41,17 @@ class AttendanceSession {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'class_id': classId,
-    'subject_id': subjectId,
-    'faculty_id': facultyId,
-    'semester': semester,
-    'start_time': startTime.toIso8601String(),
-    'end_time': endTime.toIso8601String(),
-    'status': status,
-    'total_present': totalPresent,
-    'total_absent': totalAbsent,
-  };
+        'id': id,
+        'class_id': classId,
+        'subject_id': subjectId,
+        'faculty_id': facultyId,
+        'semester': semester,
+        'start_time': startTime.toIso8601String(),
+        'end_time': endTime.toIso8601String(),
+        'status': status,
+        'total_present': totalPresent,
+        'total_absent': totalAbsent,
+      };
 }
 
 class AttendanceRecord {
@@ -83,13 +83,13 @@ class AttendanceRecord {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'session_id': sessionId,
-    'student_id': studentId,
-    'status': status,
-    'timestamp': timestamp.toIso8601String(),
-    'remarks': remarks,
-  };
+        'id': id,
+        'session_id': sessionId,
+        'student_id': studentId,
+        'status': status,
+        'timestamp': timestamp.toIso8601String(),
+        'remarks': remarks,
+      };
 }
 
 // ============================================================================
@@ -122,12 +122,12 @@ class Department {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'code': code,
-    'hod_name': hodName,
-    'total_years': totalYears,
-  };
+        'id': id,
+        'name': name,
+        'code': code,
+        'hod_name': hodName,
+        'total_years': totalYears,
+      };
 }
 
 class ClassModel {
@@ -162,13 +162,13 @@ class ClassModel {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'department_id': departmentId,
-    'year': year,
-    'section': section,
-    'current_semester': currentSemester,
-    'total_students': totalStudents,
-  };
+        'id': id,
+        'department_id': departmentId,
+        'year': year,
+        'section': section,
+        'current_semester': currentSemester,
+        'total_students': totalStudents,
+      };
 }
 
 class Subject {
@@ -206,15 +206,15 @@ class Subject {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'code': code,
-    'department_id': departmentId,
-    'year': year,
-    'semester': semester,
-    'credits': credits,
-    'type': type,
-  };
+        'id': id,
+        'name': name,
+        'code': code,
+        'department_id': departmentId,
+        'year': year,
+        'semester': semester,
+        'credits': credits,
+        'type': type,
+      };
 }
 
 class ClassSubject {
@@ -243,12 +243,12 @@ class ClassSubject {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'class_id': classId,
-    'subject_id': subjectId,
-    'semester': semester,
-    'is_active': isActive,
-  };
+        'id': id,
+        'class_id': classId,
+        'subject_id': subjectId,
+        'semester': semester,
+        'is_active': isActive,
+      };
 }
 
 class ClassSubjectFaculty {
@@ -277,12 +277,12 @@ class ClassSubjectFaculty {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'class_subject_id': classSubjectId,
-    'faculty_id': facultyId,
-    'assigned_date': assignedDate,
-    'is_active': isActive,
-  };
+        'id': id,
+        'class_subject_id': classSubjectId,
+        'faculty_id': facultyId,
+        'assigned_date': assignedDate,
+        'is_active': isActive,
+      };
 }
 
 // ============================================================================
@@ -330,16 +330,16 @@ class OnboardingToken {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'token': token,
-    'role': role,
-    'target_id': targetId,
-    'expiry_time': expiryTime.toIso8601String(),
-    'used': used,
-    'used_at': usedAt?.toIso8601String(),
-    'used_by': usedBy,
-    'created_at': createdAt.toIso8601String(),
-  };
+        'id': id,
+        'token': token,
+        'role': role,
+        'target_id': targetId,
+        'expiry_time': expiryTime.toIso8601String(),
+        'used': used,
+        'used_at': usedAt?.toIso8601String(),
+        'used_by': usedBy,
+        'created_at': createdAt.toIso8601String(),
+      };
 }
 
 // ============================================================================
@@ -390,6 +390,8 @@ class Complaint {
         return 'Resolved';
       case 'rejected':
         return 'Rejected';
+      case 'escalated':
+        return 'Escalated to Principal';
       default:
         return status;
     }
@@ -424,8 +426,7 @@ class Complaint {
       status: json['status'] ?? 'pending',
       adminResponse: json['admin_response'],
       handledBy: json['handled_by'],
-      escalatedToPrincipal:
-          json['escalated_to_principal'] == true ||
+      escalatedToPrincipal: json['escalated_to_principal'] == true ||
           json['escalated_to_principal'] == 1,
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: json['updated_at'] != null
@@ -438,19 +439,19 @@ class Complaint {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'student_id': studentId,
-    'category': category,
-    'priority': priority,
-    'title': title,
-    'description': description,
-    'status': status,
-    'admin_response': adminResponse,
-    'handled_by': handledBy,
-    'created_at': createdAt.toIso8601String(),
-    'updated_at': updatedAt?.toIso8601String(),
-    'resolved_at': resolvedAt?.toIso8601String(),
-  };
+        'id': id,
+        'student_id': studentId,
+        'category': category,
+        'priority': priority,
+        'title': title,
+        'description': description,
+        'status': status,
+        'admin_response': adminResponse,
+        'handled_by': handledBy,
+        'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt?.toIso8601String(),
+        'resolved_at': resolvedAt?.toIso8601String(),
+      };
 }
 
 // ============================================================================
@@ -503,15 +504,15 @@ class CampusNotification {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'message': message,
-    'target_role': targetRole,
-    'target_class_id': targetClassId,
-    'target_department_id': targetDepartmentId,
-    'type': type,
-    'sent_by': sentBy,
-    'created_at': createdAt.toIso8601String(),
-    'expires_at': expiresAt?.toIso8601String(),
-  };
+        'id': id,
+        'title': title,
+        'message': message,
+        'target_role': targetRole,
+        'target_class_id': targetClassId,
+        'target_department_id': targetDepartmentId,
+        'type': type,
+        'sent_by': sentBy,
+        'created_at': createdAt.toIso8601String(),
+        'expires_at': expiresAt?.toIso8601String(),
+      };
 }

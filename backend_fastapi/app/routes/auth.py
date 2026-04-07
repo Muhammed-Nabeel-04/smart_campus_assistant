@@ -51,6 +51,12 @@ def register_student(payload: StudentRegisterRequest, db: Session = Depends(get_
     if len(payload.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
+    existing_reg = db.query(Student).filter(
+        Student.register_number == payload.register_number
+    ).first()
+    if existing_reg:
+        raise HTTPException(status_code=400, detail="Register number already exists")
+
     new_user = User(
         name=payload.name,
         email=payload.email,
@@ -61,12 +67,6 @@ def register_student(payload: StudentRegisterRequest, db: Session = Depends(get_
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-
-    existing_reg = db.query(Student).filter(
-        Student.register_number == payload.register_number
-    ).first()
-    if existing_reg:
-        raise HTTPException(status_code=400, detail="Register number already exists")
 
     new_student = Student(
         user_id=new_user.id,

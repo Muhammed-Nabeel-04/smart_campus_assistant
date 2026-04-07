@@ -1,4 +1,5 @@
 // lib/screens/student/scan_qr_screen.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/session.dart';
@@ -34,8 +35,17 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     setState(() => _isProcessing = true);
 
     try {
+      // Extract token from JSON QR (faculty encodes JSON with session_id + token)
+      String token;
+      try {
+        final qrJson = jsonDecode(qrRawData);
+        token = qrJson['token'];
+      } catch (_) {
+        token = qrRawData;
+      }
+
       final data = await ApiService.markAttendance(
-        token: qrRawData,
+        token: token,
         studentId: SessionManager.studentId!,
       );
 
@@ -230,23 +240,19 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
         height: 28,
         decoration: BoxDecoration(
           border: Border(
-            top:
-                (alignment == Alignment.topLeft ||
+            top: (alignment == Alignment.topLeft ||
                     alignment == Alignment.topRight)
                 ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
-            bottom:
-                (alignment == Alignment.bottomLeft ||
+            bottom: (alignment == Alignment.bottomLeft ||
                     alignment == Alignment.bottomRight)
                 ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
-            left:
-                (alignment == Alignment.topLeft ||
+            left: (alignment == Alignment.topLeft ||
                     alignment == Alignment.bottomLeft)
                 ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
-            right:
-                (alignment == Alignment.topRight ||
+            right: (alignment == Alignment.topRight ||
                     alignment == Alignment.bottomRight)
                 ? BorderSide(color: color, width: 4)
                 : BorderSide.none,
