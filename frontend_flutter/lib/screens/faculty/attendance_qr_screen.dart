@@ -17,6 +17,7 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
   int? sessionId;
   bool _isLoading = true;
   bool _sessionEnded = false;
+  bool _sessionStarted = false;
 
   int _seconds = 0;
   Timer? _sessionTimer;
@@ -30,6 +31,8 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_sessionStarted) return;
+    _sessionStarted = true;
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 

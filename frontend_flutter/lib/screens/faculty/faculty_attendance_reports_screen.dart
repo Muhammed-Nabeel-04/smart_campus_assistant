@@ -51,12 +51,14 @@ class _FacultyAttendanceReportsScreenState
         toDate: _toDate.toIso8601String().split('T')[0],
       );
 
-      setState(() {
-        _reports = List<Map<String, dynamic>>.from(data['reports'] ?? []);
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _reports = List<Map<String, dynamic>>.from(data['reports'] ?? []);
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

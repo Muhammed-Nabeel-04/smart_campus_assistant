@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../core/app_config.dart';
 import '../core/session.dart';
 import '../main.dart';
+import '../models/ssm_models.dart';
 
 class ApiService {
   static String get _baseUrl => AppConfig.backendUrl;
@@ -1919,6 +1920,194 @@ class ApiService {
       return _handleResponse(response) as Map<String, dynamic>;
     } catch (e) {
       return {};
+    }
+  }
+
+  // ============================================================================
+  // SSM (Performance Module) APIs
+  // ============================================================================
+
+  /// Save or update GPA + Attendance on draft submission
+  static Future<Map<String, dynamic>> ssmSaveForm({
+    required int studentId,
+    double? gpa,
+    double? attendanceInput,
+  }) async {
+    try {
+      final body = <String, dynamic>{'student_id': studentId};
+      if (gpa != null) body['gpa'] = gpa;
+      if (attendanceInput != null) body['attendance_input'] = attendanceInput;
+
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/ssm/save"),
+            headers: _authHeaders,
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Add an activity (internship / certificate / project / achievement)
+  static Future<Map<String, dynamic>> ssmAddActivity({
+    required int submissionId,
+    required String type,
+    required String title,
+    String? description,
+    String? duration,
+    String? organization,
+    String? proofFileName,
+    String? proofFileData, // base64
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'submission_id': submissionId,
+        'type': type,
+        'title': title,
+        if (description != null) 'description': description,
+        if (duration != null) 'duration': duration,
+        if (organization != null) 'organization': organization,
+        if (proofFileName != null) 'proof_file_name': proofFileName,
+        if (proofFileData != null) 'proof_file_data': proofFileData,
+      };
+
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/ssm/activity"),
+            headers: _authHeaders,
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Delete an activity
+  static Future<void> ssmDeleteActivity(int activityId) async {
+    try {
+      final response = await http
+          .delete(
+            Uri.parse("$_baseUrl/ssm/activity/$activityId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Recalculate score for a submission
+  static Future<Map<String, dynamic>> ssmCalculateScore(
+      int submissionId) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/ssm/calculate/$submissionId"),
+            headers: _authHeaders,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Submit for mentor approval
+  static Future<Map<String, dynamic>> ssmSubmitForApproval(
+      int submissionId) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/ssm/submit/$submissionId"),
+            headers: _authHeaders,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get student's SSM result
+  static Future<Map<String, dynamic>> ssmGetResult(int studentId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/ssm/result/$studentId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get all submissions (faculty / HOD)
+  static Future<List<dynamic>> ssmGetSubmissions({String? status}) async {
+    try {
+      String url = "$_baseUrl/ssm/submissions";
+      if (status != null) url += "?status=$status";
+      final response = await http
+          .get(Uri.parse(url), headers: _authHeadersGet)
+          .timeout(_timeout);
+      return _handleResponse(response) as List<dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Mentor review
+  static Future<Map<String, dynamic>> ssmMentorReview({
+    required int submissionId,
+    required String status,
+    String? remarks,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/ssm/review/mentor"),
+            headers: _authHeaders,
+            body: jsonEncode({
+              'submission_id': submissionId,
+              'status': status,
+              if (remarks != null) 'remarks': remarks,
+            }),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// HOD final review
+  static Future<Map<String, dynamic>> ssmHODReview({
+    required int submissionId,
+    required String status,
+    String? remarks,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/ssm/review/hod"),
+            headers: _authHeaders,
+            body: jsonEncode({
+              'submission_id': submissionId,
+              'status': status,
+              if (remarks != null) 'remarks': remarks,
+            }),
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
     }
   }
 }

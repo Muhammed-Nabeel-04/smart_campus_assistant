@@ -360,13 +360,29 @@ def get_attendance_reports(
 ):
     if current_user['role'] not in ['faculty', 'admin', 'principal']:
         raise HTTPException(status_code=403, detail="Access denied")
-    # Get only ENDED sessions — active sessions excluded since students
-    # cannot be marked absent from a session that hasn't finished yet
-    sessions = db.query(AttendanceSession).filter(
+
+    # Get only ENDED sessions filtered by date range
+    from datetime import timedelta
+    session_query = db.query(AttendanceSession).filter(
         AttendanceSession.class_id == class_id,
         AttendanceSession.subject_id == subject_id,
         AttendanceSession.status == "ended",
-    ).all()
+    )
+    if from_date:
+        try:
+            session_query = session_query.filter(
+                AttendanceSession.started_at >= datetime.strptime(from_date, "%Y-%m-%d")
+            )
+        except ValueError:
+            pass
+    if to_date:
+        try:
+            session_query = session_query.filter(
+                AttendanceSession.started_at < datetime.strptime(to_date, "%Y-%m-%d") + timedelta(days=1)
+            )
+        except ValueError:
+            pass
+    sessions = session_query.all()
 
     session_ids = [s.id for s in sessions]
     total_sessions = len(session_ids)
