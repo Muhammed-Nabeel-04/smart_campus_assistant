@@ -6,14 +6,11 @@ import 'screens/auth/role_selection_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/faculty/faculty_dashboard_screen.dart';
 import 'screens/faculty/attendance_qr_screen.dart';
-
 import 'screens/faculty/view_attendance_screen.dart';
 import 'screens/student/scan_qr_screen.dart';
 import 'screens/student/student_dashboard_screen.dart';
-//import 'screens/student/student_onboarding_screen.dart';
 import 'screens/auth/student_login_screen.dart';
 import 'screens/auth/student_register_screen.dart';
-//import 'screens/faculty/student_onboarding_qr_screen.dart';
 import 'screens/student/student_onboarding_scan_screen.dart';
 import 'core/app_config.dart';
 import 'core/notification_service.dart';
@@ -62,6 +59,11 @@ import 'screens/principal/principal_hod_details_screen.dart';
 import 'screens/principal/principal_generate_hod_qr_screen.dart';
 import 'screens/principal/principal_profile_screen.dart';
 import 'screens/faculty/cc_timetable_editor_screen.dart';
+import 'screens/student/ssm_form_screen.dart';
+import 'screens/student/ssm_result_screen.dart';
+import 'screens/faculty/faculty_ssm_review_screen.dart';
+import 'screens/admin/hod_ssm_approval_screen.dart';
+import 'models/ssm_models.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -337,6 +339,21 @@ class _SmartCampusAppState extends State<SmartCampusApp> {
             facultyId: args['faculty_id'],
           );
         },
+        // ── SSM Routes ────────────────────────────────────────────────────
+        '/ssmForm': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments
+              as Map<String, dynamic>?;
+          return SSMFormScreen(
+            existingFormData: args?['form_data'] as Map<String, dynamic>?,
+          );
+        },
+        '/ssmResult': (context) {
+          final submission =
+              ModalRoute.of(context)!.settings.arguments as SSMSubmission;
+          return SSMResultScreen(submission: submission);
+        },
+        '/facultySSMReview': (context) => const FacultySSMReviewScreen(),
+        '/hodSSMApproval': (context) => const HODSSMApprovalScreen(),
       },
     );
   }

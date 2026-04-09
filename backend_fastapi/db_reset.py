@@ -31,6 +31,8 @@ if os.path.exists('campus.db'):
         conn.execute("DELETE FROM complaints")
         conn.execute("DELETE FROM timetable_slots")
         conn.execute("DELETE FROM timetable_pdfs")
+        conn.execute("DELETE FROM ssm_submissions")
+        conn.execute("DELETE FROM ssm_reviews")
         conn.commit()
         conn.close()
         print('✅ All data cleaned!')

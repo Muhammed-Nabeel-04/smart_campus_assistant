@@ -1927,17 +1927,13 @@ class ApiService {
   // SSM (Performance Module) APIs
   // ============================================================================
 
-  /// Save or update GPA + Attendance on draft submission
+  /// Save all SSM form fields — single endpoint handles all 5 categories
   static Future<Map<String, dynamic>> ssmSaveForm({
     required int studentId,
-    double? gpa,
-    double? attendanceInput,
+    required Map<String, dynamic> formData,
   }) async {
     try {
-      final body = <String, dynamic>{'student_id': studentId};
-      if (gpa != null) body['gpa'] = gpa;
-      if (attendanceInput != null) body['attendance_input'] = attendanceInput;
-
+      final body = {'student_id': studentId, ...formData};
       final response = await http
           .post(
             Uri.parse("$_baseUrl/ssm/save"),
@@ -1951,82 +1947,13 @@ class ApiService {
     }
   }
 
-  /// Add an activity (internship / certificate / project / achievement)
-  static Future<Map<String, dynamic>> ssmAddActivity({
-    required int submissionId,
-    required String type,
-    required String title,
-    String? description,
-    String? duration,
-    String? organization,
-    String? proofFileName,
-    String? proofFileData, // base64
-  }) async {
-    try {
-      final body = <String, dynamic>{
-        'submission_id': submissionId,
-        'type': type,
-        'title': title,
-        if (description != null) 'description': description,
-        if (duration != null) 'duration': duration,
-        if (organization != null) 'organization': organization,
-        if (proofFileName != null) 'proof_file_name': proofFileName,
-        if (proofFileData != null) 'proof_file_data': proofFileData,
-      };
-
-      final response = await http
-          .post(
-            Uri.parse("$_baseUrl/ssm/activity"),
-            headers: _authHeaders,
-            body: jsonEncode(body),
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  /// Delete an activity
-  static Future<void> ssmDeleteActivity(int activityId) async {
-    try {
-      final response = await http
-          .delete(
-            Uri.parse("$_baseUrl/ssm/activity/$activityId"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      _handleResponse(response);
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  /// Recalculate score for a submission
-  static Future<Map<String, dynamic>> ssmCalculateScore(
-      int submissionId) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse("$_baseUrl/ssm/calculate/$submissionId"),
-            headers: _authHeaders,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
   /// Submit for mentor approval
   static Future<Map<String, dynamic>> ssmSubmitForApproval(
       int submissionId) async {
     try {
       final response = await http
-          .post(
-            Uri.parse("$_baseUrl/ssm/submit/$submissionId"),
-            headers: _authHeaders,
-          )
+          .post(Uri.parse("$_baseUrl/ssm/submit/$submissionId"),
+              headers: _authHeaders)
           .timeout(_timeout);
       return _handleResponse(response) as Map<String, dynamic>;
     } catch (e) {
@@ -2038,10 +1965,8 @@ class ApiService {
   static Future<Map<String, dynamic>> ssmGetResult(int studentId) async {
     try {
       final response = await http
-          .get(
-            Uri.parse("$_baseUrl/ssm/result/$studentId"),
-            headers: _authHeadersGet,
-          )
+          .get(Uri.parse("$_baseUrl/ssm/result/$studentId"),
+              headers: _authHeadersGet)
           .timeout(_timeout);
       return _handleResponse(response) as Map<String, dynamic>;
     } catch (e) {
@@ -2049,7 +1974,7 @@ class ApiService {
     }
   }
 
-  /// Get all submissions (faculty / HOD)
+  /// Get all submissions — for faculty / HOD review screens
   static Future<List<dynamic>> ssmGetSubmissions({String? status}) async {
     try {
       String url = "$_baseUrl/ssm/submissions";
@@ -2063,7 +1988,7 @@ class ApiService {
     }
   }
 
-  /// Mentor review
+  /// Mentor review (approve / reject)
   static Future<Map<String, dynamic>> ssmMentorReview({
     required int submissionId,
     required String status,
@@ -2087,7 +2012,7 @@ class ApiService {
     }
   }
 
-  /// HOD final review
+  /// HOD final review (lock score)
   static Future<Map<String, dynamic>> ssmHODReview({
     required int submissionId,
     required String status,
@@ -2106,6 +2031,21 @@ class ApiService {
           )
           .timeout(_timeout);
       return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Delete draft submission
+  static Future<void> ssmDeleteSubmission(int submissionId) async {
+    try {
+      final response = await http
+          .delete(
+            Uri.parse("$_baseUrl/ssm/submission/$submissionId"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      _handleResponse(response);
     } catch (e) {
       throw _handleError(e);
     }

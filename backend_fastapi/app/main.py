@@ -18,6 +18,7 @@ import app.models.onboarding_token
 import app.models.session_token
 import app.models.faq
 import app.models.notice
+import app.models.ssm 
 
 # ── Create FastAPI app ──
 app = FastAPI(title="Smart Campus Assistant API")
@@ -84,6 +85,7 @@ from app.routes.principal_routes import router as principal_router
 
 from app.models.timetable import TimetableSlot, TimetablePDF
 from app.routes.timetable_routes import router as timetable_router
+from app.routes.ssm_routes import router as ssm_router
 
 # ── Auth dependency ──
 from app.services.deps import get_current_user
@@ -138,6 +140,10 @@ app.include_router(
 )
 app.include_router(
     timetable_router,
+    dependencies=[Depends(get_current_user)]
+)
+app.include_router(
+    ssm_router,
     dependencies=[Depends(get_current_user)]
 )
 

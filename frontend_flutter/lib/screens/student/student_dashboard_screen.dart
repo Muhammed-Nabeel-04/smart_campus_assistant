@@ -9,6 +9,7 @@ import 'student_attendance_tab.dart';
 import 'student_notifications_tab.dart';
 import 'student_complaints_tab.dart';
 import 'student_profile_tab.dart';
+import 'student_performance_tab.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -23,6 +24,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   final List<Widget> _pages = const [
     _HomeTab(),
     StudentAttendanceTab(),
+    StudentPerformanceTab(),
     StudentNotificationsTab(),
     StudentComplaintsTab(),
     StudentProfileTab(),
@@ -104,6 +106,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
+          type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
@@ -114,6 +117,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               icon: Icon(Icons.assignment_outlined),
               activeIcon: Icon(Icons.assignment),
               label: 'Attendance',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart_outlined),
+              activeIcon: Icon(Icons.bar_chart),
+              label: 'Performance',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.notifications_outlined),
