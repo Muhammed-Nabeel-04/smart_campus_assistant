@@ -8,6 +8,7 @@ import app.models.class_subject, app.models.attendance, app.models.attendance_se
 import app.models.complaint, app.models.notification, app.models.onboarding_token
 import app.models.session_token, app.models.faq, app.models.notice
 import app.models.ssm
+import app.models.ssm_proof
 
 from passlib.hash import bcrypt
 from passlib.context import CryptContext
@@ -33,6 +34,9 @@ MIGRATIONS = [
     ('faculty',        'ALTER TABLE faculty ADD COLUMN cc_class_id INTEGER'),
     ('departments',    'ALTER TABLE departments ADD COLUMN period_timings TEXT'),
     ('ssm_submissions','ALTER TABLE ssm_submissions ADD COLUMN form_data TEXT'),
+    ('ssm_proofs', 'SELECT 1 FROM ssm_proofs LIMIT 1'),
+    ('ssm_entries', 'SELECT 1 FROM ssm_entries LIMIT 1'),
+    ('ssm_mentor_inputs', 'SELECT 1 FROM ssm_mentor_inputs LIMIT 1'),
 ]
 
 for label, sql in MIGRATIONS:

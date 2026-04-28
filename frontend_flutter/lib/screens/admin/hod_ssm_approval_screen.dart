@@ -20,7 +20,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
   bool _isLoading = true;
   String? _error;
 
-  List<Map<String, dynamic>> _pendingHOD = []; // mentor_approved
+  List<Map<String, dynamic>> _pendingHOD = [];   // mentor_approved
   List<Map<String, dynamic>> _finalApproved = []; // hod_approved
   List<Map<String, dynamic>> _finalRejected = []; // hod_rejected
 
@@ -38,35 +38,19 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
   }
 
   Future<void> _load() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+    setState(() { _isLoading = true; _error = null; });
     try {
       final all = await ApiService.ssmGetSubmissions();
       if (mounted) {
         setState(() {
-          _pendingHOD = all
-              .where((s) => s['status'] == 'mentor_approved')
-              .map((s) => Map<String, dynamic>.from(s))
-              .toList();
-          _finalApproved = all
-              .where((s) => s['status'] == 'hod_approved')
-              .map((s) => Map<String, dynamic>.from(s))
-              .toList();
-          _finalRejected = all
-              .where((s) => s['status'] == 'hod_rejected')
-              .map((s) => Map<String, dynamic>.from(s))
-              .toList();
+          _pendingHOD    = all.where((s) => s['status'] == 'mentor_approved').map((s) => Map<String, dynamic>.from(s)).toList();
+          _finalApproved = all.where((s) => s['status'] == 'hod_approved').map((s) => Map<String, dynamic>.from(s)).toList();
+          _finalRejected = all.where((s) => s['status'] == 'hod_rejected').map((s) => Map<String, dynamic>.from(s)).toList();
           _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted)
-        setState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
+      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
     }
   }
 
@@ -89,17 +73,13 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
                   if (_pendingHOD.isNotEmpty) ...[
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: const Color(0xFF2196F3),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text('${_pendingHOD.length}',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold)),
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ],
@@ -135,19 +115,12 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inbox_outlined,
-                size: 56,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onBackground
-                    .withOpacity(0.2)),
+            Icon(Icons.inbox_outlined, size: 56,
+                color: Theme.of(context).colorScheme.onBackground.withOpacity(0.2)),
             const SizedBox(height: 16),
             Text('No submissions here',
                 style: TextStyle(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onBackground
-                        .withOpacity(0.4))),
+                    color: Theme.of(context).colorScheme.onBackground.withOpacity(0.4))),
           ],
         ),
       );
@@ -171,14 +144,10 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
     final stars = sub['star_rating'] as int? ?? 0;
 
     Color scoreColor;
-    if (score >= 85)
-      scoreColor = const Color(0xFF4CAF50);
-    else if (score >= 70)
-      scoreColor = const Color(0xFF2196F3);
-    else if (score >= 55)
-      scoreColor = const Color(0xFFFF9800);
-    else
-      scoreColor = cs.error;
+    if (score >= 85) scoreColor = const Color(0xFF4CAF50);
+    else if (score >= 70) scoreColor = const Color(0xFF2196F3);
+    else if (score >= 55) scoreColor = const Color(0xFFFF9800);
+    else scoreColor = cs.error;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -217,12 +186,9 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
                       ),
                       child: Center(
                         child: Text(
-                          (sub['student_name'] as String? ?? 'S')[0]
-                              .toUpperCase(),
+                          (sub['student_name'] as String? ?? 'S')[0].toUpperCase(),
                           style: TextStyle(
-                              color: scoreColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20),
+                              color: scoreColor, fontWeight: FontWeight.bold, fontSize: 20),
                         ),
                       ),
                     ),
@@ -233,14 +199,10 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
                         children: [
                           Text(sub['student_name'] ?? 'Unknown',
                               style: TextStyle(
-                                  color: cs.onSurface,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15)),
+                                  color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 15)),
                           Text(
                             '${sub['register_number'] ?? ''} • ${sub['department'] ?? ''} ${sub['year'] ?? ''}',
-                            style: TextStyle(
-                                color: cs.onSurface.withOpacity(0.5),
-                                fontSize: 12),
+                            style: TextStyle(color: cs.onSurface.withOpacity(0.5), fontSize: 12),
                           ),
                         ],
                       ),
@@ -250,8 +212,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: scoreColor.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(10),
@@ -259,20 +220,16 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
                           child: Text(
                             score.toStringAsFixed(1),
                             style: TextStyle(
-                                color: scoreColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18),
+                                color: scoreColor, fontWeight: FontWeight.bold, fontSize: 18),
                           ),
                         ),
                         const SizedBox(height: 4),
                         Row(
-                          children: List.generate(
-                              5,
-                              (i) => Icon(
-                                    i < stars ? Icons.star : Icons.star_border,
-                                    color: const Color(0xFFFFB300),
-                                    size: 12,
-                                  )),
+                          children: List.generate(5, (i) => Icon(
+                            i < stars ? Icons.star : Icons.star_border,
+                            color: const Color(0xFFFFB300),
+                            size: 12,
+                          )),
                         ),
                       ],
                     ),
@@ -283,27 +240,18 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
 
                 // Stats row
                 Row(children: [
-                  _statBox(
-                      'GPA',
-                      sub['gpa'] != null
-                          ? (sub['gpa'] as num).toStringAsFixed(1)
-                          : '—',
-                      const Color(0xFF4CAF50),
-                      cs),
+                  _statBox('GPA',
+                      sub['gpa'] != null ? (sub['gpa'] as num).toStringAsFixed(1) : '—',
+                      const Color(0xFF4CAF50), cs),
                   const SizedBox(width: 8),
-                  _statBox(
-                      'Attend.',
+                  _statBox('Attend.',
                       sub['attendance_input'] != null
-                          ? '${(sub['attendance_input'] as num).toStringAsFixed(0)}%'
-                          : '—',
-                      const Color(0xFF2196F3),
-                      cs),
+                          ? '${(sub['attendance_input'] as num).toStringAsFixed(0)}%' : '—',
+                      const Color(0xFF2196F3), cs),
                   const SizedBox(width: 8),
-                  _statBox(
-                      'Activities',
-                      '${(sub['activities'] as List?)?.length ?? 0}',
-                      const Color(0xFF9C27B0),
-                      cs),
+                  _statBox('Activities',
+                      '${(sub['entries'] as List?)?.length ?? 0}',
+                      const Color(0xFF9C27B0), cs),
                   const SizedBox(width: 8),
                   if (isFinal)
                     Expanded(
@@ -329,8 +277,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
                   const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                     decoration: BoxDecoration(
                       color: const Color(0xFF2196F3).withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
@@ -365,40 +312,35 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
                       label: const Text('View'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () =>
-                          _finalReviewDialog(sub['id'] as int, 'rejected'),
+                      onPressed: () => _finalReviewDialog(sub['id'] as int, 'rejected'),
                       icon: const Icon(Icons.close, size: 16),
                       label: const Text('Reject'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: cs.error,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () =>
-                          _finalReviewDialog(sub['id'] as int, 'approved'),
+                      onPressed: () => _finalReviewDialog(sub['id'] as int, 'approved'),
                       icon: const Icon(Icons.lock_outline, size: 16),
                       label: const Text('Lock Score'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4CAF50),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),
@@ -416,8 +358,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
                   label: const Text('View Details'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ),
@@ -438,11 +379,9 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
         child: Column(
           children: [
             Text(value,
-                style: TextStyle(
-                    color: color, fontWeight: FontWeight.bold, fontSize: 13)),
+                style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
             Text(label,
-                style: TextStyle(
-                    color: cs.onSurface.withOpacity(0.5), fontSize: 10)),
+                style: TextStyle(color: cs.onSurface.withOpacity(0.5), fontSize: 10)),
           ],
         ),
       ),
@@ -475,8 +414,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
               isApprove
                   ? 'This will LOCK the student\'s final performance score. This cannot be undone.'
                   : 'The submission will be sent back to the student for revision.',
-              style: TextStyle(
-                  color: cs.onBackground.withOpacity(0.6), fontSize: 13),
+              style: TextStyle(color: cs.onBackground.withOpacity(0.6), fontSize: 13),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -487,8 +425,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
                 hintText: isApprove
                     ? 'e.g. Excellent student — approved'
                     : 'e.g. Certificate proofs are missing',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
@@ -502,8 +439,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: isApprove ? const Color(0xFF4CAF50) : cs.error,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: Text(isApprove ? 'Lock Score' : 'Reject'),
           ),
@@ -543,7 +479,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
 
   void _showDetails(Map<String, dynamic> sub) {
     final cs = Theme.of(context).colorScheme;
-    final activities = (sub['activities'] as List? ?? []);
+    final activities = (sub['entries'] as List? ?? []);
     final reviews = (sub['reviews'] as List? ?? []);
 
     showModalBottomSheet(
@@ -562,8 +498,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
           children: [
             Center(
               child: Container(
-                width: 40,
-                height: 4,
+                width: 40, height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
                   color: cs.onSurface.withOpacity(0.2),
@@ -572,22 +507,15 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
               ),
             ),
             Text(sub['student_name'] ?? '',
-                style: TextStyle(
-                    color: cs.onSurface,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18)),
-            Text(
-                '${sub['register_number']} • ${sub['department']} ${sub['year']}',
+                style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('${sub['register_number']} • ${sub['department']} ${sub['year']}',
                 style: TextStyle(color: cs.onSurface.withOpacity(0.5))),
             const SizedBox(height: 20),
 
             // Score breakdown
             if ((sub['score_breakdown'] as Map?)?.isNotEmpty == true) ...[
               Text('Score Breakdown',
-                  style: TextStyle(
-                      color: cs.onSurface,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15)),
+                  style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 15)),
               const SizedBox(height: 10),
               _buildBreakdownRows(sub['score_breakdown'] as Map, cs),
               const SizedBox(height: 16),
@@ -596,43 +524,36 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
             // Activities
             if (activities.isNotEmpty) ...[
               Text('Activities (${activities.length})',
-                  style: TextStyle(
-                      color: cs.onSurface,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15)),
+                  style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 15)),
               const SizedBox(height: 10),
               ...activities.map((a) => Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: cs.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: cs.onSurface.withOpacity(0.08)),
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: cs.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: cs.onSurface.withOpacity(0.08)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.circle, size: 8),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text('${a['title']} (${a['type']})',
+                          style: TextStyle(color: cs.onSurface, fontSize: 13)),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.circle, size: 8),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text('${a['title']} (${a['type']})',
-                              style:
-                                  TextStyle(color: cs.onSurface, fontSize: 13)),
-                        ),
-                        if (a['has_proof'] == true)
-                          const Icon(Icons.attach_file, size: 14),
-                      ],
-                    ),
-                  )),
+                    if (a['has_proof'] == true)
+                      const Icon(Icons.attach_file, size: 14),
+                  ],
+                ),
+              )),
               const SizedBox(height: 16),
             ],
 
             // Reviews
             if (reviews.isNotEmpty) ...[
               Text('Review History',
-                  style: TextStyle(
-                      color: cs.onSurface,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15)),
+                  style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 15)),
               const SizedBox(height: 10),
               ...reviews.map((r) {
                 final approved = r['status'] == 'approved';
@@ -647,8 +568,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
                   ),
                   child: Text(
                     '${(r['reviewer_role'] as String).toUpperCase()} — ${r['reviewer_name'] ?? ''}: ${r['remarks'] ?? 'No remarks'}',
-                    style: TextStyle(
-                        color: cs.onSurface.withOpacity(0.7), fontSize: 12),
+                    style: TextStyle(color: cs.onSurface.withOpacity(0.7), fontSize: 12),
                   ),
                 );
               }),
@@ -693,8 +613,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
                     style: TextStyle(color: cs.onSurface, fontSize: 13)),
               ),
               Text('$pts / $max pts',
-                  style: TextStyle(
-                      color: color, fontWeight: FontWeight.bold, fontSize: 13)),
+                  style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
             ],
           ),
         );
@@ -709,8 +628,7 @@ class _HODSSMApprovalScreenState extends State<HODSSMApprovalScreen>
         children: [
           Icon(Icons.cloud_off, size: 56, color: cs.error.withOpacity(0.5)),
           const SizedBox(height: 16),
-          Text(_error!,
-              style: TextStyle(color: cs.onBackground.withOpacity(0.6))),
+          Text(_error!, style: TextStyle(color: cs.onBackground.withOpacity(0.6))),
           const SizedBox(height: 24),
           ElevatedButton(onPressed: _load, child: const Text('Retry')),
         ],

@@ -19,6 +19,7 @@ import app.models.session_token
 import app.models.faq
 import app.models.notice
 import app.models.ssm 
+import app.models.ssm_proof
 
 # ── Create FastAPI app ──
 app = FastAPI(title="Smart Campus Assistant API")
@@ -63,6 +64,19 @@ def startup():
                 print(f"✅ Added {col} column to students table")
         conn.commit()
 
+        # SSM Proofs table safety check
+        try:
+           inspector.get_columns('ssm_proofs')
+        except Exception:
+           pass
+
+        # SSM v3 new tables safety check
+        for tbl in ['ssm_entries', 'ssm_mentor_inputs']:
+            try:
+                inspector.get_columns(tbl)
+            except Exception:
+                pass  # create_all handles new tables
+
     print("🚀 Smart Campus API started")
 
 # ── Routes imports ──
@@ -86,6 +100,7 @@ from app.routes.principal_routes import router as principal_router
 from app.models.timetable import TimetableSlot, TimetablePDF
 from app.routes.timetable_routes import router as timetable_router
 from app.routes.ssm_routes import router as ssm_router
+from app.routes.ssm_proof_routes import router as ssm_proof_router
 
 # ── Auth dependency ──
 from app.services.deps import get_current_user
@@ -146,7 +161,10 @@ app.include_router(
     ssm_router,
     dependencies=[Depends(get_current_user)]
 )
-
+app.include_router(
+    ssm_proof_router,
+    dependencies=[Depends(get_current_user)]
+)
 # ── Root route ──
 @app.get("/")
 def root():

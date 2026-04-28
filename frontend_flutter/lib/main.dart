@@ -59,11 +59,13 @@ import 'screens/principal/principal_hod_details_screen.dart';
 import 'screens/principal/principal_generate_hod_qr_screen.dart';
 import 'screens/principal/principal_profile_screen.dart';
 import 'screens/faculty/cc_timetable_editor_screen.dart';
-import 'screens/student/ssm_form_screen.dart';
 import 'screens/student/ssm_result_screen.dart';
 import 'screens/faculty/faculty_ssm_review_screen.dart';
 import 'screens/admin/hod_ssm_approval_screen.dart';
 import 'models/ssm_models.dart';
+import 'screens/student/ssm_upload_proof_screen.dart';
+import 'screens/student/ssm_proofs_tab.dart';
+import 'screens/faculty/faculty_ssm_mentor_input_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -340,13 +342,7 @@ class _SmartCampusAppState extends State<SmartCampusApp> {
           );
         },
         // ── SSM Routes ────────────────────────────────────────────────────
-        '/ssmForm': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments
-              as Map<String, dynamic>?;
-          return SSMFormScreen(
-            existingFormData: args?['form_data'] as Map<String, dynamic>?,
-          );
-        },
+
         '/ssmResult': (context) {
           final submission =
               ModalRoute.of(context)!.settings.arguments as SSMSubmission;
@@ -354,6 +350,26 @@ class _SmartCampusAppState extends State<SmartCampusApp> {
         },
         '/facultySSMReview': (context) => const FacultySSMReviewScreen(),
         '/hodSSMApproval': (context) => const HODSSMApprovalScreen(),
+        '/ssmUploadProof': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments
+              as Map<String, dynamic>;
+          return SSMUploadProofScreen(
+            submissionId: args['submission_id'] as int,
+            criterionKey: args['criterion_key'] as String,
+            criterionLabel: args['criterion_label'] as String,
+            existingProof: args['existing_proof'] as Map<String, dynamic>?,
+          );
+        },
+        '/facultySSMMentorInput': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments
+              as Map<String, dynamic>;
+          return FacultySSMMentorInputScreen(
+            studentId: args['student_id'] as int,
+            studentName: args['student_name'] as String,
+            registerNumber: args['register_number'] as String,
+            existingInput: args['existing_input'] as Map<String, dynamic>?,
+          );
+        },
       },
     );
   }

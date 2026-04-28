@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import '../../models/ssm_models.dart';
 import '../../services/api_service.dart';
+import 'faculty_ssm_mentor_input_screen.dart';
 
 class FacultySSMReviewScreen extends StatefulWidget {
   const FacultySSMReviewScreen({super.key});
@@ -329,7 +330,7 @@ class _FacultySSMReviewScreenState extends State<FacultySSMReviewScreen>
                 const SizedBox(width: 8),
                 _quickStat(
                     'Activities',
-                    '${(sub['activities'] as List?)?.length ?? 0}',
+                    '${(sub['entries'] as List?)?.length ?? 0}',
                     const Color(0xFF9C27B0),
                     cs),
                 const SizedBox(width: 8),
@@ -380,6 +381,21 @@ class _FacultySSMReviewScreenState extends State<FacultySSMReviewScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton.icon(
+                      onPressed: () => _openMentorInput(sub),
+                      icon: const Icon(Icons.rate_review_outlined, size: 16),
+                      label: const Text('Evaluate'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6A1B9A),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
                       onPressed: () =>
                           _reviewDialog(sub['id'] as int, 'rejected'),
                       icon: const Icon(Icons.close, size: 16),
@@ -415,18 +431,36 @@ class _FacultySSMReviewScreenState extends State<FacultySSMReviewScreen>
           else
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _showDetailsSheet(sub),
-                  icon: const Icon(Icons.visibility_outlined, size: 16),
-                  label: const Text('View Details'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showDetailsSheet(sub),
+                      icon: const Icon(Icons.visibility_outlined, size: 16),
+                      label: const Text('View'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openMentorInput(sub),
+                      icon: const Icon(Icons.rate_review_outlined, size: 16),
+                      label: const Text('Evaluate'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6A1B9A),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
         ],
@@ -454,6 +488,21 @@ class _FacultySSMReviewScreenState extends State<FacultySSMReviewScreen>
         ),
       ),
     );
+  }
+
+  void _openMentorInput(Map<String, dynamic> sub) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FacultySSMMentorInputScreen(
+          studentId: sub['student_id'] as int,
+          studentName: sub['student_name'] as String? ?? 'Student',
+          registerNumber: sub['register_number'] as String? ?? '',
+          existingInput: sub['mentor_input'] as Map<String, dynamic>?,
+        ),
+      ),
+    );
+    if (result == true) _load();
   }
 
   Future<void> _reviewDialog(int submissionId, String status) async {
@@ -550,7 +599,7 @@ class _FacultySSMReviewScreenState extends State<FacultySSMReviewScreen>
 
   void _showDetailsSheet(Map<String, dynamic> sub) {
     final cs = Theme.of(context).colorScheme;
-    final activities = (sub['activities'] as List? ?? []);
+    final activities = (sub['entries'] as List? ?? []);
     final reviews = (sub['reviews'] as List? ?? []);
 
     showModalBottomSheet(
