@@ -9,6 +9,7 @@ import app.models.complaint, app.models.notification, app.models.onboarding_toke
 import app.models.session_token, app.models.faq, app.models.notice
 import app.models.ssm
 import app.models.ssm_proof
+import app.models.ssm_new
 
 from passlib.hash import bcrypt
 from passlib.context import CryptContext

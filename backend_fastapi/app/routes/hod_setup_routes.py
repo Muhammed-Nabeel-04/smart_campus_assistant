@@ -552,6 +552,21 @@ def ensure_class(
     db.add(new_class)
     db.commit()
     db.refresh(new_class)
+
+    # BROADCAST FIX: Link all existing subjects for this year/department to this new section
+    subjects = db.query(Subject).filter(
+        Subject.department == dept.code,
+        Subject.year == payload.year
+    ).all()
+
+    for sub in subjects:
+        db.add(ClassSubject(
+            class_id=new_class.id,
+            subject_id=sub.id,
+            semester=f"Semester {sub.semester}"
+        ))
+    db.commit()
+
     return {"id": new_class.id, "year": new_class.year, "section": new_class.section}
 
 # ── Get period timings ────────────────────────────────────────

@@ -20,6 +20,8 @@ import app.models.faq
 import app.models.notice
 import app.models.ssm 
 import app.models.ssm_proof
+import app.models.ssm_new
+from app.routes.ssm_new_routes import router as ssm_new_router
 
 # ── Create FastAPI app ──
 app = FastAPI(title="Smart Campus Assistant API")
@@ -165,6 +167,7 @@ app.include_router(
     ssm_proof_router,
     dependencies=[Depends(get_current_user)]
 )
+app.include_router(ssm_new_router)
 # ── Root route ──
 @app.get("/")
 def root():

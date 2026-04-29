@@ -9,7 +9,7 @@ import 'student_attendance_tab.dart';
 import 'student_notifications_tab.dart';
 import 'student_complaints_tab.dart';
 import 'student_profile_tab.dart';
-import 'student_performance_tab.dart';
+import 'ssm_activity_dashboard.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -24,7 +24,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   final List<Widget> _pages = const [
     _HomeTab(),
     StudentAttendanceTab(),
-    StudentPerformanceTab(),
+    SSMActivityDashboard(),
     StudentNotificationsTab(),
     StudentComplaintsTab(),
     StudentProfileTab(),
@@ -149,7 +149,16 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 backgroundColor: cs.primary,
                 foregroundColor: cs.onPrimary,
               )
-            : null,
+            : (_currentIndex == 2
+                ? FloatingActionButton.extended(
+                    onPressed: () async {
+                      final added = await Navigator.pushNamed(context, '/ssmAddActivity');
+                      if (added == true) setState(() {});
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Activity'),
+                  )
+                : null),
       ),
     );
   }

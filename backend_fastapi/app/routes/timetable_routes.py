@@ -154,7 +154,7 @@ def create_slot(
     if payload.day_of_week not in DAYS:
         raise HTTPException(status_code=400, detail="Invalid day")
 
-    # Check duplicate slot for same class+day+time
+    # 1. Check duplicate slot for same class+day+time
     existing = db.query(TimetableSlot).filter(
         TimetableSlot.class_id   == payload.class_id,
         TimetableSlot.day_of_week == payload.day_of_week,
@@ -164,6 +164,29 @@ def create_slot(
         raise HTTPException(
             status_code=400,
             detail="A slot already exists for this class at this time"
+        )
+
+    # 2. FACULTY CONFLICT CHECK: Is faculty already teaching elsewhere?
+    conflict = db.query(TimetableSlot).filter(
+        TimetableSlot.faculty_id == payload.faculty_id,
+        TimetableSlot.day_of_week == payload.day_of_week,
+        TimetableSlot.start_time == payload.start_time
+    ).first()
+
+    if conflict:
+        # Get details for a nice error message
+        conf_subject = db.query(Subject).filter(Subject.id == conflict.subject_id).first()
+        conf_class = db.query(ClassModel).filter(ClassModel.id == conflict.class_id).first()
+        conf_faculty = db.query(Faculty).filter(Faculty.id == conflict.faculty_id).first()
+        conf_user = db.query(User).filter(User.id == conf_faculty.user_id).first() if conf_faculty else None
+        
+        f_name = conf_user.name if conf_user else "This faculty"
+        s_name = conf_subject.name if conf_subject else "a subject"
+        c_name = f"{conf_class.year} Sec {conf_class.section}" if conf_class else "another class"
+        
+        raise HTTPException(
+            status_code=409,
+            detail=f"{f_name} is already teaching {s_name} ({c_name}) at this time."
         )
 
     slot = TimetableSlot(

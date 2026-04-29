@@ -466,16 +466,16 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                         ),
                         const SizedBox(height: 12),
 
-                        // ADDED NEW ROW HERE FOR SSM REVIEWS
+                        // SSM REVIEWS
                         Row(
                           children: [
                             Expanded(
                               child: _buildActionCard(
-                                'SSM Reviews',
+                                'SSM Activity Reviews',
                                 Icons.rate_review_outlined,
                                 principalPurple,
                                 () => Navigator.pushNamed(
-                                    context, '/facultySSMReview'),
+                                    context, '/ssmMentorDashboard'),
                                 cs,
                               ),
                             ),

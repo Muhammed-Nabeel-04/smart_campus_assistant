@@ -245,10 +245,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: _QuickActionCard(
-                title: 'SSM Approval',
-                icon: Icons.lock_outline,
+                title: 'SSM Approvals',
+                icon: Icons.assignment_turned_in_outlined,
                 color: statusSuccess,
-                onTap: () => Navigator.pushNamed(context, '/hodSSMApproval'),
+                onTap: () => Navigator.pushNamed(context, '/ssmHodDashboard'),
                 cs: cs,
               ),
             ),

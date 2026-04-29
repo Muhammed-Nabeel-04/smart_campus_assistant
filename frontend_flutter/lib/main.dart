@@ -59,13 +59,11 @@ import 'screens/principal/principal_hod_details_screen.dart';
 import 'screens/principal/principal_generate_hod_qr_screen.dart';
 import 'screens/principal/principal_profile_screen.dart';
 import 'screens/faculty/cc_timetable_editor_screen.dart';
-import 'screens/student/ssm_result_screen.dart';
-import 'screens/faculty/faculty_ssm_review_screen.dart';
-import 'screens/admin/hod_ssm_approval_screen.dart';
-import 'models/ssm_models.dart';
-import 'screens/student/ssm_upload_proof_screen.dart';
-import 'screens/student/ssm_proofs_tab.dart';
-import 'screens/faculty/faculty_ssm_mentor_input_screen.dart';
+import 'screens/student/ssm_activity_dashboard.dart';
+import 'screens/student/ssm_add_activity_screen.dart';
+import 'screens/student/ssm_student_extra_screens.dart';
+import 'screens/faculty/ssm_mentor_screens.dart';
+import 'screens/admin/ssm_hod_screens.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -343,33 +341,31 @@ class _SmartCampusAppState extends State<SmartCampusApp> {
         },
         // ── SSM Routes ────────────────────────────────────────────────────
 
-        '/ssmResult': (context) {
-          final submission =
-              ModalRoute.of(context)!.settings.arguments as SSMSubmission;
-          return SSMResultScreen(submission: submission);
+        '/ssmDashboard': (context) => const SSMActivityDashboard(),
+        '/ssmAddActivity': (context) => const SSMAddActivityScreen(),
+        '/ssmScore': (context) {
+          final formId = ModalRoute.of(context)!.settings.arguments as int;
+          return SSMScoreScreen(formId: formId);
         },
-        '/facultySSMReview': (context) => const FacultySSMReviewScreen(),
-        '/hodSSMApproval': (context) => const HODSSMApprovalScreen(),
-        '/ssmUploadProof': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments
-              as Map<String, dynamic>;
-          return SSMUploadProofScreen(
-            submissionId: args['submission_id'] as int,
-            criterionKey: args['criterion_key'] as String,
-            criterionLabel: args['criterion_label'] as String,
-            existingProof: args['existing_proof'] as Map<String, dynamic>?,
-          );
+        '/ssmTimeline': (context) {
+          final formId = ModalRoute.of(context)!.settings.arguments as int;
+          return SSMFormTimelineScreen(formId: formId);
         },
-        '/facultySSMMentorInput': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments
-              as Map<String, dynamic>;
-          return FacultySSMMentorInputScreen(
-            studentId: args['student_id'] as int,
-            studentName: args['student_name'] as String,
-            registerNumber: args['register_number'] as String,
-            existingInput: args['existing_input'] as Map<String, dynamic>?,
-          );
+        '/ssmMentorDashboard': (context) => const SSMMentorDashboard(),
+        '/ssmMentorReview': (context) {
+          final formId = ModalRoute.of(context)!.settings.arguments as int;
+          return SSMMentorReviewScreen(formId: formId);
         },
+        '/ssmMentorActivityDetail': (context) {
+          final activityId = ModalRoute.of(context)!.settings.arguments as int;
+          return SSMMentorActivityDetailScreen(activityId: activityId);
+        },
+        '/ssmHodDashboard': (context) => const SSMHodDashboard(),
+        '/ssmHodApproval': (context) {
+          final formId = ModalRoute.of(context)!.settings.arguments as int;
+          return SSMHodApprovalScreen(formId: formId);
+        },
+        '/ssmHodReport': (context) => const SSMHodReportScreen(),
       },
     );
   }

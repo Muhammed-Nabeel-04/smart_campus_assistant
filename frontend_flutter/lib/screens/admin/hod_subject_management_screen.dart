@@ -115,13 +115,24 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
       (_data['current_semesters'] as Map<String, dynamic>?) ?? {};
 
   int _getCurrentSemester(String year) {
+    final allowed = _yearSemesters[year]!;
+    int result;
+
     final sem = _currentSemesters[year];
-    if (sem == null) return _yearSemesters[year]!.first;
-    if (sem is int) return sem;
-    final match = RegExp(r'\d+').firstMatch(sem.toString());
-    return match != null
-        ? int.parse(match.group(0)!)
-        : _yearSemesters[year]!.first;
+    if (sem == null) {
+      result = allowed.first;
+    } else if (sem is int) {
+      result = sem;
+    } else {
+      final match = RegExp(r'\d+').firstMatch(sem.toString());
+      result = match != null ? int.parse(match.group(0)!) : allowed.first;
+    }
+
+    // Safety check: Ensure the result is in the allowed list
+    if (!allowed.contains(result)) {
+      return allowed.first;
+    }
+    return result;
   }
 
   Future<void> _updateSemester(String year, int semester) async {
