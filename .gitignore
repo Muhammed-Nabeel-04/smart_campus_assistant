@@ -3,43 +3,53 @@
 # =========================
 .DS_Store
 Thumbs.db
+*.swp
+*.tmp
 
 # =========================
-# Logs
+# Python / FastAPI
 # =========================
-*.log
-
-# =========================
-# Python Backend
-# =========================
-venv/
-__pycache__/
+**/venv/
+**/env/
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.sqlite3
-campus.db
 .env
+**/requirements_local_backup.txt
+
+# =========================
+# Databases (SQLite)
+# =========================
+*.sqlite3
+**/campus.db
+**/test.db
 
 # =========================
 # Flutter / Dart
 # =========================
+**/build/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 .pub-cache/
 .pub/
-build/
 coverage/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
 
 # =========================
-# Android / iOS build
+# Android build artifacts
 # =========================
-android/app/debug
-android/app/profile
-android/app/release
-ios/Flutter/.last_build_id
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+**/android/local.properties
+**/android/key.properties
+**/*.keystore
+**/*.jks
 
 # =========================
 # IDE Files
@@ -51,7 +61,7 @@ ios/Flutter/.last_build_id
 *.iws
 
 # =========================
-# Temporary Files
+# Custom Project Files
 # =========================
-*.swp
-*.tmp
+# Temporary verification files
+verification_temp/
