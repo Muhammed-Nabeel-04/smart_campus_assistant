@@ -97,71 +97,109 @@ def get_admin_stats(
     if current_user['role'] not in ['admin', 'principal']:
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    # Count totals — HOD sees only their department
+    # 1. Identify context (HOD vs Principal)
     hod_dept = None
     if current_user['role'] == 'admin':
-        dept = db.query(Department).filter(
+        hod_dept = db.query(Department).filter(
             Department.hod_user_id == current_user['user_id']
         ).first()
-        if dept:
-            hod_dept = dept
+
+    today = date.today()
 
     if hod_dept:
-        # HOD — filter by their department
+        # HOD Context — filter everything by department
+        dept_code = hod_dept.code
+        
+        # Faculty count (excluding HOD)
         total_faculty = db.query(Faculty).filter(
-            Faculty.department.ilike(hod_dept.code)
+            Faculty.department.ilike(dept_code),
+            Faculty.user_id != current_user['user_id']
         ).count()
+        
+        # Students in department
         total_students = db.query(Student).filter(
-            Student.department.ilike(hod_dept.code)
+            Student.department.ilike(dept_code)
         ).count()
-        total_departments = 1
-        pending_complaints = db.query(Complaint).filter(
-            Complaint.status == 'pending',
-            Complaint.student_id.in_([
-                s.id for s in db.query(Student).filter(
-                    Student.department.ilike(hod_dept.code)
-                ).all()
-            ])
+        
+        # Classes (Sections) in department
+        total_classes = db.query(ClassModel).filter(
+            ClassModel.department_id == hod_dept.id
         ).count()
+        
+        # Student IDs for attendance/complaints sub-queries
+        student_list = db.query(Student).filter(Student.department.ilike(dept_code)).all()
+        student_ids = [s.id for s in student_list]
+        
+        # Complaints
+        if student_ids:
+            pending_complaints = db.query(Complaint).filter(
+                Complaint.status == 'pending',
+                Complaint.student_id.in_(student_ids)
+            ).count()
+        else:
+            pending_complaints = 0
+
+        # Active sessions
+        faculty_list = db.query(Faculty).filter(Faculty.department.ilike(dept_code)).all()
+        f_ids = [f.id for f in faculty_list]
+        if f_ids:
+            active_sessions = db.query(AttendanceSession).filter(
+                func.date(AttendanceSession.started_at) == today,
+                AttendanceSession.status == 'active',
+                AttendanceSession.faculty_id.in_(f_ids)
+            ).count()
+        else:
+            active_sessions = 0
+
+        # Attendance Percentage
+        if student_ids:
+            total_present = db.query(Attendance).filter(
+                func.date(Attendance.timestamp) == today,
+                Attendance.status == 'present',
+                Attendance.student_id.in_(student_ids)
+            ).count()
+            total_absent = db.query(Attendance).filter(
+                func.date(Attendance.timestamp) == today,
+                Attendance.status == 'absent',
+                Attendance.student_id.in_(student_ids)
+            ).count()
+        else:
+            total_present = 0
+            total_absent = 0
+            
+        dept_name = hod_dept.name
     else:
-        # Principal — all departments
+        # Principal Context — all data
         total_faculty = db.query(Faculty).count()
         total_students = db.query(Student).count()
-        total_departments = db.query(Department).count()
-        pending_complaints = db.query(Complaint).filter(
-            Complaint.status == 'pending'
+        total_classes = db.query(ClassModel).count()
+        pending_complaints = db.query(Complaint).filter(Complaint.status == 'pending').count()
+        active_sessions = db.query(AttendanceSession).filter(
+            func.date(AttendanceSession.started_at) == today,
+            AttendanceSession.status == 'active'
         ).count()
-    
-    # Active sessions today
-    today = date.today()
-    active_sessions = db.query(AttendanceSession).filter(
-        func.date(AttendanceSession.started_at) == today,
-        AttendanceSession.status == 'active'
-    ).count()
-    
-    # Today's attendance percentage
-    total_present = db.query(Attendance).filter(
-        func.date(Attendance.timestamp) == today,
-        Attendance.status == 'present'
-    ).count()
-    
-    total_absent = db.query(Attendance).filter(
-        func.date(Attendance.timestamp) == today,
-        Attendance.status == 'absent'
-    ).count()
-    
+        total_present = db.query(Attendance).filter(
+            func.date(Attendance.timestamp) == today,
+            Attendance.status == 'present'
+        ).count()
+        total_absent = db.query(Attendance).filter(
+            func.date(Attendance.timestamp) == today,
+            Attendance.status == 'absent'
+        ).count()
+        dept_name = "All Campus"
+
+    # Common Calculation
     total_attendance = total_present + total_absent
-    today_attendance = (total_present / total_attendance * 100) if total_attendance > 0 else 0
+    today_attendance_pct = round((total_present / total_attendance * 100), 1) if total_attendance > 0 else 0
     
     return {
         "total_faculty": total_faculty,
         "total_students": total_students,
-        "total_departments": total_departments,
+        "total_classes": total_classes,
         "pending_complaints": pending_complaints,
         "active_sessions": active_sessions,
-        "today_attendance": round(today_attendance, 1),
-        "total_present": total_present,
-        "total_absent": total_absent,
+        "today_attendance": today_attendance_pct,
+        "department_name": dept_name
     }
 
 
@@ -283,6 +321,16 @@ def create_faculty(
     
     if current_user['role'] != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # HOD MUST only create faculty for their own department
+    hod_dept = db.query(Department).filter(
+        Department.hod_user_id == current_user['user_id']
+    ).first()
+    if not hod_dept:
+        raise HTTPException(status_code=403, detail="HOD department not found")
+    
+    # Force the department to be the HOD's department
+    payload.department = hod_dept.code
     
     # Check if email already exists
     existing_user = db.query(User).filter(User.email == payload.email).first()
@@ -864,7 +912,7 @@ def get_system_reports(
         "lowest_attendance_class": lowest_class,
     }
 
-    # ── Change HOD Password (with current password verification) ──
+# ── Change HOD Password (with current password verification) ──
 class HODChangePasswordPayload(BaseModel):
     current_password: str
     new_password: str

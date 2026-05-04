@@ -65,9 +65,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Admin Dashboard'),
+              const Text('HOD Dashboard'),
               Text(
-                SessionManager.name ?? 'Administrator',
+                '${SessionManager.name ?? "HOD"} | ${_stats['department_name'] ?? "Loading..."}',
                 style: TextStyle(
                   fontSize: 12,
                   color: cs.onSurface.withOpacity(0.6),
@@ -154,9 +154,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           cs: cs,
         ),
         _StatCard(
-          title: 'Departments',
-          value: '${_stats['total_departments'] ?? 0}',
-          icon: Icons.account_tree_outlined,
+          title: 'Total Classes',
+          value: '${_stats['total_classes'] ?? 0}',
+          icon: Icons.class_outlined,
           color: statusInfo,
           cs: cs,
         ),
