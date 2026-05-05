@@ -17,6 +17,18 @@ print('✅ Pycache clear attempt finished!')
 
 # ── 2. Delete or clean database ───────────────────────────────────
 DB_NAME = 'campus.db'
+LOG_NAME = 'campus.log'
+
+# Clear log file
+if os.path.exists(LOG_NAME):
+    try:
+        # We use truncate (open with 'w') so it doesn't fail if the file is locked for writing
+        with open(LOG_NAME, 'w') as f:
+            f.truncate(0)
+        print(f'✅ {LOG_NAME} cleared!')
+    except Exception as e:
+        print(f'⚠️  Could not clear {LOG_NAME}: {e}')
+
 if os.path.exists(DB_NAME):
     try:
         # Try full delete first

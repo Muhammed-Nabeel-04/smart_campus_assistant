@@ -72,6 +72,10 @@ def set_faculty_password(payload: dict, db: Session = Depends(get_db)):
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
+    faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+
     # Mark onboarding token as used
     if token:
         onboarding = db.query(OnboardingToken).filter(
@@ -82,10 +86,7 @@ def set_faculty_password(payload: dict, db: Session = Depends(get_db)):
         if onboarding:
             onboarding.used = True
             onboarding.used_at = datetime.now()
-
-    faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
-    if not faculty:
-        raise HTTPException(status_code=404, detail="Faculty not found")
+            onboarding.used_by_name = faculty.full_name # Store the name
 
     existing_user = db.query(User).filter(User.id == faculty.user_id).first()
 
@@ -241,6 +242,7 @@ def complete_student_registration(payload: dict, db: Session = Depends(get_db)):
     # Mark token as used
     onboarding.used = True
     onboarding.used_at = datetime.now()
+    onboarding.used_by_name = student.full_name
     db.commit()
 
     # Return JWT token so student is logged in immediately
@@ -334,6 +336,14 @@ def set_hod_password(payload: dict, db: Session = Depends(get_db)):
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
+    hod_user = db.query(User).filter(
+        User.id == hod_id,
+        User.role == "admin"
+    ).first()
+
+    if not hod_user:
+        raise HTTPException(status_code=404, detail="HOD not found")
+
     # Mark token as used
     if token:
         onboarding = db.query(OnboardingToken).filter(
@@ -344,14 +354,7 @@ def set_hod_password(payload: dict, db: Session = Depends(get_db)):
         if onboarding:
             onboarding.used = True
             onboarding.used_at = datetime.now()
-
-    hod_user = db.query(User).filter(
-        User.id == hod_id,
-        User.role == "admin"
-    ).first()
-
-    if not hod_user:
-        raise HTTPException(status_code=404, detail="HOD not found")
+            onboarding.used_by_name = hod_user.name
 
     hod_user.password = bcrypt.hash(password)
     db.commit()
@@ -388,4 +391,17 @@ def set_hod_password(payload: dict, db: Session = Depends(get_db)):
         "name": hod_user.name,
         "email": hod_user.email,
         "role": "admin",
+    }
+
+@router.get("/status/{token}")
+def get_onboarding_status(token: str, db: Session = Depends(get_db)):
+    """Check if an onboarding token has been used (for HOD/Principal live UI)"""
+    onboarding = db.query(OnboardingToken).filter(OnboardingToken.token == token).first()
+    if not onboarding:
+        raise HTTPException(status_code=404, detail="Token not found")
+
+    return {
+        "used": onboarding.used,
+        "used_by_name": onboarding.used_by_name,
+        "used_at": onboarding.used_at.isoformat() if onboarding.used_at else None
     }

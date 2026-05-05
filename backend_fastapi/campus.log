@@ -1,0 +1,23 @@
+2026-05-05 10:25:30,255 [INFO] app.main: Initializing Smart Campus Assistant API...
+2026-05-05 14:20:18,351 [INFO] app.admin: Stats request from user 2 (Role: admin)
+2026-05-05 14:20:18,362 [INFO] app.admin: Fetching stats for department: 123
+2026-05-05 15:11:58,821 [INFO] app.main: Initializing Smart Campus Assistant API...
+2026-05-05 15:15:14,039 [INFO] app.admin: Stats request from user 2 (Role: admin)
+2026-05-05 15:15:14,041 [INFO] app.admin: Fetching stats for department: 123
+2026-05-05 15:18:59,354 [INFO] app.admin: Stats request from user 2 (Role: admin)
+2026-05-05 15:18:59,364 [INFO] app.admin: Fetching stats for department: 123
+2026-05-05 15:23:30,324 [INFO] app.main: Initializing Smart Campus Assistant API...
+2026-05-05 15:35:34,960 [INFO] app.main: Initializing Smart Campus Assistant API...
+2026-05-05 15:37:05,966 [INFO] app.admin: Stats request from user 2 (Role: admin)
+2026-05-05 15:37:05,969 [INFO] app.admin: Fetching stats for department: 123
+2026-05-05 15:37:52,527 [INFO] app.admin: Stats request from user 2 (Role: admin)
+2026-05-05 15:37:52,531 [INFO] app.admin: Fetching stats for department: 123
+2026-05-05 15:40:43,970 [INFO] app.main: Initializing Smart Campus Assistant API...
+2026-05-05 15:50:32,426 [INFO] app.admin: Stats request from user 2 (Role: admin)
+2026-05-05 15:50:32,432 [INFO] app.admin: Fetching stats for department: 123
+2026-05-05 15:51:35,316 [INFO] app.timetable: Timetable slot creation request: Class 1, Subject 3, Faculty 2 on Monday
+2026-05-05 15:51:35,325 [INFO] app.timetable: Timetable conflict blocked: Faculty 2 already in 1st Year Sec A
+2026-05-05 15:51:40,503 [INFO] app.timetable: Timetable slot creation request: Class 1, Subject 3, Faculty 2 on Monday
+2026-05-05 15:51:40,513 [INFO] app.timetable: Timetable conflict blocked: Faculty 2 already in 1st Year Sec B
+2026-05-05 15:51:45,980 [INFO] app.timetable: Timetable slot creation request: Class 1, Subject 3, Faculty 2 on Monday
+2026-05-05 15:51:46,006 [INFO] app.timetable: Slot 4 created successfully for 123 Monday

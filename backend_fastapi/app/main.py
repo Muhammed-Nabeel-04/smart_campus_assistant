@@ -1,5 +1,20 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+import logging
+import sys
+
+# ── Configure Logging ──
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("campus.log", encoding="utf-8")
+    ]
+)
+logger = logging.getLogger("app.main")
+logger.info("Initializing Smart Campus Assistant API...")
+
 from app.database import engine, Base
 
 # ── Import ALL models before create_all so tables are registered ──

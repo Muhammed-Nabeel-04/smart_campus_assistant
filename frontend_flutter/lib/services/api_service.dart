@@ -1261,6 +1261,20 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> getOnboardingStatus(String token) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse("$_baseUrl/onboarding/status/$token"),
+            headers: _authHeadersGet,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // ── HOD Setup Methods ─────────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> checkSetupStatus() async {

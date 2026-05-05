@@ -20,10 +20,14 @@ class AdminGenerateFacultyQRScreen extends StatefulWidget {
 class _AdminGenerateFacultyQRScreenState
     extends State<AdminGenerateFacultyQRScreen> {
   String? _qrToken;
+  String? _rawToken; // Store the raw token string
   int _secondsRemaining = 60;
   Timer? _timer;
+  Timer? _statusTimer; // Timer for polling status
   bool _isLoading = true;
   bool _isExpired = false;
+  bool _isUsed = false;
+  String? _usedByName;
 
   // Fixed semantic colors for status/timer
   static const Color successGreen = Color(0xFF4CAF50);
@@ -39,6 +43,7 @@ class _AdminGenerateFacultyQRScreenState
   @override
   void dispose() {
     _timer?.cancel();
+    _statusTimer?.cancel();
     super.dispose();
   }
 
@@ -46,6 +51,8 @@ class _AdminGenerateFacultyQRScreenState
     setState(() {
       _isLoading = true;
       _isExpired = false;
+      _isUsed = false;
+      _usedByName = null;
       _secondsRemaining = 60;
     });
 
@@ -55,10 +62,11 @@ class _AdminGenerateFacultyQRScreenState
       );
 
       if (mounted) {
+        _rawToken = response['token'];
         // Encode as JSON so the faculty scanner app can parse both fields
         final qrData = jsonEncode({
           'faculty_id': widget.faculty['id'],
-          'token': response['token'],
+          'token': _rawToken,
         });
         setState(() {
           _qrToken = qrData;
@@ -66,6 +74,7 @@ class _AdminGenerateFacultyQRScreenState
           _isLoading = false;
         });
         _startTimer();
+        _startStatusPolling();
       }
     } on ApiException catch (e) {
       if (mounted) {
@@ -92,9 +101,68 @@ class _AdminGenerateFacultyQRScreenState
         } else {
           _isExpired = true;
           timer.cancel();
+          _statusTimer?.cancel();
         }
       });
     });
+  }
+
+  void _startStatusPolling() {
+    _statusTimer?.cancel();
+    _statusTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (!mounted || _isExpired || _isUsed || _rawToken == null) {
+        timer.cancel();
+        return;
+      }
+
+      try {
+        final status = await ApiService.getOnboardingStatus(_rawToken!);
+        if (status['used'] == true) {
+          timer.cancel();
+          _timer?.cancel();
+          if (mounted) {
+            setState(() {
+              _isUsed = true;
+              _usedByName = status['used_by_name'];
+            });
+            // Show success dialog and then pop
+            _showSuccessDialog();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error polling token status: $e');
+      }
+    });
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: successGreen, size: 30),
+            SizedBox(width: 10),
+            Text('Success!'),
+          ],
+        ),
+        content: Text(
+          'Faculty $_usedByName has completed onboarding successfully.',
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close dialog
+              Navigator.of(context).pop(); // Go back to management screen
+            },
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatTime(int seconds) {

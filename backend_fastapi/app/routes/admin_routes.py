@@ -7,6 +7,10 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, date
 import json
+import logging
+
+# Initialize logger
+logger = logging.getLogger("app.admin")
 
 from app.services.deps import get_db, get_current_user
 from app.models.user import User
@@ -93,8 +97,10 @@ def get_admin_stats(
     current_user: dict = Depends(get_current_user)
 ):
     """Get admin dashboard statistics"""
+    logger.info(f"Stats request from user {current_user['user_id']} (Role: {current_user['role']})")
     
     if current_user['role'] not in ['admin', 'principal']:
+        logger.warning(f"Unauthorized stats access attempt by user {current_user['user_id']}")
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # 1. Identify context (HOD vs Principal)
@@ -106,101 +112,107 @@ def get_admin_stats(
 
     today = date.today()
 
-    if hod_dept:
-        # HOD Context — filter everything by department
-        dept_code = hod_dept.code
-        
-        # Faculty count (excluding HOD)
-        total_faculty = db.query(Faculty).filter(
-            Faculty.department.ilike(dept_code),
-            Faculty.user_id != current_user['user_id']
-        ).count()
-        
-        # Students in department
-        total_students = db.query(Student).filter(
-            Student.department.ilike(dept_code)
-        ).count()
-        
-        # Classes (Sections) in department
-        total_classes = db.query(ClassModel).filter(
-            ClassModel.department_id == hod_dept.id
-        ).count()
-        
-        # Student IDs for attendance/complaints sub-queries
-        student_list = db.query(Student).filter(Student.department.ilike(dept_code)).all()
-        student_ids = [s.id for s in student_list]
-        
-        # Complaints
-        if student_ids:
-            pending_complaints = db.query(Complaint).filter(
-                Complaint.status == 'pending',
-                Complaint.student_id.in_(student_ids)
+    try:
+        if hod_dept:
+            # HOD Context — filter everything by department
+            dept_code = hod_dept.code
+            logger.info(f"Fetching stats for department: {dept_code}")
+            
+            # Faculty count (excluding HOD)
+            total_faculty = db.query(Faculty).filter(
+                Faculty.department.ilike(dept_code),
+                Faculty.user_id != current_user['user_id']
             ).count()
-        else:
-            pending_complaints = 0
+            
+            # Students in department
+            total_students = db.query(Student).filter(
+                Student.department.ilike(dept_code)
+            ).count()
+            
+            # Classes (Sections) in department
+            total_classes = db.query(ClassModel).filter(
+                ClassModel.department_id == hod_dept.id
+            ).count()
+            
+            # Student IDs for attendance/complaints sub-queries
+            student_list = db.query(Student).filter(Student.department.ilike(dept_code)).all()
+            student_ids = [s.id for s in student_list]
+            
+            # Complaints
+            if student_ids:
+                pending_complaints = db.query(Complaint).filter(
+                    Complaint.status == 'pending',
+                    Complaint.student_id.in_(student_ids)
+                ).count()
+            else:
+                pending_complaints = 0
 
-        # Active sessions
-        faculty_list = db.query(Faculty).filter(Faculty.department.ilike(dept_code)).all()
-        f_ids = [f.id for f in faculty_list]
-        if f_ids:
+            # Active sessions
+            faculty_list = db.query(Faculty).filter(Faculty.department.ilike(dept_code)).all()
+            f_ids = [f.id for f in faculty_list]
+            if f_ids:
+                active_sessions = db.query(AttendanceSession).filter(
+                    func.date(AttendanceSession.started_at) == today,
+                    AttendanceSession.status == 'active',
+                    AttendanceSession.faculty_id.in_(f_ids)
+                ).count()
+            else:
+                active_sessions = 0
+
+            # Attendance Percentage
+            if student_ids:
+                total_present = db.query(Attendance).filter(
+                    func.date(Attendance.timestamp) == today,
+                    Attendance.status == 'present',
+                    Attendance.student_id.in_(student_ids)
+                ).count()
+                total_absent = db.query(Attendance).filter(
+                    func.date(Attendance.timestamp) == today,
+                    Attendance.status == 'absent',
+                    Attendance.student_id.in_(student_ids)
+                ).count()
+            else:
+                total_present = 0
+                total_absent = 0
+                
+            dept_name = hod_dept.name
+        else:
+            # Principal Context — all data
+            logger.info("Fetching global campus stats (Principal)")
+            total_faculty = db.query(Faculty).count()
+            total_students = db.query(Student).count()
+            total_classes = db.query(ClassModel).count()
+            pending_complaints = db.query(Complaint).filter(Complaint.status == 'pending').count()
             active_sessions = db.query(AttendanceSession).filter(
                 func.date(AttendanceSession.started_at) == today,
-                AttendanceSession.status == 'active',
-                AttendanceSession.faculty_id.in_(f_ids)
+                AttendanceSession.status == 'active'
             ).count()
-        else:
-            active_sessions = 0
-
-        # Attendance Percentage
-        if student_ids:
             total_present = db.query(Attendance).filter(
                 func.date(Attendance.timestamp) == today,
-                Attendance.status == 'present',
-                Attendance.student_id.in_(student_ids)
+                Attendance.status == 'present'
             ).count()
             total_absent = db.query(Attendance).filter(
                 func.date(Attendance.timestamp) == today,
-                Attendance.status == 'absent',
-                Attendance.student_id.in_(student_ids)
+                Attendance.status == 'absent'
             ).count()
-        else:
-            total_present = 0
-            total_absent = 0
-            
-        dept_name = hod_dept.name
-    else:
-        # Principal Context — all data
-        total_faculty = db.query(Faculty).count()
-        total_students = db.query(Student).count()
-        total_classes = db.query(ClassModel).count()
-        pending_complaints = db.query(Complaint).filter(Complaint.status == 'pending').count()
-        active_sessions = db.query(AttendanceSession).filter(
-            func.date(AttendanceSession.started_at) == today,
-            AttendanceSession.status == 'active'
-        ).count()
-        total_present = db.query(Attendance).filter(
-            func.date(Attendance.timestamp) == today,
-            Attendance.status == 'present'
-        ).count()
-        total_absent = db.query(Attendance).filter(
-            func.date(Attendance.timestamp) == today,
-            Attendance.status == 'absent'
-        ).count()
-        dept_name = "All Campus"
+            dept_name = "All Campus"
 
-    # Common Calculation
-    total_attendance = total_present + total_absent
-    today_attendance_pct = round((total_present / total_attendance * 100), 1) if total_attendance > 0 else 0
-    
-    return {
-        "total_faculty": total_faculty,
-        "total_students": total_students,
-        "total_classes": total_classes,
-        "pending_complaints": pending_complaints,
-        "active_sessions": active_sessions,
-        "today_attendance": today_attendance_pct,
-        "department_name": dept_name
-    }
+        # Common Calculation
+        total_attendance = total_present + total_absent
+        today_attendance_pct = round((total_present / total_attendance * 100), 1) if total_attendance > 0 else 0
+        
+        return {
+            "total_faculty": total_faculty,
+            "total_students": total_students,
+            "total_classes": total_classes,
+            "pending_complaints": pending_complaints,
+            "active_sessions": active_sessions,
+            "today_attendance": today_attendance_pct,
+            "department_name": dept_name
+        }
+    except Exception as e:
+        logger.error(f"Error generating admin stats: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error generating statistics")
 
 
 # ============================================================================
@@ -318,6 +330,7 @@ def create_faculty(
     current_user: dict = Depends(get_current_user)
 ):
     """Create new faculty member (admin only)"""
+    logger.info(f"HOD {current_user['user_id']} is creating faculty: {payload.name} ({payload.email})")
     
     if current_user['role'] != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -327,6 +340,7 @@ def create_faculty(
         Department.hod_user_id == current_user['user_id']
     ).first()
     if not hod_dept:
+        logger.error(f"HOD {current_user['user_id']} department not found")
         raise HTTPException(status_code=403, detail="HOD department not found")
     
     # Force the department to be the HOD's department
@@ -335,6 +349,7 @@ def create_faculty(
     # Check if email already exists
     existing_user = db.query(User).filter(User.email == payload.email).first()
     if existing_user:
+        logger.warning(f"Failed faculty creation: Email {payload.email} already exists")
         raise HTTPException(status_code=400, detail="Email already registered")
     
     # Check if employee ID exists
@@ -342,58 +357,65 @@ def create_faculty(
         Faculty.employee_id == payload.employee_id
     ).first()
     if existing_faculty:
+        logger.warning(f"Failed faculty creation: Employee ID {payload.employee_id} already exists")
         raise HTTPException(status_code=400, detail="Employee ID already exists")
     
-    # Create user account (no password yet - will be set via QR)
-    new_user = User(
-        name=payload.name,
-        email=payload.email,
-        password="",  # Will be set during QR onboarding
-        role="faculty"
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        # Create user account (no password yet - will be set via QR)
+        new_user = User(
+            name=payload.name,
+            email=payload.email,
+            password="",  # Will be set during QR onboarding
+            role="faculty"
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
 
-    # Process teaching assignments — auto-creates depts, classes, subjects
-    assignments_list = []
-    if payload.teaching_assignments:
-        for ta in payload.teaching_assignments:
-            _ensure_class_with_subjects(db, ta.year, ta.department, ta.section)
-            assignments_list.append({
-                "year": ta.year,
-                "department": ta.department,
-                "section": ta.section,
-            })
+        # Process teaching assignments — auto-creates depts, classes, subjects
+        assignments_list = []
+        if payload.teaching_assignments:
+            for ta in payload.teaching_assignments:
+                _ensure_class_with_subjects(db, ta.year, ta.department, ta.section)
+                assignments_list.append({
+                    "year": ta.year,
+                    "department": ta.department,
+                    "section": ta.section,
+                })
 
-    assigned_json = json.dumps(assignments_list) if assignments_list else None
+        assigned_json = json.dumps(assignments_list) if assignments_list else None
 
-    new_faculty = Faculty(
-        user_id=new_user.id,
-        full_name=payload.name,
-        employee_id=payload.employee_id,
-        department=payload.department,
-        email=payload.email,
-        phone_number=payload.phone,
-    )
-    db.add(new_faculty)
-    db.commit()
-    db.refresh(new_faculty)
+        new_faculty = Faculty(
+            user_id=new_user.id,
+            full_name=payload.name,
+            employee_id=payload.employee_id,
+            department=payload.department,
+            email=payload.email,
+            phone_number=payload.phone,
+        )
+        db.add(new_faculty)
+        db.commit()
+        db.refresh(new_faculty)
 
-    # Update assigned_classes directly via SQL to bypass SQLAlchemy model cache
-    db.execute(
-        __import__('sqlalchemy').text(
-            "UPDATE faculty SET assigned_classes = :ac WHERE id = :id"
-        ),
-        {"ac": assigned_json, "id": new_faculty.id}
-    )
-    db.commit()
-    
-    return {
-        "message": "Faculty created successfully",
-        "faculty_id": new_faculty.id,
-        "user_id": new_user.id
-    }
+        # Update assigned_classes directly via SQL to bypass SQLAlchemy model cache
+        db.execute(
+            __import__('sqlalchemy').text(
+                "UPDATE faculty SET assigned_classes = :ac WHERE id = :id"
+            ),
+            {"ac": assigned_json, "id": new_faculty.id}
+        )
+        db.commit()
+        
+        logger.info(f"Successfully created faculty {new_faculty.id} with {len(assignments_list)} assignments")
+        return {
+            "message": "Faculty created successfully",
+            "faculty_id": new_faculty.id,
+            "user_id": new_user.id
+        }
+    except Exception as e:
+        logger.error(f"Error creating faculty: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error creating faculty member")
 
 
 @router.put("/faculty/{faculty_id}")

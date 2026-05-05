@@ -21,6 +21,8 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
 
   int _seconds = 0;
   Timer? _sessionTimer;
+  Timer? _pollingTimer;
+  List<dynamic> _studentsPresent = [];
 
   // Passed via route arguments
   late int classId;
@@ -65,6 +67,8 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
       _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (mounted) setState(() => _seconds++);
       });
+
+      _startPolling();
     } on ApiException catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -79,6 +83,27 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
       setState(() => _isLoading = false);
       debugPrint("Start session error: $e");
     }
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (!mounted || _sessionEnded || sessionId == null) {
+        timer.cancel();
+        return;
+      }
+
+      try {
+        final data = await ApiService.getSessionAttendance(sessionId!);
+        if (mounted) {
+          setState(() {
+            _studentsPresent = data;
+          });
+        }
+      } catch (e) {
+        debugPrint("Error polling attendance: $e");
+      }
+    });
   }
 
   Future<void> _endSession() async {
@@ -116,6 +141,7 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
     try {
       await ApiService.endAttendanceSession(sessionId!);
       _sessionTimer?.cancel();
+      _pollingTimer?.cancel();
       setState(() => _sessionEnded = true);
 
       if (mounted) {
@@ -125,7 +151,8 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
             backgroundColor: Color(0xFF4CAF50), // Fixed success green
           ),
         );
-        Navigator.pop(context);
+        // After ending, we show the final list in a new screen or dialog
+        _showFinalAttendanceSummary();
       }
     } on ApiException catch (e) {
       if (mounted) {
@@ -134,6 +161,61 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
         );
       }
     }
+  }
+
+  void _showFinalAttendanceSummary() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 24),
+            Text(
+              "Final Attendance Summary",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+            ),
+            Text("${_studentsPresent.length} Students Present", style: TextStyle(color: Colors.grey[600])),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView.separated(
+                itemCount: _studentsPresent.length,
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final s = _studentsPresent[index];
+                  return ListTile(
+                    leading: CircleAvatar(child: Text("${index + 1}")),
+                    title: Text(s['full_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(s['register_number'] ?? ''),
+                    trailing: const Icon(Icons.check_circle, color: Color(0xFF4CAF50)),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close bottom sheet
+                  Navigator.pop(context); // Back to previous screen
+                },
+                child: const Text("Done"),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
   }
 
   String _formatTime(int totalSeconds) {
@@ -145,6 +227,7 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
   @override
   void dispose() {
     _sessionTimer?.cancel();
+    _pollingTimer?.cancel();
     super.dispose();
   }
 
@@ -156,20 +239,12 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
       appBar: AppBar(
         title: const Text('Attendance QR'),
         centerTitle: true,
-        actions: [
-          if (!_sessionEnded && sessionId != null)
-            TextButton.icon(
-              onPressed: _endSession,
-              icon: Icon(Icons.stop_circle_outlined, color: cs.error),
-              label: Text('End', style: TextStyle(color: cs.error)),
-            ),
-        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: _isLoading
-            ? Center(child: CircularProgressIndicator(color: cs.primary))
-            : Column(
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
                 children: [
                   // Info Card
                   Container(
@@ -205,32 +280,57 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
 
                   const SizedBox(height: 32),
 
-                  // QR Code
-                  if (qrData != null)
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: cs.primary.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
+                  // Main Stack: QR + Live count overlay
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // QR Code
+                      if (qrData != null)
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: cs.primary.withOpacity(0.2),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
                           ),
-                        ],
+                          child: QrImageView(
+                            data: qrData!,
+                            size: 240,
+                            backgroundColor: Colors.white,
+                          ),
+                        ),
+                      
+                      // Floating Student Counter
+                      Positioned(
+                        top: -10,
+                        right: -10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: cs.primary,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.people, color: Colors.white, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${_studentsPresent.length}',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      child: QrImageView(
-                        data: qrData!,
-                        size: 240,
-                        backgroundColor: Colors.white,
-                      ),
-                    )
-                  else
-                    const SizedBox(
-                      height: 280,
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
+                    ],
+                  ),
 
                   const SizedBox(height: 32),
 
@@ -264,17 +364,55 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
 
-                  Text(
-                    'Session ID: ${sessionId ?? "..."}',
-                    style: TextStyle(
-                      color: cs.onSurface.withOpacity(0.4),
-                      fontSize: 12,
+                  // Live Student List (Show one-by-one)
+                  if (_studentsPresent.isNotEmpty) ...[
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "Recently Joined:",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 150,
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: cs.onSurface.withOpacity(0.05)),
+                      ),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: _studentsPresent.length,
+                        reverse: true, // New names show at top
+                        itemBuilder: (context, index) {
+                          final s = _studentsPresent[index];
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 500),
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4)],
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.person, color: Color(0xFF4CAF50), size: 18),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(s['full_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w500))),
+                                Text(s['timestamp'] ?? '', style: TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: 11)),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
 
-                  const Spacer(),
+                  const SizedBox(height: 32),
 
                   // End button
                   if (!_sessionEnded)
@@ -302,7 +440,7 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
                     ),
                 ],
               ),
-      ),
+            ),
     );
   }
 }

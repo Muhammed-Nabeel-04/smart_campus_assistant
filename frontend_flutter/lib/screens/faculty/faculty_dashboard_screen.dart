@@ -192,7 +192,15 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
 
   Future<void> _openCCTimetable() async {
     final ccClassId = _stats?['cc_class_id'];
-    if (ccClassId == null) return;
+    if (ccClassId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No class assigned to you as Coordinator. Contact HOD.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     Navigator.pushNamed(
       context,
       '/ccTimetableEditor',

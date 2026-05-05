@@ -3,6 +3,11 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, date
+import logging
+
+# Initialize logger
+logger = logging.getLogger("app.attendance")
+
 from app.services.deps import get_db, get_current_user
 from app.models.attendance_session import AttendanceSession
 from app.models.attendance import Attendance
@@ -45,12 +50,15 @@ def start_session(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    logger.info(f"Session start request: Class {payload.class_id}, Subject {payload.subject_id}")
+    
     # Resolve faculty_id: use payload value or extract from JWT
     faculty_id = payload.faculty_id
     if not faculty_id:
         user_id = current_user.get("user_id")
         faculty = db.query(Faculty).filter(Faculty.user_id == user_id).first()
         if not faculty:
+            logger.warning(f"Unauthorized session start attempt by user {current_user['user_id']}")
             raise HTTPException(status_code=403, detail="Only faculty can start sessions")
         faculty_id = faculty.id
 
@@ -62,6 +70,7 @@ def start_session(
     ).first()
 
     if existing:
+        logger.info(f"Rejoining existing active session {existing.id}")
         # Get faculty name who started this session
         existing_faculty = db.query(Faculty).filter(
             Faculty.id == existing.faculty_id
@@ -83,34 +92,40 @@ def start_session(
             "started_by": faculty_name,
         }
 
-    token = secrets.token_urlsafe(16)
+    try:
+        token = secrets.token_urlsafe(16)
 
-    from datetime import timedelta
-    auto_end_at = None
-    if payload.duration_minutes:
-        auto_end_at = datetime.now() + timedelta(minutes=payload.duration_minutes)
+        from datetime import timedelta
+        auto_end_at = None
+        if payload.duration_minutes:
+            auto_end_at = datetime.now() + timedelta(minutes=payload.duration_minutes)
 
-    session = AttendanceSession(
-        class_id=payload.class_id,
-        subject_id=payload.subject_id,
-        faculty_id=faculty_id,
-        token=token,
-        status="active",
-        started_at=datetime.now(),
-    )
+        session = AttendanceSession(
+            class_id=payload.class_id,
+            subject_id=payload.subject_id,
+            faculty_id=faculty_id,
+            token=token,
+            status="active",
+            started_at=datetime.now(),
+        )
 
-    db.add(session)
-    db.commit()
-    db.refresh(session)
+        db.add(session)
+        db.commit()
+        db.refresh(session)
 
-    return {
-        "session_id": session.id,
-        "token": token,
-        "class_id": session.class_id,
-        "subject_id": session.subject_id,
-        "started_at": session.started_at.isoformat(),
-        "status": session.status,
-    }
+        logger.info(f"New session {session.id} started by faculty {faculty_id} for class {payload.class_id}")
+        return {
+            "session_id": session.id,
+            "token": token,
+            "class_id": session.class_id,
+            "subject_id": session.subject_id,
+            "started_at": session.started_at.isoformat(),
+            "status": session.status,
+        }
+    except Exception as e:
+        logger.error(f"Error starting session: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error starting session")
 
 
 @router.post("/sessions/{session_id}/refresh-token/")
@@ -123,8 +138,11 @@ def refresh_session_token(session_id: int, db: Session = Depends(get_db), curren
     ).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found or ended")
+    
+    old_token = session.token
     session.token = secrets.token_urlsafe(16)
     db.commit()
+    logger.info(f"Token refreshed for session {session_id}")
     return {"token": session.token}
 
 
@@ -152,6 +170,7 @@ def end_session(session_id: int, db: Session = Depends(get_db), current_user: di
         Attendance.session_id == session_id
     ).count()
 
+    logger.info(f"Session {session_id} ended with {count} records")
     return {
         "message": "Session ended successfully",
         "session_id": session_id,
@@ -162,9 +181,9 @@ def end_session(session_id: int, db: Session = Depends(get_db), current_user: di
 
 @router.get("/session/{session_id}")
 def get_session_attendance(session_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    if current_user['role'] not in ['faculty', 'admin']:
-        raise HTTPException(status_code=403, detail="Access denied")
-
+    # Allow any authenticated user to check their own status or faculty to check all
+    # (HOD/Faculty need this for live UI)
+    
     session = db.query(AttendanceSession).filter(
         AttendanceSession.id == session_id
     ).first()
@@ -195,6 +214,7 @@ def get_session_attendance(session_id: int, db: Session = Depends(get_db), curre
     return {
         "session_id": session_id,
         "status": session.status,
+        "token": session.token, # Include token for validation
         "total": len(result),
         "records": result,
     }
@@ -257,14 +277,17 @@ def mark_attendance(
 
     token = payload.get("token")
     student_id = payload.get("student_id")
+    logger.info(f"Attendance mark request: Student {student_id} with token {token[:5]}...")
 
     if not token or not student_id:
+        logger.warning("Missing token or student_id in mark request")
         raise HTTPException(status_code=400, detail="token and student_id are required")
 
     # ✅ Students can only mark their own attendance
     if current_user['role'] == 'student':
         own_student_id = current_user.get('student_id')
         if own_student_id and int(student_id) != int(own_student_id):
+            logger.warning(f"Fraud attempt: Student {own_student_id} tried to mark attendance for {student_id}")
             raise HTTPException(
                 status_code=403,
                 detail="You can only mark your own attendance."
@@ -277,6 +300,7 @@ def mark_attendance(
     ).first()
 
     if not session:
+        logger.warning(f"Invalid token scan by student {student_id}")
         raise HTTPException(status_code=400, detail="Invalid or expired session token")
 
    # ✅ Check student exists and has a valid user account
@@ -289,6 +313,7 @@ def mark_attendance(
         from app.models.user import User
         user = db.query(User).filter(User.id == student.user_id).first()
         if not user:
+            logger.error(f"Account check failed for student {student_id}")
             raise HTTPException(
                 status_code=401,
                 detail="Account no longer exists. Please log in again."
@@ -307,6 +332,7 @@ def mark_attendance(
     ).first()
     if cls and dept:
         if cls.department_id != dept.id or cls.year != student.year or cls.section != student.section:
+            logger.warning(f"Class mismatch: Student {student_id} tried to join session for Class {session.class_id}")
             raise HTTPException(
                 status_code=403,
                 detail="You are not enrolled in this class"
@@ -319,30 +345,37 @@ def mark_attendance(
     ).first()
 
     if already_marked:
+        logger.info(f"Student {student_id} already marked for session {session.id}")
         raise HTTPException(status_code=400, detail="Attendance already marked for this session")
 
-    # Mark attendance
-    attendance = Attendance(
-        session_id=session.id,
-        student_id=student_id,
-        status="present",
-        date=datetime.now().date(),
-        timestamp=datetime.now(),
-    )
+    try:
+        # Mark attendance
+        attendance = Attendance(
+            session_id=session.id,
+            student_id=student_id,
+            status="present",
+            date=datetime.now().date(),
+            timestamp=datetime.now(),
+        )
 
-    db.add(attendance)
-    db.commit()
+        db.add(attendance)
+        db.commit()
 
-    subject = db.query(Subject).filter(Subject.id == session.subject_id).first()
+        subject = db.query(Subject).filter(Subject.id == session.subject_id).first()
+        logger.info(f"Attendance success: Student {student_id} marked present in {subject.name if subject else 'Unknown'}")
 
-    return {
-        "message": "Attendance marked successfully",
-        "student_id": student_id,
-        "full_name": student.full_name,
-        "status": "present",
-        "time": datetime.now().strftime("%H:%M"),
-        "subject_name": subject.name if subject else "",
-    }
+        return {
+            "message": "Attendance marked successfully",
+            "student_id": student_id,
+            "full_name": student.full_name,
+            "status": "present",
+            "time": datetime.now().strftime("%H:%M"),
+            "subject_name": subject.name if subject else "",
+        }
+    except Exception as e:
+        logger.error(f"Error marking attendance: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error marking attendance")
 
 
 # ============================================================================

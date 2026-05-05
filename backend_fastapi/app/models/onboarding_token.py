@@ -12,6 +12,7 @@ class OnboardingToken(Base):
 
     used = Column(Boolean, default=False)
     used_at = Column(DateTime, nullable=True)
+    used_by_name = Column(String, nullable=True) # To store name of person who scanned it
 
     expiry_time = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.now)

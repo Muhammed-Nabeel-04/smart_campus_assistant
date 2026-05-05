@@ -462,6 +462,115 @@ def mentor_pending_activities(
     return {"total": total, "offset": offset, "limit": limit, "items": items}
 
 
+@router.get("/mentor/activities")
+def get_mentor_activities(
+    status: Optional[str] = None,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get all activities of students assigned to this mentor."""
+    if current_user["role"] not in ("faculty", "admin"):
+        raise HTTPException(status_code=403, detail="Faculty only")
+
+    faculty = _get_faculty(current_user["user_id"], db)
+    form_ids = _get_mentor_form_ids(faculty.id, db)
+
+    if not form_ids:
+        return {"total": 0, "items": []}
+
+    query = db.query(StudentActivity).filter(StudentActivity.form_id.in_(form_ids))
+    if status:
+        query = query.filter(StudentActivity.mentor_status == status)
+
+    total = query.count()
+    activities = query.order_by(StudentActivity.submitted_at.desc()).offset(offset).limit(limit).all()
+
+    items = []
+    for a in activities:
+        s = db.query(Student).filter(Student.id == a.student_id).first()
+        items.append(serialize_activity(a, include_student_name=s.full_name if s else "Unknown"))
+
+    return {"total": total, "offset": offset, "limit": limit, "items": items}
+
+
+@router.get("/mentor/all-students")
+def get_mentor_all_students(
+    limit: int = Query(200, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get all students assigned to this mentor via SSMForm."""
+    if current_user["role"] not in ("faculty", "admin"):
+        raise HTTPException(status_code=403, detail="Faculty only")
+
+    faculty = _get_faculty(current_user["user_id"], db)
+    
+    query = db.query(SSMForm).filter(SSMForm.mentor_id == faculty.id)
+    total = query.count()
+    forms = query.offset(offset).limit(limit).all()
+
+    items = []
+    for f in forms:
+        s = db.query(Student).filter(Student.id == f.student_id).first()
+        if not s: continue
+        
+        sc = db.query(CalculatedScore).filter(CalculatedScore.form_id == f.id).first()
+        items.append({
+            "student_id": s.id,
+            "student_name": s.full_name,
+            "register_number": s.register_number,
+            "year": s.year,
+            "section": s.section,
+            "form_status": f.status,
+            "form_id": f.id,
+            "grand_total": sc.grand_total if sc else 0,
+            "star_rating": sc.star_rating if sc else 0,
+        })
+
+    return {"total": total, "items": items}
+
+
+@router.get("/mentor/hod-pending")
+def get_mentor_hod_pending(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get forms that mentor has approved but are now with HOD."""
+    if current_user["role"] not in ("faculty", "admin"):
+        raise HTTPException(status_code=403, detail="Faculty only")
+
+    faculty = _get_faculty(current_user["user_id"], db)
+    
+    # Status "mentor_approved" means it's waiting for HOD
+    query = db.query(SSMForm).filter(
+        SSMForm.mentor_id == faculty.id,
+        SSMForm.status == "mentor_approved"
+    )
+    total = query.count()
+    forms = query.order_by(SSMForm.updated_at.desc()).offset(offset).limit(limit).all()
+
+    items = []
+    for f in forms:
+        s = db.query(Student).filter(Student.id == f.student_id).first()
+        sc = db.query(CalculatedScore).filter(CalculatedScore.form_id == f.id).first()
+        items.append({
+            "form_id": f.id,
+            "student_id": f.student_id,
+            "student_name": s.full_name if s else "Unknown",
+            "register_number": s.register_number if s else "Unknown",
+            "grand_total": sc.grand_total if sc else 0,
+            "star_rating": sc.star_rating if sc else 0,
+            "updated_at": f.updated_at.isoformat(),
+        })
+
+    return {"total": total, "items": items}
+
+
 @router.get("/mentor/dashboard")
 def mentor_dashboard(
     db: Session = Depends(get_db),

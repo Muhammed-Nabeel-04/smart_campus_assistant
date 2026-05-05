@@ -4,6 +4,10 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, date
 import json
+import logging
+
+# Initialize logger
+logger = logging.getLogger("app.timetable")
 
 from app.services.deps import get_db, get_current_user
 from app.models.timetable import TimetableSlot, TimetablePDF
@@ -121,12 +125,15 @@ def create_slot(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    logger.info(f"Timetable slot creation request: Class {payload.class_id}, Subject {payload.subject_id}, Faculty {payload.faculty_id} on {payload.day_of_week}")
+    
     # Allow HOD (admin) OR CC faculty
     if current_user["role"] == "admin":
         dept = db.query(Department).filter(
             Department.hod_user_id == current_user["user_id"]
         ).first()
         if not dept:
+            logger.warning(f"Unauthorized timetable attempt by HOD {current_user['user_id']} (No dept found)")
             raise HTTPException(status_code=403, detail="HOD access required")
     elif current_user["role"] == "faculty":
         # Must be CC for this specific class
@@ -136,6 +143,7 @@ def create_slot(
             Faculty.cc_class_id == payload.class_id,
         ).first()
         if not faculty:
+            logger.warning(f"Unauthorized timetable attempt by faculty {current_user['user_id']} for class {payload.class_id}")
             raise HTTPException(
                 status_code=403,
                 detail="Only the Class Coordinator can manage this timetable"
@@ -161,6 +169,7 @@ def create_slot(
         TimetableSlot.start_time  == payload.start_time,
     ).first()
     if existing:
+        logger.warning(f"Duplicate slot attempt for Class {payload.class_id} at {payload.start_time}")
         raise HTTPException(
             status_code=400,
             detail="A slot already exists for this class at this time"
@@ -184,25 +193,32 @@ def create_slot(
         s_name = conf_subject.name if conf_subject else "a subject"
         c_name = f"{conf_class.year} Sec {conf_class.section}" if conf_class else "another class"
         
+        logger.info(f"Timetable conflict blocked: Faculty {payload.faculty_id} already in {c_name}")
         raise HTTPException(
             status_code=409,
             detail=f"{f_name} is already teaching {s_name} ({c_name}) at this time."
         )
 
-    slot = TimetableSlot(
-        department_id = dept.id,
-        class_id      = payload.class_id,
-        subject_id    = payload.subject_id,
-        faculty_id    = payload.faculty_id,
-        day_of_week   = payload.day_of_week,
-        start_time    = payload.start_time,
-        end_time      = payload.end_time,
-        room          = payload.room,
-    )
-    db.add(slot)
-    db.commit()
-    db.refresh(slot)
-    return {"message": "Slot added", "id": slot.id}
+    try:
+        slot = TimetableSlot(
+            department_id = dept.id,
+            class_id      = payload.class_id,
+            subject_id    = payload.subject_id,
+            faculty_id    = payload.faculty_id,
+            day_of_week   = payload.day_of_week,
+            start_time    = payload.start_time,
+            end_time      = payload.end_time,
+            room          = payload.room,
+        )
+        db.add(slot)
+        db.commit()
+        db.refresh(slot)
+        logger.info(f"Slot {slot.id} created successfully for {dept.code} {payload.day_of_week}")
+        return {"message": "Slot added", "id": slot.id}
+    except Exception as e:
+        logger.error(f"Error creating timetable slot: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error creating timetable slot")
 
 
 @router.delete("/slots/{slot_id}")
