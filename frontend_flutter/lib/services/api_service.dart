@@ -2,6 +2,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_config.dart';
 import '../core/session.dart';
 import '../main.dart';
@@ -10,6 +12,72 @@ import '../models/ssm_models.dart';
 class ApiService {
   static String get _baseUrl => AppConfig.backendUrl;
   static const Duration _timeout = Duration(seconds: 30);
+
+  // ── Cache Helpers ─────────────────────────────────────────────────────────
+
+  static Future<void> _saveToCache(String key, dynamic data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cache_$key', jsonEncode(data));
+    } catch (e) {
+      debugPrint('Cache Save Error: $e');
+    }
+  }
+
+  static Future<dynamic> _getFromCache(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString('cache_$key');
+      if (cached != null) return jsonDecode(cached);
+    } catch (e) {
+      debugPrint('Cache Read Error: $e');
+    }
+    return null;
+  }
+
+  static void _showOfflineMessage() {
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.wifi_off, color: Colors.white),
+              SizedBox(width: 12),
+              Text('No internet connection. Showing cached data.'),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  static Future<T> _requestWithCache<T>(
+    String url,
+    String cacheKey, {
+    Map<String, String>? headers,
+    bool isList = false,
+  }) async {
+    try {
+      final response = await http
+          .get(Uri.parse(url), headers: headers ?? _authHeadersGet)
+          .timeout(_timeout);
+      final data = _handleResponse(response);
+      _saveToCache(cacheKey, data);
+      return data as T;
+    } catch (e) {
+      final cached = await _getFromCache(cacheKey);
+      if (cached != null) {
+        _showOfflineMessage();
+        return (isList ? List.from(cached) : Map<String, dynamic>.from(cached))
+            as T;
+      }
+      throw _handleError(e);
+    }
+  }
 
   // ============================================================================
   // AUTH HEADERS
@@ -186,80 +254,47 @@ class ApiService {
   // ============================================================================
 
   static Future<Map<String, dynamic>> getFacultyProfile() async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/faculty/me"), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/faculty/me",
+      "faculty_profile",
+    );
   }
 
   static Future<Map<String, dynamic>> getFacultyStats(int facultyId) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/faculty/$facultyId/stats"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/faculty/$facultyId/stats",
+      "faculty_stats_$facultyId",
+    );
   }
 
   static Future<List<dynamic>> getActiveSessions(int facultyId) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/faculty/$facultyId/active-sessions"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/faculty/$facultyId/active-sessions",
+      "active_sessions_$facultyId",
+      isList: true,
+    );
   }
 
   static Future<List<dynamic>> getSessionsByPeriod(
     int facultyId, {
     String period = 'all',
   }) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse(
-              "$_baseUrl/faculty/$facultyId/sessions-by-period?period=$period",
-            ),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/faculty/$facultyId/sessions-by-period?period=$period",
+      "sessions_period_${facultyId}_$period",
+      isList: true,
+    );
   }
 
   static Future<List<dynamic>> getRecentSessions(
     int facultyId, {
     int limit = 10,
   }) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse(
-              "$_baseUrl/faculty/$facultyId/recent-sessions?limit=$limit",
-            ),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/faculty/$facultyId/recent-sessions?limit=$limit",
+      "recent_sessions_${facultyId}_$limit",
+      isList: true,
+    );
   }
 
   static Future<Map<String, dynamic>> generateFacultyQR(int facultyId) async {
@@ -282,66 +317,46 @@ class ApiService {
   // ============================================================================
 
   static Future<List<dynamic>> getDepartments() async {
-    try {
-      final response =
-          await http.get(Uri.parse("$_baseUrl/departments/")).timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/departments/",
+      "all_departments",
+      isList: true,
+    );
   }
 
   static Future<List<dynamic>> getFacultyMyDepartments() async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/faculty/my-departments"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/faculty/my-departments",
+      "faculty_my_departments",
+      isList: true,
+    );
   }
 
   static Future<List<dynamic>> getFacultyMyClasses({int? departmentId}) async {
-    try {
-      final query = departmentId != null ? "?department_id=$departmentId" : "";
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/faculty/my-classes$query"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    final query = departmentId != null ? "?department_id=$departmentId" : "";
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/faculty/my-classes$query",
+      "faculty_my_classes_${departmentId ?? 'all'}",
+      isList: true,
+    );
   }
 
   static Future<List<dynamic>> getClassesByDepartment(
     dynamic departmentId,
   ) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/classes/?department_id=$departmentId"))
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/classes/?department_id=$departmentId",
+      "classes_dept_$departmentId",
+      isList: true,
+    );
   }
 
   static Future<List<dynamic>> getSubjectsByClass(int classId) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/subjects/?class_id=$classId"))
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/subjects/?class_id=$classId",
+      "subjects_class_$classId",
+      isList: true,
+    );
   }
 
   // ============================================================================
@@ -353,19 +368,11 @@ class ApiService {
     required String year,
     required String section,
   }) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse(
-              "$_baseUrl/students/?department_id=$departmentId&year=$year&section=$section",
-            ),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/students/?department_id=$departmentId&year=$year&section=$section",
+      "students_${departmentId}_${year}_$section",
+      isList: true,
+    );
   }
 
   static Future<Map<String, dynamic>> addStudent(
@@ -422,17 +429,10 @@ class ApiService {
   // ============================================================================
 
   static Future<Map<String, dynamic>> getStudentProfile(int studentId) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/student/profile/$studentId"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/student/profile/$studentId",
+      "student_profile_$studentId",
+    );
   }
 
   // ============================================================================
@@ -458,38 +458,20 @@ class ApiService {
   static Future<Map<String, dynamic>> getStudentAttendance(
     int studentId,
   ) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/attendance/student/$studentId"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/attendance/student/$studentId",
+      "student_attendance_$studentId",
+    );
   }
 
   static Future<List<dynamic>> getStudentAttendanceHistory(
     int studentId,
   ) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/attendance/student/$studentId/history"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      final data = _handleResponse(response);
-      if (data is Map && data.containsKey('records')) {
-        return List<dynamic>.from(data['records']);
-      }
-      if (data is List) return List<dynamic>.from(data);
-      return [];
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/attendance/student/$studentId/history",
+      "student_attendance_history_$studentId",
+      isList: true,
+    );
   }
 
   static Future<Map<String, dynamic>> startAttendanceSession({
@@ -548,22 +530,11 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getSessionAttendance(int sessionId) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/attendance/session/$sessionId"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      final data = _handleResponse(response);
-      if (data is Map && data.containsKey("records")) {
-        return List<dynamic>.from(data["records"]);
-      }
-      if (data is List) return List<dynamic>.from(data);
-      return [];
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/attendance/session/$sessionId",
+      "session_attendance_$sessionId",
+      isList: true,
+    );
   }
 
   static Future<Map<String, dynamic>> markAttendance({
@@ -590,18 +561,14 @@ class ApiService {
     String? fromDate,
     String? toDate,
   }) async {
-    try {
-      String url =
-          "$_baseUrl/attendance/reports/?class_id=$classId&subject_id=$subjectId";
-      if (fromDate != null) url += "&from_date=$fromDate";
-      if (toDate != null) url += "&to_date=$toDate";
-      final response = await http
-          .get(Uri.parse(url), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    String url =
+        "$_baseUrl/attendance/reports/?class_id=$classId&subject_id=$subjectId";
+    if (fromDate != null) url += "&from_date=$fromDate";
+    if (toDate != null) url += "&to_date=$toDate";
+    return _requestWithCache<Map<String, dynamic>>(
+      url,
+      "attendance_report_${classId}_${subjectId}_${fromDate}_$toDate",
+    );
   }
 
   static Future<void> submitManualAttendance(
@@ -628,17 +595,11 @@ class ApiService {
   static Future<List<dynamic>> getStudentNotifications({
     required int studentId,
   }) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/notifications/student/$studentId"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/notifications/student/$studentId",
+      "student_notifications_$studentId",
+      isList: true,
+    );
   }
 
   static Future<void> postNotification({
@@ -672,35 +633,29 @@ class ApiService {
   // ============================================================================
 
   static Future<List<dynamic>> getHODComplaints({String? status}) async {
-    try {
-      String url = "$_baseUrl/complaints/department";
-      if (status != null) url += "?status=$status";
-      final response = await http
-          .get(Uri.parse(url), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    String url = "$_baseUrl/complaints/department";
+    if (status != null) url += "?status=$status";
+    return _requestWithCache<List<dynamic>>(
+      url,
+      "hod_complaints_${status ?? 'all'}",
+      isList: true,
+    );
   }
 
   static Future<List<dynamic>> getPrincipalComplaints({
     String? status,
     int? departmentId,
   }) async {
-    try {
-      String url = "$_baseUrl/complaints/principal";
-      final params = <String>[];
-      if (status != null) params.add("status=$status");
-      if (departmentId != null) params.add("department_id=$departmentId");
-      if (params.isNotEmpty) url += "?${params.join('&')}";
-      final response = await http
-          .get(Uri.parse(url), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    String url = "$_baseUrl/complaints/principal";
+    final params = <String>[];
+    if (status != null) params.add("status=$status");
+    if (departmentId != null) params.add("department_id=$departmentId");
+    if (params.isNotEmpty) url += "?${params.join('&')}";
+    return _requestWithCache<List<dynamic>>(
+      url,
+      "principal_complaints_${status ?? 'all'}_${departmentId ?? 'all'}",
+      isList: true,
+    );
   }
 
   static Future<void> escalateComplaint(int complaintId) async {
@@ -718,17 +673,10 @@ class ApiService {
   }
 
   static Future<dynamic> getStudentComplaints(int studentId) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/complaints/student/$studentId"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response);
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<dynamic>(
+      "$_baseUrl/complaints/student/$studentId",
+      "student_complaints_$studentId",
+    );
   }
 
   static Future<void> submitComplaint({
@@ -778,7 +726,12 @@ class ApiService {
     bool isLogin = false,
   }) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return jsonDecode(response.body);
+      try {
+        return jsonDecode(response.body);
+      } catch (e) {
+        // If it's not JSON (e.g. empty or success string), return null or empty map
+        return {};
+      }
     } else if (response.statusCode == 401) {
       if (isLogin) {
         throw ApiException('Invalid email or password.');
@@ -820,25 +773,18 @@ class ApiService {
   // ============================================================================
 
   static Future<Map<String, dynamic>> getAdminStats() async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/admin/stats"), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/admin/stats",
+      "admin_stats",
+    );
   }
 
   static Future<List<dynamic>> getAllFaculty() async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/admin/faculty"), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/admin/faculty",
+      "all_faculty",
+      isList: true,
+    );
   }
 
   static Future<Map<String, dynamic>> createFaculty(
@@ -907,16 +853,13 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getAllComplaints({String? status}) async {
-    try {
-      String url = "$_baseUrl/admin/complaints";
-      if (status != null) url += "?status=$status";
-      final response = await http
-          .get(Uri.parse(url), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    String url = "$_baseUrl/admin/complaints";
+    if (status != null) url += "?status=$status";
+    return _requestWithCache<List<dynamic>>(
+      url,
+      "admin_complaints_${status ?? 'all'}",
+      isList: true,
+    );
   }
 
   static Future<Map<String, dynamic>> adminUpdateComplaint(
@@ -941,16 +884,12 @@ class ApiService {
     String period = 'today',
     int? departmentId,
   }) async {
-    try {
-      String url = "$_baseUrl/admin/reports?period=$period";
-      if (departmentId != null) url += "&department_id=$departmentId";
-      final response = await http
-          .get(Uri.parse(url), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    String url = "$_baseUrl/admin/reports?period=$period";
+    if (departmentId != null) url += "&department_id=$departmentId";
+    return _requestWithCache<Map<String, dynamic>>(
+      url,
+      "system_reports_${period}_${departmentId ?? 'all'}",
+    );
   }
 
   // ============================================================================
@@ -1049,28 +988,18 @@ class ApiService {
   // ============================================================================
 
   static Future<Map<String, dynamic>> getPrincipalStats() async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/principal/stats"), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/principal/stats",
+      "principal_stats",
+    );
   }
 
   static Future<List<dynamic>> getPrincipalDepartments() async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/principal/departments"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/principal/departments",
+      "principal_departments",
+      isList: true,
+    );
   }
 
   // ✅ Alias used by principal screens
@@ -1131,14 +1060,11 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getAllHODs() async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/principal/hods"), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as List<dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<List<dynamic>>(
+      "$_baseUrl/principal/hods",
+      "all_hods",
+      isList: true,
+    );
   }
 
   static Future<Map<String, dynamic>> createHOD({
@@ -1292,14 +1218,10 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> getHODDepartment() async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/hod/department"), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/hod/department",
+      "hod_department",
+    );
   }
 
   // Removed: changeAdminPassword — use changeHODPassword instead
@@ -1309,14 +1231,10 @@ class ApiService {
   // ============================================================================
 
   static Future<Map<String, dynamic>> getHODSubjects() async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/hod/subjects"), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/hod/subjects",
+      "hod_subjects",
+    );
   }
 
   static Future<Map<String, dynamic>> addHODSubject({
@@ -1407,18 +1325,10 @@ class ApiService {
 
   // ── Get Principal Profile ─────────────────────────────────────
   static Future<Map<String, dynamic>> getPrincipalProfile() async {
-    try {
-      final response = await http.get(
-        Uri.parse("$_baseUrl/principal/profile"),
-        headers: _authHeadersGet,
-      );
-      final data = jsonDecode(response.body);
-      if (response.statusCode == 200) return data;
-      throw ApiException(data['detail'] ?? 'Failed to load profile');
-    } catch (e) {
-      if (e is ApiException) rethrow;
-      throw ApiException('Connection error');
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/principal/profile",
+      "principal_profile",
+    );
   }
 
   // ── Update Principal Profile ──────────────────────────────────
@@ -1526,16 +1436,10 @@ class ApiService {
 
   // Returns {"1st Year": ["A","B"], "2nd Year": ["A","B","C"], ...}
   static Future<Map<String, List<String>>> getHODSections() async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/hod/sections"), headers: _authHeadersGet)
-          .timeout(_timeout);
-      final data = _handleResponse(response) as Map<String, dynamic>;
-      final raw = data['sections_by_year'] as Map<String, dynamic>? ?? {};
-      return raw.map((k, v) => MapEntry(k, List<String>.from(v ?? [])));
-    } catch (e) {
-      return {};
-    }
+    return _requestWithCache<Map<String, List<String>>>(
+      "$_baseUrl/hod/sections",
+      "hod_sections",
+    );
   }
 
   static Future<void> updateHODSections(
@@ -1645,31 +1549,17 @@ class ApiService {
   // ── Timetable ─────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> getClassTimetable(int classId) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/timetable/class/$classId"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/timetable/class/$classId",
+      "class_timetable_$classId",
+    );
   }
 
   static Future<Map<String, dynamic>> getFacultyTimetable(int facultyId) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/timetable/faculty/$facultyId"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/timetable/faculty/$facultyId",
+      "faculty_timetable_$facultyId",
+    );
   }
 
   static Future<Map<String, dynamic>> getNextSlotFaculty(int facultyId) async {
@@ -1769,17 +1659,10 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> getTimetablePDF(int classId) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/timetable/pdf/$classId"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/timetable/pdf/$classId",
+      "class_timetable_pdf_$classId",
+    );
   }
 
   static Future<void> deleteTimetablePDF(int classId) async {
@@ -1806,8 +1689,12 @@ class ApiService {
           )
           .timeout(_timeout);
       final data = _handleResponse(response) as Map<String, dynamic>;
-      return List<Map<String, dynamic>>.from(data['period_timings'] ?? []);
+      final result = List<Map<String, dynamic>>.from(data['period_timings'] ?? []);
+      _saveToCache("period_timings", result);
+      return result;
     } catch (e) {
+      final cached = await _getFromCache("period_timings");
+      if (cached != null) return List<Map<String, dynamic>>.from(cached);
       return [];
     }
   }
@@ -1839,8 +1726,12 @@ class ApiService {
           )
           .timeout(_timeout);
       final data = _handleResponse(response) as Map<String, dynamic>;
-      return List<String>.from(data['timetable_days'] ?? []);
+      final result = List<String>.from(data['timetable_days'] ?? []);
+      _saveToCache("timetable_days", result);
+      return result;
     } catch (e) {
+      final cached = await _getFromCache("timetable_days");
+      if (cached != null) return List<String>.from(cached);
       return [
         'Monday',
         'Tuesday',
@@ -1909,32 +1800,18 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> getCCClass(int facultyId) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/timetable/faculty/$facultyId/cc-class"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      return {'is_cc': false};
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/timetable/faculty/$facultyId/cc-class",
+      "cc_class_$facultyId",
+    );
   }
 
   // ── Timetable Grid ────────────────────────────────────────────
   static Future<Map<String, dynamic>> getClassTimetableGrid(int classId) async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse("$_baseUrl/timetable/class/$classId/grid"),
-            headers: _authHeadersGet,
-          )
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      return {};
-    }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/timetable/class/$classId/grid",
+      "class_timetable_grid_$classId",
+    );
   }
 
   // ============================================================================
@@ -1943,15 +1820,18 @@ class ApiService {
 
   /// Get student's SSM dashboard (activities + live score)
   static Future<Map<String, dynamic>> ssmGetMyActivities({
-    String? category, String? mentorStatus, int limit = 50, int offset = 0,
+    String? category,
+    String? mentorStatus,
+    int limit = 50,
+    int offset = 0,
   }) async {
-    try {
-      String url = "$_baseUrl/ssm/student/activities?limit=$limit&offset=$offset";
-      if (category != null) url += "&category=$category";
-      if (mentorStatus != null) url += "&mentor_status=$mentorStatus";
-      final response = await http.get(Uri.parse(url), headers: _authHeadersGet).timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    String url = "$_baseUrl/ssm/student/activities?limit=$limit&offset=$offset";
+    if (category != null) url += "&category=$category";
+    if (mentorStatus != null) url += "&mentor_status=$mentorStatus";
+    return _requestWithCache<Map<String, dynamic>>(
+      url,
+      "ssm_student_activities_${category}_${mentorStatus}_${limit}_$offset",
+    );
   }
 
   /// Submit a new activity (multipart — includes optional file)
@@ -1967,16 +1847,19 @@ class ApiService {
       }
       request.fields.addAll(fields);
       if (file != null) {
-        final ext = file.path.split('.').last.toLowerCase();
+        // final ext = file.path.split('.').last.toLowerCase();
         // final mimeType = ext == 'pdf' ? 'application/pdf' : 'image/$ext';
         request.files.add(await http.MultipartFile.fromPath(
-          'file', file.path,
+          'file',
+          file.path,
         ));
       }
       final streamed = await request.send().timeout(const Duration(seconds: 60));
       final response = await http.Response.fromStream(streamed);
       return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 
   /// Delete a student activity
@@ -1987,7 +1870,9 @@ class ApiService {
               headers: _authHeadersGet)
           .timeout(_timeout);
       _handleResponse(response);
-    } catch (e) { throw _handleError(e); }
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 
   /// Submit form for mentor review
@@ -1998,29 +1883,25 @@ class ApiService {
               headers: _authHeaders)
           .timeout(_timeout);
       return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 
   /// Get student score for a form
   static Future<Map<String, dynamic>> ssmGetScore(int formId) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/student/form/$formId/score"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/student/form/$formId/score",
+      "ssm_student_score_$formId",
+    );
   }
 
   /// Get form timeline
   static Future<Map<String, dynamic>> ssmGetFormTimeline(int formId) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/student/form/$formId/timeline"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/student/form/$formId/timeline",
+      "ssm_form_timeline_$formId",
+    );
   }
 
   /// Restore a deleted activity
@@ -2031,18 +1912,17 @@ class ApiService {
               headers: _authHeaders)
           .timeout(_timeout);
       _handleResponse(response);
-    } catch (e) { throw _handleError(e); }
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 
   /// Get activity file (base64)
   static Future<Map<String, dynamic>> ssmGetActivityFile(int activityId) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/student/activity/$activityId/file"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/student/activity/$activityId/file",
+      "ssm_activity_file_$activityId",
+    );
   }
 
   // ============================================================================
@@ -2051,88 +1931,74 @@ class ApiService {
 
   /// Get mentor dashboard
   static Future<Map<String, dynamic>> ssmGetMentorDashboard() async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/mentor/dashboard"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/mentor/dashboard",
+      "ssm_mentor_dashboard",
+    );
   }
 
   /// Get all students assigned to mentor
   static Future<Map<String, dynamic>> ssmGetMentorAllStudents({
-    int limit = 200, int offset = 0,
+    int limit = 200,
+    int offset = 0,
   }) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/mentor/all-students?limit=$limit&offset=$offset"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/mentor/all-students?limit=$limit&offset=$offset",
+      "ssm_mentor_all_students_${limit}_$offset",
+    );
   }
 
   /// Get all activities for mentor's students
   static Future<Map<String, dynamic>> ssmGetMentorActivities({
-    String? status, int limit = 100, int offset = 0,
+    String? status,
+    int limit = 100,
+    int offset = 0,
   }) async {
-    try {
-      String url = "$_baseUrl/ssm/mentor/activities?limit=$limit&offset=$offset";
-      if (status != null) url += "&status=$status";
-      final response = await http
-          .get(Uri.parse(url), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    String url = "$_baseUrl/ssm/mentor/activities?limit=$limit&offset=$offset";
+    if (status != null) url += "&status=$status";
+    return _requestWithCache<Map<String, dynamic>>(
+      url,
+      "ssm_mentor_activities_${status}_${limit}_$offset",
+    );
   }
 
   /// Get single activity detail for mentor
-  static Future<Map<String, dynamic>> ssmGetMentorActivityDetail(int activityId) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/mentor/activity/$activityId"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+  static Future<Map<String, dynamic>> ssmGetMentorActivityDetail(
+      int activityId) async {
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/mentor/activity/$activityId",
+      "ssm_mentor_activity_$activityId",
+    );
   }
 
   /// Get pending activities for mentor to review
   static Future<Map<String, dynamic>> ssmGetMentorPendingActivities({
-    int limit = 50, int offset = 0,
+    int limit = 50,
+    int offset = 0,
   }) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/mentor/pending-activities?limit=$limit&offset=$offset"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/mentor/pending-activities?limit=$limit&offset=$offset",
+      "ssm_mentor_pending_activities_${limit}_$offset",
+    );
   }
 
   /// Get forms currently with HOD (sent by this mentor)
   static Future<Map<String, dynamic>> ssmGetMentorHodPending({
-    int limit = 50, int offset = 0,
+    int limit = 50,
+    int offset = 0,
   }) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/mentor/hod-pending?limit=$limit&offset=$offset"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/mentor/hod-pending?limit=$limit&offset=$offset",
+      "ssm_mentor_hod_pending_${limit}_$offset",
+    );
   }
 
   /// Get full form details for mentor
   static Future<Map<String, dynamic>> ssmGetMentorFormDetails(int formId) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/mentor/form/$formId"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/mentor/form/$formId",
+      "ssm_mentor_form_$formId",
+    );
   }
 
   /// Submit mentor review
@@ -2145,25 +2011,34 @@ class ApiService {
               body: jsonEncode(payload))
           .timeout(_timeout);
       return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 
   /// Mentor rejects form
   static Future<void> ssmMentorRejectForm(int formId, String reason) async {
     try {
       final response = await http
-          .post(Uri.parse("$_baseUrl/ssm/mentor/form/$formId/reject?reason=${Uri.encodeComponent(reason)}"),
-              headers: _authHeaders)
+          .post(
+            Uri.parse(
+                "$_baseUrl/ssm/mentor/form/$formId/reject?reason=${Uri.encodeComponent(reason)}"),
+            headers: _authHeaders,
+          )
           .timeout(_timeout);
       _handleResponse(response);
-    } catch (e) { throw _handleError(e); }
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 
   /// Mentor approves an activity
-  static Future<Map<String, dynamic>> ssmApproveActivity(int activityId, {String? note}) async {
+  static Future<Map<String, dynamic>> ssmApproveActivity(int activityId,
+      {String? note}) async {
     try {
       final request = http.MultipartRequest(
-          'POST', Uri.parse("$_baseUrl/ssm/mentor/activity/$activityId/approve"));
+          'POST',
+          Uri.parse("$_baseUrl/ssm/mentor/activity/$activityId/approve"));
       if (SessionManager.token != null) {
         request.headers['Authorization'] = 'Bearer ${SessionManager.token}';
       }
@@ -2171,14 +2046,17 @@ class ApiService {
       final streamed = await request.send().timeout(_timeout);
       final response = await http.Response.fromStream(streamed);
       return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 
   /// Mentor rejects an activity
   static Future<void> ssmRejectActivity(int activityId, String note) async {
     try {
       final request = http.MultipartRequest(
-          'POST', Uri.parse("$_baseUrl/ssm/mentor/activity/$activityId/reject"));
+          'POST',
+          Uri.parse("$_baseUrl/ssm/mentor/activity/$activityId/reject"));
       if (SessionManager.token != null) {
         request.headers['Authorization'] = 'Bearer ${SessionManager.token}';
       }
@@ -2186,7 +2064,9 @@ class ApiService {
       final streamed = await request.send().timeout(_timeout);
       final response = await http.Response.fromStream(streamed);
       _handleResponse(response);
-    } catch (e) { throw _handleError(e); }
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 
   // ============================================================================
@@ -2195,26 +2075,21 @@ class ApiService {
 
   /// Get HOD dashboard
   static Future<Map<String, dynamic>> ssmGetHodDashboard() async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/hod/dashboard"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/hod/dashboard",
+      "ssm_hod_dashboard",
+    );
   }
 
   /// Get all students in department for HOD
   static Future<Map<String, dynamic>> ssmGetHodAllStudents({
-    int limit = 500, int offset = 0,
+    int limit = 500,
+    int offset = 0,
   }) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/hod/all-students?limit=$limit&offset=$offset"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/hod/all-students?limit=$limit&offset=$offset",
+      "ssm_hod_all_students_${limit}_$offset",
+    );
   }
 
   /// Get approved forms in department for HOD
@@ -2222,26 +2097,19 @@ class ApiService {
     int limit = 500,
     int offset = 0,
   }) async {
-    try {
-      final url = "$_baseUrl/ssm/hod/approved?limit=$limit&offset=$offset";
-      final response = await http
-          .get(Uri.parse(url), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
+    final url = "$_baseUrl/ssm/hod/approved?limit=$limit&offset=$offset";
+    return _requestWithCache<Map<String, dynamic>>(
+      url,
+      "ssm_hod_approved_${limit}_$offset",
+    );
   }
 
   /// Get form details for HOD
   static Future<Map<String, dynamic>> ssmGetHodFormDetails(int formId) async {
-    try {
-      final response = await http
-          .get(Uri.parse("$_baseUrl/ssm/hod/form/$formId"),
-              headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    return _requestWithCache<Map<String, dynamic>>(
+      "$_baseUrl/ssm/hod/form/$formId",
+      "ssm_hod_form_$formId",
+    );
   }
 
   /// HOD approve / reject form
@@ -2254,19 +2122,20 @@ class ApiService {
               body: jsonEncode(payload))
           .timeout(_timeout);
       return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 
   /// HOD department report
-  static Future<Map<String, dynamic>> ssmGetDeptReport([String? academicYear]) async {
-    try {
-      String url = "$_baseUrl/ssm/hod/reports/department";
-      if (academicYear != null) url += "?academic_year=$academicYear";
-      final response = await http
-          .get(Uri.parse(url), headers: _authHeadersGet)
-          .timeout(_timeout);
-      return _handleResponse(response) as Map<String, dynamic>;
-    } catch (e) { throw _handleError(e); }
+  static Future<Map<String, dynamic>> ssmGetDeptReport(
+      [String? academicYear]) async {
+    String url = "$_baseUrl/ssm/hod/reports/department";
+    if (academicYear != null) url += "?academic_year=$academicYear";
+    return _requestWithCache<Map<String, dynamic>>(
+      url,
+      "ssm_hod_dept_report_${academicYear ?? 'all'}",
+    );
   }
 }
 

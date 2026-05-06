@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:async';
 import 'dart:convert';
 import '../../services/api_service.dart';
+import '../../core/notification_service.dart';
 
 class FacultyGenerateStudentQRScreen extends StatefulWidget {
   final Map<String, dynamic> student;
@@ -23,12 +24,15 @@ class _FacultyGenerateStudentQRScreenState
   String? _token;
   bool _isLoading = true;
   bool _isExpired = false;
-  int _remainingSeconds = 60; // 1 minute expiry for security
+  int _remainingSeconds = 60;
   Timer? _timer;
+  Timer? _statusTimer;
+  bool _isUsed = false;
+  String? _usedByName;
 
-  // Fixed role/status colors
-  static const Color errorRed = Color(0xFFF44336);
+  // Fixed role/status colors - matching AdminGenerateFacultyQRScreen
   static const Color successGreen = Color(0xFF4CAF50);
+  static const Color warningOrange = Color(0xFFFF9800);
   static const Color infoBlue = Color(0xFF2196F3);
 
   @override
@@ -40,6 +44,7 @@ class _FacultyGenerateStudentQRScreenState
   @override
   void dispose() {
     _timer?.cancel();
+    _statusTimer?.cancel();
     super.dispose();
   }
 
@@ -47,34 +52,41 @@ class _FacultyGenerateStudentQRScreenState
     setState(() {
       _isLoading = true;
       _isExpired = false;
+      _isUsed = false;
+      _usedByName = null;
       _remainingSeconds = 60;
     });
 
     _timer?.cancel();
+    _statusTimer?.cancel();
 
     try {
       final response = await ApiService.generateStudentQR(widget.student['id']);
 
-      final qrPayload = {
-        'student_id': widget.student['id'],
-        'token': response['token'],
-        'type': 'student_login',
-      };
-
-      setState(() {
-        _token = response['token'];
-        _qrData = jsonEncode(qrPayload);
-        _isLoading = false;
-      });
-
-      _startTimer();
-    } catch (e) {
-      setState(() => _isLoading = false);
       if (mounted) {
+        _token = response['token'];
+        final qrPayload = {
+          'student_id': widget.student['id'],
+          'token': _token,
+          'type': 'student_login',
+        };
+
+        setState(() {
+          _qrData = jsonEncode(qrPayload);
+          _remainingSeconds = response['expires_in'] ?? 60;
+          _isLoading = false;
+        });
+
+        _startTimer();
+        _startStatusPolling();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to generate QR code'),
-            backgroundColor: errorRed,
+            backgroundColor: Color(0xFFF44336),
           ),
         );
       }
@@ -82,6 +94,7 @@ class _FacultyGenerateStudentQRScreenState
   }
 
   void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       setState(() {
@@ -90,9 +103,74 @@ class _FacultyGenerateStudentQRScreenState
         } else {
           _isExpired = true;
           timer.cancel();
+          _statusTimer?.cancel();
         }
       });
     });
+  }
+
+  void _startStatusPolling() {
+    _statusTimer?.cancel();
+    _statusTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (!mounted || _isExpired || _isUsed || _token == null) {
+        timer.cancel();
+        return;
+      }
+
+      try {
+        final status = await ApiService.getOnboardingStatus(_token!);
+        if (status['used'] == true) {
+          timer.cancel();
+          _timer?.cancel();
+          if (mounted) {
+            setState(() {
+              _isUsed = true;
+              _usedByName = status['used_by_name'];
+            });
+            // Show system notification
+            NotificationService.showNotification(
+              id: DateTime.now().millisecondsSinceEpoch,
+              title: '✅ Student Logged In',
+              body:
+                  '${_usedByName ?? widget.student['full_name']} has logged in via QR.',
+            );
+            _showSuccessDialog();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error polling student onboarding status: $e');
+      }
+    });
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: successGreen, size: 30),
+            SizedBox(width: 10),
+            Text('Success!'),
+          ],
+        ),
+        content: Text(
+          'Student ${_usedByName ?? widget.student['full_name']} has completed onboarding successfully.',
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close dialog
+              Navigator.of(context).pop(); // Go back to student management
+            },
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   String get _timeDisplay {

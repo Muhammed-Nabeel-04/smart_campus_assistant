@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:async';
 import 'dart:convert';
 import '../../services/api_service.dart';
+import '../../core/notification_service.dart';
 
 class AdminGenerateFacultyQRScreen extends StatefulWidget {
   final Map<String, dynamic> faculty;
@@ -125,6 +126,12 @@ class _AdminGenerateFacultyQRScreenState
               _isUsed = true;
               _usedByName = status['used_by_name'];
             });
+            // Show system notification
+            NotificationService.showNotification(
+              id: DateTime.now().millisecondsSinceEpoch,
+              title: '✅ Faculty Onboarded',
+              body: 'Faculty $_usedByName has completed onboarding.',
+            );
             // Show success dialog and then pop
             _showSuccessDialog();
           }

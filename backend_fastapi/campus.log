@@ -21,3 +21,13 @@
 2026-05-05 15:51:40,513 [INFO] app.timetable: Timetable conflict blocked: Faculty 2 already in 1st Year Sec B
 2026-05-05 15:51:45,980 [INFO] app.timetable: Timetable slot creation request: Class 1, Subject 3, Faculty 2 on Monday
 2026-05-05 15:51:46,006 [INFO] app.timetable: Slot 4 created successfully for 123 Monday
+2026-05-05 23:34:08,192 [INFO] app.main: Initializing Smart Campus Assistant API...
+2026-05-05 23:35:10,966 [INFO] app.attendance: Session start request: Class 1, Subject 3
+2026-05-05 23:35:10,973 [INFO] app.attendance: New session 1 started by faculty 2 for class 1
+2026-05-05 23:35:17,209 [INFO] app.attendance: Session start request: Class 1, Subject 3
+2026-05-05 23:35:17,210 [INFO] app.attendance: Rejoining existing active session 1
+2026-05-05 23:35:20,250 [INFO] app.attendance: Token refreshed for session 1
+2026-05-05 23:35:23,254 [INFO] app.attendance: Token refreshed for session 1
+2026-05-05 23:35:26,245 [INFO] app.attendance: Token refreshed for session 1
+2026-05-05 23:35:29,249 [INFO] app.attendance: Token refreshed for session 1
+2026-05-05 23:35:39,745 [INFO] app.attendance: Session 1 ended with 0 records

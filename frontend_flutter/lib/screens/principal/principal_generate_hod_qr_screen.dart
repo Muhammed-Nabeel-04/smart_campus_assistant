@@ -3,7 +3,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'dart:async';
 import '../../services/api_service.dart';
+import '../../core/notification_service.dart';
 
 class PrincipalGenerateHODQRScreen extends StatefulWidget {
   final Map<String, dynamic> hod;
@@ -20,6 +22,15 @@ class _PrincipalGenerateHODQRScreenState
   String? _qrData;
   String? _error;
   int _expiresIn = 60; // seconds — matches backend 1-minute expiry
+  Timer? _timer;
+  Timer? _statusTimer;
+  bool _isUsed = false;
+  String? _usedByName;
+
+  // Fixed role/status colors - matching AdminGenerateFacultyQRScreen
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color warningOrange = Color(0xFFFF9800);
+  static const Color infoBlue = Color(0xFF2196F3);
 
   @override
   void initState() {
@@ -27,11 +38,24 @@ class _PrincipalGenerateHODQRScreenState
     _generateQR();
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _statusTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _generateQR() async {
     setState(() {
       _isLoading = true;
       _error = null;
+      _isUsed = false;
+      _usedByName = null;
     });
+
+    _timer?.cancel();
+    _statusTimer?.cancel();
+
     try {
       final res = await ApiService.generateHODQR(widget.hod['id']);
       if (mounted) {
@@ -43,6 +67,8 @@ class _PrincipalGenerateHODQRScreenState
               : 300;
           _isLoading = false;
         });
+        _startTimer();
+        _startStatusPolling();
       }
     } on ApiException catch (e) {
       if (mounted) {
@@ -52,6 +78,86 @@ class _PrincipalGenerateHODQRScreenState
         });
       }
     }
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      setState(() {
+        if (_expiresIn > 0) {
+          _expiresIn--;
+        } else {
+          timer.cancel();
+          _statusTimer?.cancel();
+        }
+      });
+    });
+  }
+
+  void _startStatusPolling() {
+    if (_qrData == null) return;
+    _statusTimer?.cancel();
+    _statusTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (!mounted || _isUsed || _qrData == null || _expiresIn <= 0) {
+        timer.cancel();
+        return;
+      }
+
+      try {
+        final status = await ApiService.getOnboardingStatus(_qrData!);
+        if (status['used'] == true) {
+          timer.cancel();
+          _timer?.cancel();
+          if (mounted) {
+            setState(() {
+              _isUsed = true;
+              _usedByName = status['used_by_name'];
+            });
+            // Show system notification
+            NotificationService.showNotification(
+              id: DateTime.now().millisecondsSinceEpoch,
+              title: '✅ HOD Onboarded',
+              body:
+                  'HOD ${_usedByName ?? widget.hod['name']} has completed onboarding.',
+            );
+            _showSuccessDialog();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error polling HOD onboarding status: $e');
+      }
+    });
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: successGreen, size: 30),
+            SizedBox(width: 10),
+            Text('Success!'),
+          ],
+        ),
+        content: Text(
+          'HOD ${_usedByName ?? widget.hod['name']} has completed onboarding successfully.',
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close dialog
+              Navigator.of(context).pop(); // Go back to HOD management
+            },
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
