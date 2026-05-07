@@ -234,8 +234,9 @@ def get_active_session_for_student(student_id: int, db: Session = Depends(get_db
         return {"active": False}
 
     dept = db.query(Department).filter(
-        Department.code.ilike(student.department)
-    ).first()
+        (Department.code.ilike(student.department.strip())) |
+        (Department.name.ilike(student.department.strip()))
+    ).first() if student.department else None
     if not dept:
         return {"active": False}
 
@@ -321,8 +322,9 @@ def mark_attendance(
 
    # ✅ Check student belongs to the correct class for this session
     dept = db.query(Department).filter(
-        Department.code == student.department
-    ).first()
+        (Department.code.ilike(student.department.strip())) |
+        (Department.name.ilike(student.department.strip()))
+    ).first() if student.department else None
     if not dept:
         raise HTTPException(status_code=403, detail="Student department not found")
 
@@ -585,8 +587,9 @@ def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db),
 
     # Get department
     dept = db.query(Department).filter(
-        Department.code.ilike(student.department)
-    ).first()
+        (Department.code.ilike(student.department.strip())) |
+        (Department.name.ilike(student.department.strip()))
+    ).first() if student.department else None
 
     # Get class
     cls = None
@@ -686,12 +689,13 @@ def get_student_attendance_history(student_id: int, db: Session = Depends(get_db
 
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
-        return {"records": []}
+        return []
 
     # Get student's class
     dept = db.query(Department).filter(
-        Department.code.ilike(student.department)
-    ).first()
+        (Department.code.ilike(student.department.strip())) |
+        (Department.name.ilike(student.department.strip()))
+    ).first() if student.department else None
 
     cls = None
     if dept:
@@ -762,4 +766,4 @@ def get_student_attendance_history(student_id: int, db: Session = Depends(get_db
     # Sort by date descending
     result.sort(key=lambda x: x['timestamp'], reverse=True)
 
-    return {"records": result}
+    return result

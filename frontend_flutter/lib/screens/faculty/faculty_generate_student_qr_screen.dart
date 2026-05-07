@@ -31,6 +31,7 @@ class _FacultyGenerateStudentQRScreenState
   String? _usedByName;
 
   // Fixed role/status colors - matching AdminGenerateFacultyQRScreen
+  static const Color errorRed = Color(0xFFF44336);
   static const Color successGreen = Color(0xFF4CAF50);
   static const Color warningOrange = Color(0xFFFF9800);
   static const Color infoBlue = Color(0xFF2196F3);

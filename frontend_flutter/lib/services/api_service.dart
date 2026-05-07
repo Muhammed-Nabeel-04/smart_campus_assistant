@@ -1,6 +1,7 @@
 // File: lib/services/api_service.dart
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -68,15 +69,27 @@ class ApiService {
       final data = _handleResponse(response);
       _saveToCache(cacheKey, data);
       return data as T;
+    } on SocketException {
+      return await _fallbackToCache<T>(cacheKey, isList);
+    } on TimeoutException {
+      return await _fallbackToCache<T>(cacheKey, isList);
     } catch (e) {
-      final cached = await _getFromCache(cacheKey);
-      if (cached != null) {
-        _showOfflineMessage();
-        return (isList ? List.from(cached) : Map<String, dynamic>.from(cached))
-            as T;
+      // For other errors (like ApiException 401, 403, 500), don't fallback to cache
+      // unless it's a generic connection error that wasn't caught above
+      if (e.toString().contains('Connection failed') || e.toString().contains('is not reachable')) {
+        return await _fallbackToCache<T>(cacheKey, isList);
       }
       throw _handleError(e);
     }
+  }
+
+  static Future<T> _fallbackToCache<T>(String cacheKey, bool isList) async {
+    final cached = await _getFromCache(cacheKey);
+    if (cached != null) {
+      _showOfflineMessage();
+      return (isList ? List.from(cached) : Map<String, dynamic>.from(cached)) as T;
+    }
+    throw ApiException('No internet connection and no cached data available.');
   }
 
   // ============================================================================
