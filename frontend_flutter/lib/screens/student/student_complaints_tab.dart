@@ -62,6 +62,7 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
+      appBar: AppBar(title: const Text('My Complaints')),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: cs.primary))
           : _complaints.isEmpty
