@@ -9,6 +9,7 @@ import 'screens/faculty/attendance_qr_screen.dart';
 import 'screens/faculty/view_attendance_screen.dart';
 import 'screens/student/scan_qr_screen.dart';
 import 'screens/student/student_dashboard_screen.dart';
+import 'screens/student/student_complaints_tab.dart';
 import 'screens/auth/student_login_screen.dart';
 import 'screens/auth/student_register_screen.dart';
 import 'screens/student/student_onboarding_scan_screen.dart';
@@ -160,6 +161,7 @@ class _SmartCampusAppState extends State<SmartCampusApp> {
         '/studentDashboard': (context) => const StudentDashboardScreen(),
         '/studentMarkAttendance': (context) =>
             const StudentMarkAttendanceScreen(),
+        '/studentComplaints': (context) => const StudentComplaintsTab(),
         '/studentPasswordSetup': (context) {
           final args = ModalRoute.of(context)!.settings.arguments
               as Map<String, dynamic>;

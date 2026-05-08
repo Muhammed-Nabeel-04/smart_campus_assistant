@@ -43,119 +43,139 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
     final filtered = _filter == 'all' ? activities
         : activities.where((a) => _categoryOf(a['activity_type'] ?? '') == _filter).toList();
 
-    if (_loading) return Center(child: CircularProgressIndicator(color: cs.primary));
-    if (_error != null) return _errorView(cs);
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('SSM Performance')),
+        body: Center(child: CircularProgressIndicator(color: cs.primary)),
+      );
+    }
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('SSM Performance')),
+        body: _errorView(cs),
+      );
+    }
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      color: cs.primary,
-      child: CustomScrollView(slivers: [
-
-        // ── Score card ──────────────────────────────────────────
-        SliverToBoxAdapter(
-          child: GestureDetector(
-            onTap: _data?['form_id'] != null
-                ? () => Navigator.pushNamed(context, '/ssmScore',
-                    arguments: _data!['form_id'])
-                : null,
-            child: _ScoreCard(score: score, status: status),
-          ),
-        ),
-
-        // ── Timeline Banner ──────────────────────────────
-        if (_data?['form_id'] != null)
+    return Scaffold(
+      appBar: AppBar(title: const Text('SSM Performance')),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        color: cs.primary,
+        child: CustomScrollView(slivers: [
+  
+          // ── Score card ──────────────────────────────────────────
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: InkWell(
-                onTap: () => Navigator.pushNamed(context, '/ssmTimeline',
-                    arguments: _data!['form_id']),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: cs.primary.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: cs.primary.withOpacity(0.2)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.timeline_rounded, color: cs.primary, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'View Performance Timeline',
-                          style: TextStyle(
-                              color: cs.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14),
+            child: GestureDetector(
+              onTap: _data?['form_id'] != null
+                  ? () => Navigator.pushNamed(context, '/ssmScore',
+                      arguments: _data!['form_id'])
+                  : null,
+              child: _ScoreCard(score: score, status: status),
+            ),
+          ),
+  
+          // ── Timeline Banner ──────────────────────────────
+          if (_data?['form_id'] != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: InkWell(
+                  onTap: () => Navigator.pushNamed(context, '/ssmTimeline',
+                      arguments: _data!['form_id']),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: cs.primary.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: cs.primary.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.timeline_rounded, color: cs.primary, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'View Performance Timeline',
+                            style: TextStyle(
+                                color: cs.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14),
+                          ),
                         ),
-                      ),
-                      Icon(Icons.chevron_right_rounded,
-                          color: cs.primary, size: 20),
-                    ],
+                        Icon(Icons.chevron_right_rounded,
+                            color: cs.primary, size: 20),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-
-        // ── Submit / Status banner ──────────────────────────────
-        if (canEdit && activities.isNotEmpty)
-          SliverToBoxAdapter(child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2E7D32),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  
+          // ── Submit / Status banner ──────────────────────────────
+          if (canEdit && activities.isNotEmpty)
+            SliverToBoxAdapter(child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.send_rounded),
+                label: const Text('Submit Form to Mentor',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                onPressed: _submitForm,
               ),
-              icon: const Icon(Icons.send_rounded),
-              label: const Text('Submit Form to Mentor',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              onPressed: _submitForm,
-            ),
-          )),
-
-        if (!canEdit)
-          SliverToBoxAdapter(child: Container(
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2E7D32).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.3)),
-            ),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.lock_rounded, color: const Color(0xFF2E7D32), size: 18),
-              const SizedBox(width: 8),
-              Text(_statusLabel(status),
-                  style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
-            ]),
-          )),
-
-        // ── Category filter ─────────────────────────────────────
-        SliverToBoxAdapter(child: _CategoryFilter(
-          selected: _filter,
-          onChanged: (v) => setState(() => _filter = v),
-        )),
-
-        // ── Activity list ───────────────────────────────────────
-        if (filtered.isEmpty)
-          SliverToBoxAdapter(child: _emptyState(cs, canEdit))
-        else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-            sliver: SliverList(delegate: SliverChildBuilderDelegate(
-              (_, i) => _ActivityCard(
-                activity: filtered[i],
-                onDelete: canEdit ? () => _deleteActivity(filtered[i]['id']) : null,
-              ),
-              childCount: filtered.length,
             )),
-          ),
-      ]),
+  
+          if (!canEdit)
+            SliverToBoxAdapter(child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E7D32).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.3)),
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.lock_rounded, color: const Color(0xFF2E7D32), size: 18),
+                const SizedBox(width: 8),
+                Text(_statusLabel(status),
+                    style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+              ]),
+            )),
+  
+          // ── Category filter ─────────────────────────────────────
+          SliverToBoxAdapter(child: _CategoryFilter(
+            selected: _filter,
+            onChanged: (v) => setState(() => _filter = v),
+          )),
+  
+          // ── Activity list ───────────────────────────────────────
+          if (filtered.isEmpty)
+            SliverToBoxAdapter(child: _emptyState(cs, canEdit))
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+              sliver: SliverList(delegate: SliverChildBuilderDelegate(
+                (_, i) => _ActivityCard(
+                  activity: filtered[i],
+                  onDelete: canEdit ? () => _deleteActivity(filtered[i]['id']) : null,
+                ),
+                childCount: filtered.length,
+              )),
+            ),
+        ]),
+      ),
+      floatingActionButton: canEdit
+          ? FloatingActionButton.extended(
+              onPressed: _openAddActivity,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Activity'),
+            )
+          : null,
     );
   }
 

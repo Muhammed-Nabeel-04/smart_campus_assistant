@@ -24,9 +24,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   final List<Widget> _pages = const [
     _HomeTab(),
     StudentAttendanceTab(),
-    SSMActivityDashboard(),
     StudentNotificationsTab(),
-    StudentComplaintsTab(),
     StudentProfileTab(),
   ];
 
@@ -119,19 +117,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               label: 'Attendance',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart_outlined),
-              activeIcon: Icon(Icons.bar_chart),
-              label: 'Performance',
-            ),
-            BottomNavigationBarItem(
               icon: Icon(Icons.notifications_outlined),
               activeIcon: Icon(Icons.notifications),
               label: 'Notices',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.report_problem_outlined),
-              activeIcon: Icon(Icons.report_problem),
-              label: 'Complaints',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
@@ -149,16 +137,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 backgroundColor: cs.primary,
                 foregroundColor: cs.onPrimary,
               )
-            : (_currentIndex == 2
-                ? FloatingActionButton.extended(
-                    onPressed: () async {
-                      final added = await Navigator.pushNamed(context, '/ssmAddActivity');
-                      if (added == true) setState(() {});
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Activity'),
-                  )
-                : null),
+            : null,
       ),
     );
   }
@@ -489,6 +468,33 @@ class _HomeTabState extends State<_HomeTab>
 
           const SizedBox(height: 24),
 
+          // ── Quick Actions ───────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionCard(
+                  'Performance',
+                  Icons.bar_chart_rounded,
+                  const Color(0xFF673AB7),
+                  () => Navigator.pushNamed(context, '/ssmDashboard'),
+                  cs,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionCard(
+                  'Complaints',
+                  Icons.report_problem_rounded,
+                  const Color(0xFFFF9800),
+                  () => Navigator.pushNamed(context, '/studentComplaints'),
+                  cs,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
           // ── Quick Stats Grid ──────────────────────────────
           Row(
             children: [
@@ -566,6 +572,41 @@ class _HomeTabState extends State<_HomeTab>
 
           const SizedBox(height: 80),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionCard(
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+    ColorScheme cs,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
