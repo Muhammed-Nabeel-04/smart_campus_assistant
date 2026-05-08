@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class FacultyAttendanceReportsScreen extends StatefulWidget {
   final Map<String, dynamic> department;
@@ -298,7 +299,7 @@ class _FacultyAttendanceReportsScreenState
           // Reports List
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: cs.primary))
+                ? const AppPageSkeleton()
                 : _reports.isEmpty
                 ? _buildEmptyState(cs)
                 : RefreshIndicator(

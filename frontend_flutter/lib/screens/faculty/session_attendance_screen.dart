@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class SessionAttendanceScreen extends StatefulWidget {
   final int sessionId;
@@ -56,7 +57,7 @@ class _SessionAttendanceScreenState extends State<SessionAttendanceScreen> {
         ],
       ),
       body: loading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const AppPageSkeleton()
           : records.isEmpty
           ? _buildEmptyState(cs)
           : RefreshIndicator(

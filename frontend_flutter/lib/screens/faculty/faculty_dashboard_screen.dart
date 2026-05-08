@@ -4,6 +4,7 @@ import 'dart:async';
 import '../../core/session.dart';
 import '../../core/notification_service.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class FacultyDashboardScreen extends StatefulWidget {
   const FacultyDashboardScreen({super.key});
@@ -256,7 +257,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
           onRefresh: _loadStats,
           color: cs.primary,
           child: _isLoading
-              ? Center(child: CircularProgressIndicator(color: cs.primary))
+              ? const DashboardSkeleton()
               : ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
@@ -877,7 +878,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                     ),
                     builder: (ctx, snap) {
                       if (snap.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const AppPageSkeleton(showHeader: false);
                       }
                       final sessions = snap.data ?? [];
                       if (sessions.isEmpty) {
@@ -1132,9 +1133,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                       future: _timetableFuture,
                       builder: (ctx, snap) {
                         if (snap.connectionState == ConnectionState.waiting) {
-                          return Center(
-                            child: CircularProgressIndicator(color: cs.primary),
-                          );
+                          return const AppPageSkeleton(showHeader: false);
                         }
 
                         // FIX 3: Robust parsing. Makes everything lowercase and removes spaces

@@ -1,6 +1,7 @@
 // File: lib/screens/admin/admin_edit_faculty_screen.dart
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class AdminEditFacultyScreen extends StatefulWidget {
   final Map<String, dynamic> faculty;
@@ -338,7 +339,7 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Faculty')),
       body: _loadingDepts
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const FormSkeleton()
           : Form(
               key: _formKey,
               child: ListView(

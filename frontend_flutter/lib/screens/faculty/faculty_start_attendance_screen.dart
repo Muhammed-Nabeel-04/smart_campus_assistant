@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:async';
 import 'dart:convert';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class FacultyStartAttendanceScreen extends StatefulWidget {
   final Map<String, dynamic> department;
@@ -344,7 +345,7 @@ class _FacultyStartAttendanceScreenState
         ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const AppPageSkeleton()
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(

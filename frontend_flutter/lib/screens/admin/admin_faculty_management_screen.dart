@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class AdminFacultyManagementScreen extends StatefulWidget {
   const AdminFacultyManagementScreen({super.key});
@@ -103,7 +104,7 @@ class _AdminFacultyManagementScreenState
           // Faculty List
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: cs.primary))
+                ? const AppPageSkeleton()
                 : _filteredFaculty.isEmpty
                 ? _buildEmptyState(cs)
                 : RefreshIndicator(

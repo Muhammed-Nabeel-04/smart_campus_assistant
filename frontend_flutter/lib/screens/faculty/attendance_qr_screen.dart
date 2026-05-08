@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class AttendanceQRScreen extends StatefulWidget {
   const AttendanceQRScreen({super.key});
@@ -241,7 +242,7 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
         centerTitle: true,
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const AppPageSkeleton(itemCount: 3)
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(

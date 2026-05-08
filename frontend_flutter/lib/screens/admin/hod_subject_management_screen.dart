@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
+import '../../widgets/skeleton.dart';
 
 class HODSubjectManagementScreen extends StatefulWidget {
   const HODSubjectManagementScreen({super.key});
@@ -492,7 +493,7 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
 
   Widget _buildSubjectsTab(ColorScheme cs) {
     if (_isLoading)
-      return Center(child: CircularProgressIndicator(color: cs.primary));
+      return const AppPageSkeleton();
     return RefreshIndicator(
       onRefresh: _load,
       color: cs.primary,
@@ -599,7 +600,7 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
 
   Widget _buildTimetableTab(ColorScheme cs) {
     if (_loadingClasses) {
-      return Center(child: CircularProgressIndicator(color: cs.primary));
+      return const AppPageSkeleton();
     }
 
     if (_classes.isEmpty) {
@@ -798,7 +799,7 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
           if (_loadingSections)
             const Padding(
               padding: EdgeInsets.all(20),
-              child: Center(child: CircularProgressIndicator()),
+              child: CardSkeleton(),
             )
           else
             ...(_years.map((year) {

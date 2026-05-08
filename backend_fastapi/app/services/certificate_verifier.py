@@ -18,7 +18,8 @@ import json
 from datetime import datetime
 from typing import Optional
 import pytesseract
-pytesseract.pytesseract.tesseract_cmd = r'E:\1 MyApps\tesseract.exe'
+from app.config import settings
+pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_CMD
 
 
 

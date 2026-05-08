@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
 import '../../main.dart';
+import '../../widgets/skeleton.dart';
 
 class FacultyProfileScreen extends StatefulWidget {
   const FacultyProfileScreen({super.key});
@@ -169,7 +170,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const AppPageSkeleton()
           : RefreshIndicator(
               onRefresh: _loadFacultyData,
               color: cs.primary,

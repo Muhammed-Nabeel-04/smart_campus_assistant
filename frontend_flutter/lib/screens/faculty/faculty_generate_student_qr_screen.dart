@@ -7,6 +7,7 @@ import 'dart:async';
 import 'dart:convert';
 import '../../services/api_service.dart';
 import '../../core/notification_service.dart';
+import '../../widgets/skeleton.dart';
 
 class FacultyGenerateStudentQRScreen extends StatefulWidget {
   final Map<String, dynamic> student;
@@ -187,7 +188,7 @@ class _FacultyGenerateStudentQRScreenState
     return Scaffold(
       appBar: AppBar(title: const Text('Generate Student QR')),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const AppPageSkeleton(itemCount: 3)
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(

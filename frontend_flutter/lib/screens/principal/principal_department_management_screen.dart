@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class PrincipalDepartmentManagementScreen extends StatefulWidget {
   const PrincipalDepartmentManagementScreen({super.key});
@@ -196,7 +197,7 @@ class _PrincipalDepartmentManagementScreenState
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const AppPageSkeleton()
           : _departments.isEmpty
           ? _buildEmptyState(cs)
           : RefreshIndicator(

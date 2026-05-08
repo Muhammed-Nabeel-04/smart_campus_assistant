@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class SSMActivityDashboard extends StatefulWidget {
   const SSMActivityDashboard({super.key});
@@ -46,7 +47,18 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
     if (_loading) {
       return Scaffold(
         appBar: AppBar(title: const Text('SSM Performance')),
-        body: Center(child: CircularProgressIndicator(color: cs.primary)),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const Skeleton(height: 160, borderRadius: BorderRadius.all(Radius.circular(16))),
+            const SizedBox(height: 16),
+            const Skeleton(height: 50, borderRadius: BorderRadius.all(Radius.circular(12))),
+            const SizedBox(height: 16),
+            const Skeleton(width: 150, height: 40, borderRadius: BorderRadius.all(Radius.circular(25))),
+            const SizedBox(height: 16),
+            ...List.generate(3, (index) => const CardSkeleton()),
+          ],
+        ),
       );
     }
     if (_error != null) {

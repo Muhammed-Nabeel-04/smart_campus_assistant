@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
 import '../../main.dart';
+import '../../widgets/skeleton.dart';
 
 class AdminProfileScreen extends StatefulWidget {
   const AdminProfileScreen({super.key});
@@ -173,7 +174,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const AppPageSkeleton()
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [

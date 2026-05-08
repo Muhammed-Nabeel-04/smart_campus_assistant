@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class PrincipalHODManagementScreen extends StatefulWidget {
   const PrincipalHODManagementScreen({super.key});
@@ -57,7 +58,7 @@ class _PrincipalHODManagementScreenState
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const AppPageSkeleton()
           : _hods.isEmpty
               ? _buildEmptyState(cs)
               : RefreshIndicator(

@@ -10,6 +10,7 @@ import 'student_notifications_tab.dart';
 import 'student_complaints_tab.dart';
 import 'student_profile_tab.dart';
 import 'ssm_activity_dashboard.dart';
+import '../../widgets/skeleton.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -332,7 +333,36 @@ class _HomeTabState extends State<_HomeTab>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator(color: cs.primary));
+      return ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Skeleton(height: 100, borderRadius: BorderRadius.all(Radius.circular(16))),
+          const SizedBox(height: 16),
+          const Skeleton(height: 180, borderRadius: BorderRadius.all(Radius.circular(20))),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(child: Skeleton(height: 100, borderRadius: BorderRadius.circular(16))),
+              const SizedBox(width: 12),
+              Expanded(child: Skeleton(height: 100, borderRadius: BorderRadius.circular(16))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Skeleton(height: 100, borderRadius: BorderRadius.circular(16))),
+              const SizedBox(width: 12),
+              Expanded(child: Skeleton(height: 100, borderRadius: BorderRadius.circular(16))),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Skeleton(width: 150, height: 24),
+          const SizedBox(height: 12),
+          const Skeleton(height: 120, borderRadius: BorderRadius.all(Radius.circular(16))),
+          const SizedBox(height: 12),
+          const Skeleton(height: 120, borderRadius: BorderRadius.all(Radius.circular(16))),
+        ],
+      );
     }
 
     final overallPercentage = (_stats?['overall_percentage'] ?? 0.0) as num;
@@ -870,9 +900,7 @@ class _HomeTabState extends State<_HomeTab>
                       future: timetableFuture,
                       builder: (ctx, snap) {
                         if (snap.connectionState == ConnectionState.waiting) {
-                          return Center(
-                            child: CircularProgressIndicator(color: cs.primary),
-                          );
+                          return const AppPageSkeleton(showHeader: false);
                         }
 
                         final rawSlots =

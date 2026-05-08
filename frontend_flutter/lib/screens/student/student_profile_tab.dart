@@ -2,6 +2,7 @@
 // Student Profile with READ-ONLY data + Logout + Theme Selection
 
 import 'package:flutter/material.dart';
+import '../../widgets/skeleton.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
 import '../../main.dart'; // ✅ Added import
@@ -86,7 +87,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
     final cs = Theme.of(context).colorScheme;
 
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator(color: cs.primary));
+      return const AppPageSkeleton();
     }
 
     return RefreshIndicator(

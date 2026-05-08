@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 import '../../core/session.dart';
 
 class FacultyManualAttendanceScreen extends StatefulWidget {
@@ -274,7 +275,7 @@ class _FacultyManualAttendanceScreenState
           // Students List
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: cs.primary))
+                ? const AppPageSkeleton()
                 : _noSessionMessage != null
                 ? Center(
                     child: Padding(

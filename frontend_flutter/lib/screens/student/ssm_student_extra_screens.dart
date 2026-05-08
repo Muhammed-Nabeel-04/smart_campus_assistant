@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 // ════════════════════════════════════════════════════════════════
 // Form Timeline Screen
@@ -29,7 +30,7 @@ class _SSMFormTimelineScreenState extends State<SSMFormTimelineScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) return const Scaffold(body: AppPageSkeleton());
     final status = _data?['status'] ?? 'draft';
     final stages = [
       ('draft', 'Draft', 'Form created'),
@@ -95,7 +96,7 @@ class _SSMScoreScreenState extends State<SSMScoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) return const Scaffold(body: AppPageSkeleton());
     final scores = _data?['scores'];
     if (scores == null) return const Scaffold(body: Center(child: Text('Score not found')));
 

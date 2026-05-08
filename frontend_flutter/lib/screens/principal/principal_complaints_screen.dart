@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class PrincipalComplaintsScreen extends StatefulWidget {
   const PrincipalComplaintsScreen({super.key});
@@ -121,7 +122,7 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
           // Complaints List
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: cs.primary))
+                ? const AppPageSkeleton()
                 : _complaints.isEmpty
                 ? _buildEmptyState(cs)
                 : RefreshIndicator(

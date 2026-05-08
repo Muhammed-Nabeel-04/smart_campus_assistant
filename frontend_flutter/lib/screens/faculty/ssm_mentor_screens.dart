@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
+import '../../widgets/skeleton.dart';
 
 // ════════════════════════════════════════════════════════════════
 // Mentor Dashboard Screen
@@ -135,7 +136,7 @@ class _SSMMentorDashboardState extends State<SSMMentorDashboard>
         ),
       ),
       body: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const DashboardSkeleton()
             : RefreshIndicator(
                 onRefresh: _load,
                 child: TabBarView(
@@ -274,7 +275,7 @@ class _SSMMentorReviewScreenState extends State<SSMMentorReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) return const Scaffold(body: AppPageSkeleton());
     final student = _data?['student'];
     final activities = (_data?['activities'] as List?) ?? [];
 
@@ -406,7 +407,7 @@ class _SSMMentorActivityDetailScreenState extends State<SSMMentorActivityDetailS
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) return const Scaffold(body: AppPageSkeleton());
     if (_act == null) return const Scaffold(body: Center(child: Text('Not found')));
 
     return Scaffold(

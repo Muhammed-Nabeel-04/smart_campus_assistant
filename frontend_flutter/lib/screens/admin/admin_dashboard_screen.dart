@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -89,7 +90,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ],
         ),
         body: _isLoading
-            ? Center(child: CircularProgressIndicator(color: cs.primary))
+            ? const DashboardSkeleton()
             : RefreshIndicator(
                 onRefresh: _loadStats,
                 color: cs.primary,

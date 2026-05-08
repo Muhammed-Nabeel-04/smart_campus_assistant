@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class ViewAttendanceScreen extends StatefulWidget {
   const ViewAttendanceScreen({super.key});
@@ -110,7 +111,7 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
         ],
       ),
       body: _loading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const AppPageSkeleton()
           : _students.isEmpty
               ? _buildEmptyState(cs)
               : RefreshIndicator(

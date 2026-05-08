@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../services/api_service.dart';
 import '../../core/session.dart';
+import '../../widgets/skeleton.dart';
 
 // ════════════════════════════════════════════════════════════════
 // HOD Dashboard Screen (Enhanced)
@@ -182,7 +183,7 @@ class _SSMHodDashboardState extends State<SSMHodDashboard>
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const DashboardSkeleton()
           : RefreshIndicator(
               onRefresh: _load,
               child: TabBarView(
@@ -317,7 +318,7 @@ class _ApprovedTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (approved == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppPageSkeleton();
     }
     if (approved!.isEmpty) {
       return const SingleChildScrollView(
@@ -850,7 +851,7 @@ class _SSMHodApprovalScreenState extends State<SSMHodApprovalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) return const Scaffold(body: AppPageSkeleton());
 
     final cs = Theme.of(context).colorScheme;
     final student = _data?['student_name'] ?? '';
@@ -1147,7 +1148,7 @@ class _SSMHodReportScreenState extends State<SSMHodReportScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppPageSkeleton()
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(children: [

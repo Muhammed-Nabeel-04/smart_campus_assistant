@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 import '../../core/session.dart';
 
 class CCTimetableEditorScreen extends StatefulWidget {
@@ -641,7 +642,7 @@ class _CCTimetableEditorScreenState extends State<CCTimetableEditorScreen> {
         ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const AppPageSkeleton()
           : SingleChildScrollView(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,

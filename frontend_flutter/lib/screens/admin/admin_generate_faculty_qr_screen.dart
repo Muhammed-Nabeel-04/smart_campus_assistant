@@ -7,6 +7,7 @@ import 'dart:async';
 import 'dart:convert';
 import '../../services/api_service.dart';
 import '../../core/notification_service.dart';
+import '../../widgets/skeleton.dart';
 
 class AdminGenerateFacultyQRScreen extends StatefulWidget {
   final Map<String, dynamic> faculty;
@@ -191,7 +192,7 @@ class _AdminGenerateFacultyQRScreenState
     return Scaffold(
       appBar: AppBar(title: const Text('Faculty Setup QR')),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const AppPageSkeleton(itemCount: 3)
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(

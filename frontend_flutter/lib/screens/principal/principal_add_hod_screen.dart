@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 
 class PrincipalAddHODScreen extends StatefulWidget {
   const PrincipalAddHODScreen({super.key});
@@ -108,7 +109,7 @@ class _PrincipalAddHODScreenState extends State<PrincipalAddHODScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Register HOD')),
       body: _loadingDepts
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? const FormSkeleton()
           : _departments.isEmpty
           ? _buildAllAssignedState(cs)
           : Form(

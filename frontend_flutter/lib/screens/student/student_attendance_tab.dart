@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
 import '../../models/complete_models.dart';
+import '../../widgets/skeleton.dart';
 
 class StudentAttendanceTab extends StatefulWidget {
   const StudentAttendanceTab({super.key});
@@ -85,7 +86,36 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
         // ── Records List ──────────────────────────────────────
         Expanded(
           child: _isLoading
-              ? Center(child: CircularProgressIndicator(color: cs.primary))
+              ? ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: 6,
+                  itemBuilder: (context, index) => Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cs.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Skeleton(width: 48, height: 48, borderRadius: BorderRadius.all(Radius.circular(12))),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Skeleton(width: 120, height: 20),
+                              SizedBox(height: 8),
+                              Skeleton(width: 180, height: 16),
+                            ],
+                          ),
+                        ),
+                        const Skeleton(width: 60, height: 24, borderRadius: BorderRadius.all(Radius.circular(12))),
+                      ],
+                    ),
+                  ),
+                )
               : _filteredRecords.isEmpty
                   ? _buildEmptyState(cs)
                   : RefreshIndicator(

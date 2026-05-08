@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 import 'faculty_student_details_screen.dart';
 
 class FacultyClassroomManagementScreen extends StatefulWidget {
@@ -176,7 +177,7 @@ class _FacultyClassroomManagementScreenState
           // Students list
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: cs.primary))
+                ? const AppPageSkeleton(showHeader: false)
                 : _filteredStudents.isEmpty
                 ? _buildEmptyState(cs)
                 : RefreshIndicator(

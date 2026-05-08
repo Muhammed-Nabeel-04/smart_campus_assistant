@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:async';
 import '../../services/api_service.dart';
 import '../../core/notification_service.dart';
+import '../../widgets/skeleton.dart';
 
 class PrincipalGenerateHODQRScreen extends StatefulWidget {
   final Map<String, dynamic> hod;
@@ -167,16 +168,14 @@ class _PrincipalGenerateHODQRScreenState
 
     return Scaffold(
       appBar: AppBar(title: const Text('HOD Onboarding QR')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: _isLoading
-              ? CircularProgressIndicator(color: cs.primary)
-              : _error != null
-                  ? _buildErrorState(cs)
-                  : _buildQRContent(cs),
+      body: _isLoading
+          ? const AppPageSkeleton(itemCount: 3)
+          : Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: _error != null ? _buildErrorState(cs) : _buildQRContent(cs),
+              ),
         ),
-      ),
     );
   }
 

@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 import '../../core/session.dart';
 
 class AdminSystemReportsScreen extends StatefulWidget {
@@ -238,7 +239,7 @@ Pending  : ${_reportData['complaints_pending'] ?? 0}
           // Reports Content
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: cs.primary))
+                ? const AppPageSkeleton()
                 : RefreshIndicator(
                     onRefresh: _loadReports,
                     color: cs.primary,

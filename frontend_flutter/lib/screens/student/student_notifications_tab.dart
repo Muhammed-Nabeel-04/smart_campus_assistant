@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
 import '../../models/complete_models.dart';
+import '../../widgets/skeleton.dart';
 
 class StudentNotificationsTab extends StatefulWidget {
   const StudentNotificationsTab({super.key});
@@ -56,7 +57,40 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
     final cs = Theme.of(context).colorScheme;
 
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator(color: cs.primary));
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: 8,
+        itemBuilder: (context, index) => Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.withOpacity(0.1)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Skeleton(width: 48, height: 48, borderRadius: BorderRadius.all(Radius.circular(12))),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Skeleton(width: 60, height: 16),
+                    SizedBox(height: 8),
+                    Skeleton(width: double.infinity, height: 20),
+                    SizedBox(height: 8),
+                    Skeleton(width: 200, height: 16),
+                    SizedBox(height: 8),
+                    Skeleton(width: 80, height: 14),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     if (_notifications.isEmpty) {

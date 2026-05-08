@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../core/session.dart';
 import '../../models/complete_models.dart';
+import '../../widgets/skeleton.dart';
 
 class StudentComplaintsTab extends StatefulWidget {
   const StudentComplaintsTab({super.key});
@@ -64,7 +65,11 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
     return Scaffold(
       appBar: AppBar(title: const Text('My Complaints')),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: 5,
+              itemBuilder: (context, index) => const CardSkeleton(),
+            )
           : _complaints.isEmpty
           ? _buildEmptyState(cs)
           : RefreshIndicator(

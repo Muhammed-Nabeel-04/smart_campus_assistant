@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton.dart';
 import '../../core/session.dart';
 
 class FacultySubjectSelectionScreen extends StatefulWidget {
@@ -210,7 +211,7 @@ class _FacultySubjectSelectionScreenState
           // Subjects list
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: cs.primary))
+                ? const AppPageSkeleton()
                 : _filteredSubjects.isEmpty
                 ? _buildEmptyState(cs)
                 : RefreshIndicator(
