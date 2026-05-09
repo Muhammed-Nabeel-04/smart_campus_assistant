@@ -156,6 +156,16 @@ def upload_proof(
         db.commit()
         db.refresh(proof)
 
+    # Background task disabled for now
+    # from app.tasks import process_ocr_task
+    # process_ocr_task.delay(
+    #     proof_id=proof.id,
+    #     file_data_b64=payload.file_data,
+    #     file_type=payload.file_type,
+    #     criterion_key=payload.criterion_key,
+    #     student_name=student_name
+    # )
+
     return {
         "message": "Proof uploaded and verified",
         "proof_id": proof.id,
@@ -187,6 +197,7 @@ def reverify_proof(
     student = db.query(Student).filter(Student.id == proof.student_id).first()
     student_name = student.full_name if student else None
 
+    # Run verification synchronously
     verification = process_certificate(
         file_data_b64=proof.file_data,
         file_type=proof.file_type,
@@ -204,7 +215,17 @@ def reverify_proof(
     proof.verified_at = datetime.now()
     db.commit()
 
+    # Background task disabled for now
+    # process_ocr_task.delay(
+    #     proof_id=proof.id,
+    #     file_data_b64=proof.file_data,
+    #     file_type=proof.file_type,
+    #     criterion_key=proof.criterion_key,
+    #     student_name=student_name
+    # )
+
     return {
+        "message": "Re-verification complete (Synchronous)",
         "proof_id": proof.id,
         "verification_status": proof.verification_status,
         "verification_score": verification["score"],

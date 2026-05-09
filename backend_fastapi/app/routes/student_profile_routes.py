@@ -20,6 +20,9 @@ def get_student_profile(student_id: int, db: Session = Depends(get_db), current_
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
+    from app.models.user import User
+    user = db.query(User).filter(User.id == student.user_id).first()
+
     from app.models.department import Department
     dept = db.query(Department).filter(
         Department.code.ilike(student.department)
@@ -48,4 +51,5 @@ def get_student_profile(student_id: int, db: Session = Depends(get_db), current_
         "emergency_contact_name": student.emergency_contact_name,
         "emergency_contact_phone": student.emergency_contact_phone,
         "medical_conditions": student.medical_conditions,
+        "is_2fa_enabled": user.is_2fa_enabled if user else False,
     }

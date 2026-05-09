@@ -10,8 +10,26 @@ from app.models.user import User
 from app.models.student import Student
 from app.models.faculty import Faculty
 from app.models.department import Department
+from app.config import settings
+import pyotp
+from cryptography.fernet import Fernet
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+# ============================================================================
+# 2FA HELPERS
+# ============================================================================
+
+def _encrypt_totp(secret: str) -> str:
+    key = settings.TOTP_ENCRYPTION_KEY.encode()
+    return Fernet(key).encrypt(secret.encode()).decode()
+
+def _decrypt_totp(encrypted: str) -> str:
+    key = settings.TOTP_ENCRYPTION_KEY.encode()
+    try:
+        return Fernet(key).decrypt(encrypted.encode()).decode()
+    except Exception:
+        return encrypted  # fallback
 
 
 # ============================================================================
@@ -176,6 +194,16 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
     if not password_valid:
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    # If 2FA enabled for this user, signal the client to prompt for TOTP code
+    if user.is_2fa_enabled:
+        return {
+            "requires_2fa": True,
+            "user_id": user.id,
+            "role": user.role,
+            "name": user.name,
+            "message": "2FA required",
+        }
 
     # Build token data based on role
     token_data = {"user_id": user.id, "role": user.role}
@@ -356,4 +384,140 @@ def student_qr_login(payload: dict, db: Session = Depends(get_db)):
         "section": student.section,
         "register_number": student.register_number,
         "is_first_login": False,
+    }
+
+
+# ============================================================================
+# 2FA SETUP & MANAGEMENT
+# ============================================================================
+
+@router.post("/2fa/setup")
+def setup_2fa(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generates a new TOTP secret and returns a provisioning URI."""
+    user = db.query(User).filter(User.id == current_user['user_id']).first()
+    
+    secret = pyotp.random_base32()
+    totp = pyotp.TOTP(secret)
+    uri = totp.provisioning_uri(
+        name=user.email,
+        issuer_name=settings.APP_NAME,
+    )
+    # Temporarily store the secret (not yet active until they verify one code)
+    user.totp_secret = _encrypt_totp(secret)
+    db.commit()
+    return {"provisioning_uri": uri, "secret": secret}
+
+
+@router.post("/2fa/enable")
+def enable_2fa(
+    code: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Verifies the TOTP code and enables 2FA on the account."""
+    user = db.query(User).filter(User.id == current_user['user_id']).first()
+    if not user.totp_secret:
+        raise HTTPException(status_code=400, detail="Run /auth/2fa/setup first.")
+
+    totp = pyotp.TOTP(_decrypt_totp(user.totp_secret))
+    if not totp.verify(code, valid_window=1):
+        raise HTTPException(status_code=400, detail="Invalid or expired code.")
+
+    user.is_2fa_enabled = True
+    db.commit()
+    return {"message": "2FA enabled successfully!"}
+
+
+@router.post("/2fa/disable")
+def disable_2fa(
+    code: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Disables 2FA after verifying the current TOTP code."""
+    user = db.query(User).filter(User.id == current_user['user_id']).first()
+    if not user.is_2fa_enabled or not user.totp_secret:
+        raise HTTPException(status_code=400, detail="2FA is not enabled.")
+
+    totp = pyotp.TOTP(_decrypt_totp(user.totp_secret))
+    if not totp.verify(code, valid_window=1):
+        raise HTTPException(status_code=400, detail="Invalid or expired code.")
+
+    user.is_2fa_enabled = False
+    user.totp_secret = None
+    db.commit()
+    return {"message": "2FA disabled successfully."}
+
+
+@router.post("/login/2fa")
+def login_with_2fa(
+    user_id: int,
+    code: str,
+    db: Session = Depends(get_db),
+):
+    """Second step for login when 2FA is enabled."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.is_2fa_enabled or not user.totp_secret:
+        raise HTTPException(status_code=400, detail="Invalid 2FA request.")
+
+    totp = pyotp.TOTP(_decrypt_totp(user.totp_secret))
+    if not totp.verify(code, valid_window=1):
+        raise HTTPException(status_code=401, detail="Invalid or expired 2FA code.")
+
+    # Build token data based on role
+    token_data = {"user_id": user.id, "role": user.role}
+    
+    student_id = None
+    faculty_id = None
+    department = None
+    year = None
+    section = None
+    register_number = None
+
+    if user.role == "student":
+        student = db.query(Student).filter(Student.user_id == user.id).first()
+        if student:
+            student_id = student.id
+            dept = db.query(Department).filter(Department.code.ilike(student.department)).first()
+            department = dept.name if dept else student.department
+            year = student.year
+            section = student.section
+            register_number = student.register_number
+            token_data["student_id"] = student_id
+    elif user.role == "faculty":
+        faculty = db.query(Faculty).filter(Faculty.user_id == user.id).first()
+        if faculty:
+            faculty_id = faculty.id
+            dept = db.query(Department).filter(Department.code.ilike(faculty.department)).first()
+            department = dept.name if dept else faculty.department
+            token_data["faculty_id"] = faculty_id
+
+    token = create_access_token(token_data)
+
+    # Save session token
+    from app.models.session_token import SessionToken
+    existing_session = db.query(SessionToken).filter(SessionToken.user_id == user.id).first()
+    if existing_session:
+        existing_session.token = token
+        existing_session.expires_at = datetime.now() + timedelta(days=30)
+    else:
+        db.add(SessionToken(user_id=user.id, token=token, expires_at=datetime.now() + timedelta(days=30)))
+    db.commit()
+
+    return {
+        "message": "2FA Login successful",
+        "token": token,
+        "user_id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "role": user.role,
+        "student_id": student_id,
+        "faculty_id": faculty_id,
+        "department": department,
+        "year": year,
+        "section": section,
+        "register_number": register_number,
     }

@@ -185,6 +185,66 @@ class ApiService {
   }
 
   // ============================================================================
+  // TWO-FACTOR AUTHENTICATION (2FA)
+  // ============================================================================
+
+  static Future<Map<String, dynamic>> setup2FA() async {
+    try {
+      final response = await http
+          .post(Uri.parse("$_baseUrl/auth/2fa/setup"), headers: _authHeaders)
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> enable2FA(String code) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/auth/2fa/enable?code=$code"),
+            headers: _authHeaders,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> disable2FA(String code) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/auth/2fa/disable?code=$code"),
+            headers: _authHeaders,
+          )
+          .timeout(_timeout);
+      return _handleResponse(response) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> loginWith2FA({
+    required int userId,
+    required String code,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$_baseUrl/auth/login/2fa?user_id=$userId&code=$code"),
+            headers: {"Content-Type": "application/json"},
+          )
+          .timeout(_timeout);
+      return _handleResponse(response, isLogin: true) as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ============================================================================
   // ONBOARDING APIs (no token needed)
   // ============================================================================
 

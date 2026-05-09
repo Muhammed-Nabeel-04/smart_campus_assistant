@@ -36,6 +36,14 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
         password: _passwordController.text,
       );
 
+      // ── 2FA Check ─────────────────────────────────────────────
+      if (response['requires_2fa'] == true) {
+        if (mounted) {
+          _show2FADialog(response['user_id'], response['role']);
+        }
+        return;
+      }
+
       final role = response['role'] as String? ?? '';
 
       if (role != 'faculty' && role != 'admin') {
@@ -72,6 +80,96 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message), backgroundColor: cs.error));
+  }
+
+  Future<void> _show2FADialog(int userId, String role) async {
+    final codeController = TextEditingController();
+    bool isVerifying = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('2FA Verification'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Enter the 6-digit code from your authenticator app.'),
+              const SizedBox(height: 20),
+              TextField(
+                controller: codeController,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 8,
+                ),
+                decoration: const InputDecoration(
+                  hintText: '000000',
+                  counterText: '',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isVerifying ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isVerifying
+                  ? null
+                  : () async {
+                      if (codeController.text.length != 6) return;
+                      setDialogState(() => isVerifying = true);
+                      try {
+                        final res = await ApiService.loginWith2FA(
+                          userId: userId,
+                          code: codeController.text,
+                        );
+
+                        await SessionManager.saveSession(
+                          userId: res['user_id'],
+                          name: res['name'],
+                          email: res['email'],
+                          role: res['role'],
+                          token: res['token'],
+                          facultyId: res['faculty_id'],
+                          department: res['department'],
+                        );
+
+                        if (mounted) {
+                          Navigator.pop(ctx); // Close dialog
+                          Navigator.pushReplacementNamed(
+                            context,
+                            res['role'] == 'admin'
+                                ? '/adminDashboard'
+                                : '/facultyDashboard',
+                          );
+                        }
+                      } on ApiException catch (e) {
+                        _showError(e.message);
+                        setDialogState(() => isVerifying = false);
+                      } catch (e) {
+                        _showError('Verification failed');
+                        setDialogState(() => isVerifying = false);
+                      }
+                    },
+              child: isVerifying
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Verify'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override

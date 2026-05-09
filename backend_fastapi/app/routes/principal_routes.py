@@ -590,6 +590,7 @@ def get_principal_profile(
         "phone": meta.get('phone', ''),
         "college_name": meta.get('college_name', ''),
         "college_code": meta.get('college_code', ''),
+        "is_2fa_enabled": user.is_2fa_enabled,
     }
 
 # ── Get department sections ───────────────────────────────────

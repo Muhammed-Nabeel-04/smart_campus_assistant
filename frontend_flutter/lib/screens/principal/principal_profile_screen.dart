@@ -1,5 +1,7 @@
 // File: lib/screens/principal/principal_profile_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/session.dart';
 import '../../services/api_service.dart';
 import '../../main.dart';
@@ -26,6 +28,7 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
   // ── Password accordion ────────────────────────────────────
   bool _passwordExpanded = false;
   bool _emailExpanded = false;
+  bool _twoFAExpanded = false;
 
   // ── Controllers ───────────────────────────────────────────
   late TextEditingController _nameCtrl;
@@ -39,6 +42,7 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
   final _confirmPassCtrl = TextEditingController();
   final _newEmailCtrl = TextEditingController();
   final _emailPassCtrl = TextEditingController();
+  final _totpVerifyCtrl = TextEditingController();
 
   final _passFormKey = GlobalKey<FormState>();
 
@@ -48,6 +52,13 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
   bool _isChangingPass = false;
   bool _isChangingEmail = false;
   bool _isSavingDetails = false;
+
+  // ── 2FA state ─────────────────────────────────────────────
+  bool _isSettingUp2FA = false;
+  String? _provisioningUri;
+  String? _totpSecret;
+  bool _isVerifying2FA = false;
+  bool _is2faEnabled = false;
 
   @override
   void initState() {
@@ -100,6 +111,7 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
           _phoneCtrl.text = _phone;
           _collegeNameCtrl.text = _collegeName;
           _collegeCodeCtrl.text = _collegeCode;
+          _is2faEnabled = profile['is_2fa_enabled'] ?? false;
         });
 
         // Step 3 — Cache whatever is valid back to SharedPreferences
@@ -127,6 +139,7 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
     _confirmPassCtrl.dispose();
     _newEmailCtrl.dispose();
     _emailPassCtrl.dispose();
+    _totpVerifyCtrl.dispose();
     super.dispose();
   }
 
@@ -216,6 +229,60 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
       _showSnack(e.message, isError: true);
     } finally {
       if (mounted) setState(() => _isChangingEmail = false);
+    }
+  }
+
+  // ── 2FA Handlers ──────────────────────────────────────────
+  Future<void> _handleSetup2FA() async {
+    setState(() => _isSettingUp2FA = true);
+    try {
+      final res = await ApiService.setup2FA();
+      setState(() {
+        _provisioningUri = res['provisioning_uri'];
+        _totpSecret = res['secret'];
+      });
+    } on ApiException catch (e) {
+      _showSnack(e.message, isError: true);
+    } finally {
+      setState(() => _isSettingUp2FA = false);
+    }
+  }
+
+  Future<void> _handleEnable2FA() async {
+    if (_totpVerifyCtrl.text.length != 6) {
+      _showSnack('Enter 6-digit code', isError: true);
+      return;
+    }
+    setState(() => _isVerifying2FA = true);
+    try {
+      await ApiService.enable2FA(_totpVerifyCtrl.text);
+      _totpVerifyCtrl.clear();
+      _provisioningUri = null;
+      _totpSecret = null;
+      await _loadProfile();
+      _showSnack('2FA enabled successfully');
+    } on ApiException catch (e) {
+      _showSnack(e.message, isError: true);
+    } finally {
+      setState(() => _isVerifying2FA = false);
+    }
+  }
+
+  Future<void> _handleDisable2FA() async {
+    if (_totpVerifyCtrl.text.length != 6) {
+      _showSnack('Enter 6-digit code to disable', isError: true);
+      return;
+    }
+    setState(() => _isVerifying2FA = true);
+    try {
+      await ApiService.disable2FA(_totpVerifyCtrl.text);
+      _totpVerifyCtrl.clear();
+      await _loadProfile();
+      _showSnack('2FA disabled successfully');
+    } on ApiException catch (e) {
+      _showSnack(e.message, isError: true);
+    } finally {
+      setState(() => _isVerifying2FA = false);
     }
   }
 
@@ -409,9 +476,11 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
                   cs: cs,
                   onTap: () => setState(() {
                     _passwordExpanded = !_passwordExpanded;
-                    if (_passwordExpanded) _emailExpanded = false;
-                  }),
-                  child: Form(
+                    if (_passwordExpanded) {
+                      _emailExpanded = false;
+                      _twoFAExpanded = false;
+                    }
+                  }),                  child: Form(
                     key: _passFormKey,
                     child: Column(
                       children: [
@@ -514,7 +583,10 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
                   cs: cs,
                   onTap: () => setState(() {
                     _emailExpanded = !_emailExpanded;
-                    if (_emailExpanded) _passwordExpanded = false;
+                    if (_emailExpanded) {
+                      _passwordExpanded = false;
+                      _twoFAExpanded = false;
+                    }
                   }),
                   child: Column(
                     children: [
@@ -540,9 +612,8 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _isChangingEmail
-                              ? null
-                              : _handleChangeEmail,
+                          onPressed:
+                              _isChangingEmail ? null : _handleChangeEmail,
                           child: _isChangingEmail
                               ? const SizedBox(
                                   height: 20,
@@ -559,9 +630,176 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
+
+                const Divider(height: 1),
+
+                // ── Two-Factor Authentication ────────────────────────
+                _AccordionTile(
+                  icon: Icons.security_rounded,
+                  title: 'Two-Factor Authentication',
+                  isExpanded: _twoFAExpanded,
+                  cs: cs,
+                  onTap: () => setState(() {
+                    _twoFAExpanded = !_twoFAExpanded;
+                    if (_twoFAExpanded) {
+                      _passwordExpanded = false;
+                      _emailExpanded = false;
+                    }
+                  }),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Icon(
+                            _is2faEnabled
+                                ? Icons.check_circle
+                                : Icons.warning_amber_rounded,
+                            color: _is2faEnabled ? Colors.green : Colors.orange,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _is2faEnabled
+                                  ? '2FA is currently ENABLED'
+                                  : '2FA is currently DISABLED',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: _is2faEnabled
+                                    ? Colors.green
+                                    : Colors.orange,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (!_is2faEnabled && _provisioningUri == null)
+                        ElevatedButton.icon(
+                          onPressed: _isSettingUp2FA ? null : _handleSetup2FA,
+                          icon: _isSettingUp2FA
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.qr_code_2_rounded),
+                          label: const Text('Setup 2FA'),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 45),
+                          ),
+                        ),
+                      if (_provisioningUri != null) ...[
+                        const Text(
+                          'Scan this QR code with your Authenticator app',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.all(12),
+                          child: QrImageView(
+                            data: _provisioningUri!,
+                            version: QrVersions.auto,
+                            size: 200.0,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: _totpSecret!));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Secret key copied!')),
+                            );
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Secret Key: $_totpSecret',
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.copy_rounded, size: 18),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _totpVerifyCtrl,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                          decoration: const InputDecoration(
+                            labelText: 'Enter 6-digit Code',
+                            hintText: '000000',
+                            prefixIcon: Icon(Icons.pin_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _isVerifying2FA ? null : _handleEnable2FA,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 45),
+                          ),
+                          child: _isVerifying2FA
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : const Text('Verify and Enable'),
+                        ),
+                        TextButton(
+                          onPressed: () => setState(() {
+                            _provisioningUri = null;
+                            _totpSecret = null;
+                          }),
+                          child: const Text('Cancel Setup'),
+                        ),
+                      ],
+                      if (_is2faEnabled) ...[
+                        const Text(
+                          'Enter the code from your authenticator app to disable 2FA',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _totpVerifyCtrl,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                          decoration: const InputDecoration(
+                            labelText: 'Enter 6-digit Code',
+                            hintText: '000000',
+                            prefixIcon: Icon(Icons.pin_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _isVerifying2FA ? null : _handleDisable2FA,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: cs.error,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 45),
+                          ),
+                          child: _isVerifying2FA
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : const Text('Disable 2FA'),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
+                ],
+                ),
+                ),
 
           const SizedBox(height: 12),
 

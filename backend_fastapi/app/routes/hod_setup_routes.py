@@ -227,7 +227,8 @@ def get_hod_department(
         "department_name": dept_name,
         "department_id": dept.id if dept else None,
         "email": user.email,
-        "name": user.name
+        "name": user.name,
+        "is_2fa_enabled": user.is_2fa_enabled,
     }
 
 

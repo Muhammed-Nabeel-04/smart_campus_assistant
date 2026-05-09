@@ -36,6 +36,14 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
         password: _passwordController.text,
       );
 
+      // ── 2FA Check ─────────────────────────────────────────────
+      if (response['requires_2fa'] == true) {
+        if (mounted) {
+          _show2FADialog(response['user_id']);
+        }
+        return;
+      }
+
       if (response['role'] != 'student') {
         if (mounted) _showError('Not a student account. Use faculty login.');
         setState(() => _isLoading = false);
@@ -76,6 +84,102 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: cs.error));
+  }
+
+  Future<void> _show2FADialog(int userId) async {
+    final codeController = TextEditingController();
+    bool isVerifying = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('2FA Verification'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Enter the 6-digit code from your authenticator app.'),
+              const SizedBox(height: 20),
+              TextField(
+                controller: codeController,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 8,
+                ),
+                decoration: const InputDecoration(
+                  hintText: '000000',
+                  counterText: '',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isVerifying ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isVerifying
+                  ? null
+                  : () async {
+                      if (codeController.text.length != 6) return;
+                      setDialogState(() => isVerifying = true);
+                      try {
+                        final res = await ApiService.loginWith2FA(
+                          userId: userId,
+                          code: codeController.text,
+                        );
+
+                        if (res['role'] != 'student') {
+                          throw Exception('Not a student account.');
+                        }
+
+                        await SessionManager.saveSession(
+                          userId: res['user_id'],
+                          name: res['name'],
+                          email: res['email'],
+                          role: res['role'],
+                          token: res['token'],
+                          studentId: res['student_id'],
+                          department: res['department'],
+                          year: res['year'],
+                          section: res['section'],
+                          registerNumber: res['register_number'],
+                        );
+
+                        if (mounted) {
+                          Navigator.pop(ctx); // Close dialog
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/studentDashboard',
+                            (route) => false,
+                          );
+                        }
+                      } on ApiException catch (e) {
+                        _showError(e.message);
+                        setDialogState(() => isVerifying = false);
+                      } catch (e) {
+                        _showError('Verification failed');
+                        setDialogState(() => isVerifying = false);
+                      }
+                    },
+              child: isVerifying
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Verify'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override

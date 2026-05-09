@@ -33,7 +33,10 @@ def get_my_profile(
     faculty = db.query(Faculty).filter(Faculty.user_id == current_user['user_id']).first()
     if not faculty:
         raise HTTPException(status_code=404, detail="Faculty not found")
+    
+    user = db.query(User).filter(User.id == current_user['user_id']).first()
     dept = db.query(Department).filter(Department.code == faculty.department).first()
+    
     return {
         "faculty_id": faculty.id,
         "full_name": faculty.full_name,
@@ -41,6 +44,7 @@ def get_my_profile(
         "department": dept.name if dept else faculty.department,
         "phone_number": faculty.phone_number,
         "email": faculty.email,
+        "is_2fa_enabled": user.is_2fa_enabled if user else False,
     }
 
 
