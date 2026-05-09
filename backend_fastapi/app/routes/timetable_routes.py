@@ -5,11 +5,15 @@ from typing import Optional, List
 from datetime import datetime, date
 import json
 import logging
+import base64
+import os
+import uuid
 
 # Initialize logger
 logger = logging.getLogger("app.timetable")
 
 from app.services.deps import get_db, get_current_user
+from app.config import settings
 from app.models.timetable import TimetableSlot, TimetablePDF
 from app.models.faculty import Faculty
 from app.models.subject import Subject
@@ -269,14 +273,36 @@ def upload_pdf(
         raise HTTPException(status_code=404, detail="Department not found")
 
     # Remove old PDF for this class
-    db.query(TimetablePDF).filter(
+    old_pdf = db.query(TimetablePDF).filter(
         TimetablePDF.class_id == payload.class_id
-    ).delete()
+    ).first()
+    if old_pdf:
+        # Optionally delete from disk too
+        old_path = os.path.join(settings.UPLOAD_DIR, old_pdf.file_path)
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except Exception:
+                pass
+        db.delete(old_pdf)
+        db.commit()
+
+    # Save to disk
+    filename = f"timetable_{payload.class_id}_{uuid.uuid4()}.pdf"
+    relative_path = os.path.join("timetable", filename)
+    absolute_path = os.path.join(settings.UPLOAD_DIR, relative_path)
+    
+    try:
+        contents = base64.b64decode(payload.file_data)
+        with open(absolute_path, "wb") as buffer:
+            buffer.write(contents)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid base64 file data")
 
     pdf = TimetablePDF(
         department_id = dept.id,
         class_id      = payload.class_id,
-        file_data     = payload.file_data,
+        file_path     = relative_path,
         file_name     = payload.file_name,
     )
     db.add(pdf)
@@ -293,10 +319,19 @@ def delete_pdf(
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="HOD access required")
 
-    db.query(TimetablePDF).filter(
+    old_pdf = db.query(TimetablePDF).filter(
         TimetablePDF.class_id == class_id
-    ).delete()
-    db.commit()
+    ).first()
+    if old_pdf:
+        old_path = os.path.join(settings.UPLOAD_DIR, old_pdf.file_path)
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except Exception:
+                pass
+        db.delete(old_pdf)
+        db.commit()
+    
     return {"message": "PDF deleted"}
 
 # ============================================================================
@@ -345,8 +380,16 @@ def get_pdf(
     ).first()
     if not pdf:
         raise HTTPException(status_code=404, detail="No PDF found")
+    
+    absolute_path = os.path.join(settings.UPLOAD_DIR, pdf.file_path)
+    if not os.path.exists(absolute_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    with open(absolute_path, "rb") as f:
+        file_data = base64.b64encode(f.read()).decode()
+
     return {
-        "file_data": pdf.file_data,
+        "file_data": file_data,
         "file_name": pdf.file_name,
         "uploaded_at": pdf.uploaded_at.isoformat(),
     }

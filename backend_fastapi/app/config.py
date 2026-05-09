@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     # OCR Settings
     TESSERACT_CMD: str = r'E:\1 MyApps\tesseract.exe'
     
+    # Uploads
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
+    
     # Security
     TOTP_ENCRYPTION_KEY: str = os.getenv("TOTP_ENCRYPTION_KEY", "nniAbFyqQ66g1YqlSvYPAyDMxPRkeXgLnFwFiRa_Esg=")
     

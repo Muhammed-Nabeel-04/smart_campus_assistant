@@ -9,6 +9,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 import base64
+import os
+import uuid
 from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
@@ -16,6 +18,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.services.deps import get_db, get_current_user
+from app.config import settings
 from app.models.ssm_new import (
     SSMForm, AcademicData, DevelopmentData, SkillData,
     DisciplineData, LeadershipData, CalculatedScore, StudentActivity
@@ -226,7 +229,7 @@ async def submit_activity(
             detail="Cannot add activities after submitting to mentor.")
 
     # File handling
-    file_b64 = None
+    file_path = None
     file_name = None
     file_type_str = None
     file_size_kb = None
@@ -245,7 +248,15 @@ async def submit_activity(
         if ext not in {"pdf", "jpg", "jpeg", "png"}:
             raise HTTPException(status_code=400, detail="Only PDF, JPG, PNG allowed.")
 
-        file_b64 = base64.b64encode(contents).decode()
+        # Save to disk
+        filename = f"{uuid.uuid4()}.{ext}"
+        relative_path = os.path.join("ssm", filename)
+        absolute_path = os.path.join(settings.UPLOAD_DIR, relative_path)
+        
+        with open(absolute_path, "wb") as buffer:
+            buffer.write(contents)
+
+        file_path = relative_path
         file_name = file.filename
         file_type_str = ext
         file_size_kb = size_kb
@@ -272,7 +283,7 @@ async def submit_activity(
         role_name=role_name, role_level=role_level,
         event_name=event_name, event_level=event_level,
         community_org=community_org, community_level=community_level,
-        file_data=file_b64, file_name=file_name,
+        file_path=file_path, file_name=file_name,
         file_type=file_type_str, file_size_kb=file_size_kb,
         ocr_extracted_text=ocr_text,
         ocr_status=ocr_status, ocr_note=ocr_note,
@@ -403,11 +414,18 @@ def get_activity_file(
     if role == "student" and student and act.student_id != student.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    if not act.file_data:
+    if not act.file_path:
         raise HTTPException(status_code=404, detail="No file attached")
 
+    absolute_path = os.path.join(settings.UPLOAD_DIR, act.file_path)
+    if not os.path.exists(absolute_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    with open(absolute_path, "rb") as f:
+        file_data = base64.b64encode(f.read()).decode()
+
     return {
-        "file_data": act.file_data,
+        "file_data": file_data,
         "file_name": act.file_name,
         "file_type": act.file_type,
     }

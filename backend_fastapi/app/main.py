@@ -56,6 +56,19 @@ app.add_middleware(
 # ── Startup event ──
 @app.on_event("startup")
 def startup():
+    # Ensure upload directories exist
+    import os
+    from app.config import settings
+    upload_dirs = [
+        settings.UPLOAD_DIR,
+        os.path.join(settings.UPLOAD_DIR, "ssm"),
+        os.path.join(settings.UPLOAD_DIR, "timetable"),
+    ]
+    for d in upload_dirs:
+        if not os.path.exists(d):
+            os.makedirs(d)
+            print(f"✅ Created directory: {d}")
+
     # Auto-migrate: add new columns to existing tables
     from sqlalchemy import inspect, text
     with engine.connect() as conn:
@@ -118,6 +131,39 @@ from app.models.timetable import TimetableSlot, TimetablePDF
 from app.routes.timetable_routes import router as timetable_router
 from app.routes.ssm_routes import router as ssm_router
 from app.routes.ssm_proof_routes import router as ssm_proof_router
+
+# ── WebSocket ──
+from fastapi import WebSocket, WebSocketDisconnect
+from app.services.notification_service import manager
+from jose import jwt, JWTError
+from app.services.deps import SECRET_KEY, ALGORITHM
+
+@app.websocket("/ws/notifications")
+async def websocket_endpoint(websocket: WebSocket, token: str = None):
+    if not token:
+        await websocket.close(code=1008)
+        return
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("user_id")
+        if not user_id:
+            await websocket.close(code=1008)
+            return
+    except JWTError:
+        await websocket.close(code=1008)
+        return
+
+    await manager.connect(user_id, websocket)
+    try:
+        while True:
+            # Keep connection alive, wait for client messages (optional)
+            data = await websocket.receive_text()
+            # Echo or handle incoming client commands if needed
+    except WebSocketDisconnect:
+        manager.disconnect(user_id, websocket)
+    except Exception:
+        manager.disconnect(user_id, websocket)
 
 # ── Auth dependency ──
 from app.services.deps import get_current_user

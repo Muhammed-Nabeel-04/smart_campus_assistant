@@ -1,6 +1,7 @@
 // File: lib/screens/faculty/faculty_login_screen.dart
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../services/websocket_service.dart';
 import '../../core/session.dart';
 
 class FacultyLoginScreen extends StatefulWidget {
@@ -59,6 +60,8 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
         facultyId: response['faculty_id'],
         department: response['department'],
       );
+
+      WebSocketService.connect();
 
       if (mounted) {
         Navigator.pushReplacementNamed(
@@ -140,6 +143,8 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
                           facultyId: res['faculty_id'],
                           department: res['department'],
                         );
+
+                        WebSocketService.connect();
 
                         if (mounted) {
                           Navigator.pop(ctx); // Close dialog

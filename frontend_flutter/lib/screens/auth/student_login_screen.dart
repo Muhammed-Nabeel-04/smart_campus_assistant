@@ -1,6 +1,7 @@
 // lib/screens/auth/student_login_screen.dart
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../services/websocket_service.dart';
 import '../../core/session.dart';
 
 class StudentLoginScreen extends StatefulWidget {
@@ -62,6 +63,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
         section: response['section'],
         registerNumber: response['register_number'],
       );
+
+      WebSocketService.connect();
 
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(

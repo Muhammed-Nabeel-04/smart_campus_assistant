@@ -22,6 +22,6 @@ class TimetablePDF(Base):
     id            = Column(Integer, primary_key=True, index=True)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
     class_id      = Column(Integer, ForeignKey("classes.id"), nullable=False)
-    file_data     = Column(Text, nullable=False)  # base64 encoded PDF
+    file_path     = Column(String, nullable=False)
     file_name     = Column(String, nullable=False)
     uploaded_at   = Column(DateTime, default=datetime.now)

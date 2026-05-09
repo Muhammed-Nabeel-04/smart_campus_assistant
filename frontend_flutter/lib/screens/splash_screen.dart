@@ -1,6 +1,7 @@
 // File: lib/screens/splash_screen.dart
 import 'package:flutter/material.dart';
 import '../core/session.dart';
+import '../services/websocket_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -42,6 +43,10 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 1500));
 
     if (!mounted) return;
+
+    if (SessionManager.isLoggedIn()) {
+      WebSocketService.connect();
+    }
 
     final route = SessionManager.getInitialRoute();
     Navigator.pushReplacementNamed(context, route);

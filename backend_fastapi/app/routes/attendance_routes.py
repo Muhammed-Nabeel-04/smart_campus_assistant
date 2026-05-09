@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
@@ -47,6 +47,7 @@ class ManualAttendanceRequest(BaseModel):
 @router.post("/sessions/start/")
 def start_session(
     payload: StartSessionRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -112,6 +113,53 @@ def start_session(
         db.add(session)
         db.commit()
         db.refresh(session)
+
+        # ── Notify Students via WebSocket (Background) ──
+        def notify_students():
+            try:
+                from app.services.notification_service import manager
+                from app.models.student import Student
+                from app.models.subject import Subject
+                import asyncio
+                
+                # Create a temporary local DB session for the background task
+                from app.database import SessionLocal
+                bg_db = SessionLocal()
+                try:
+                    subject = bg_db.query(Subject).filter(Subject.id == payload.subject_id).first()
+                    subject_name = subject.name if subject else "Unknown"
+
+                    cls = bg_db.query(ClassModel).filter(ClassModel.id == payload.class_id).first()
+                    dept = bg_db.query(Department).filter(Department.id == cls.department_id).first() if cls else None
+                    
+                    if cls and dept:
+                        students = bg_db.query(Student).filter(
+                            Student.department.ilike(dept.code),
+                            Student.year == cls.year,
+                            Student.section == cls.section
+                        ).all()
+
+                        notification_payload = {
+                            "type": "attendance_started",
+                            "session_id": session.id,
+                            "subject": subject_name,
+                            "token": token,
+                            "message": f"Attendance started for {subject_name}"
+                        }
+
+                        # Run async messages in the event loop
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        tasks = [manager.send_personal_message(notification_payload, s.user_id) for s in students if s.user_id]
+                        if tasks:
+                            loop.run_until_complete(asyncio.gather(*tasks))
+                        loop.close()
+                finally:
+                    bg_db.close()
+            except Exception as ws_err:
+                logger.error(f"WS Notification Error: {ws_err}")
+
+        background_tasks.add_task(notify_students)
 
         logger.info(f"New session {session.id} started by faculty {faculty_id} for class {payload.class_id}")
         return {

@@ -257,7 +257,7 @@ def serialize_activity(act: StudentActivity, include_student_name: str = None) -
         "category": act.category, "activity_type": act.activity_type,
         "ocr_status": act.ocr_status, "ocr_note": act.ocr_note,
         "mentor_status": act.mentor_status, "mentor_note": act.mentor_note,
-        "has_file": act.file_data is not None,
+        "has_file": act.file_path is not None,
         "filename": act.file_name,
         "submitted_at": act.submitted_at.isoformat() if act.submitted_at else None,
         "verified_at": act.verified_at.isoformat() if act.verified_at else None,

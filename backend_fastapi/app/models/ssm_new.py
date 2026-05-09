@@ -223,8 +223,8 @@ class StudentActivity(Base):
     community_org   = Column(String(200), nullable=True)
     community_level = Column(String(20), nullable=True)
 
-    # Document (base64 stored in DB for campus app)
-    file_data         = Column(Text, nullable=True)       # base64
+    # Document (stored on disk for scalability)
+    file_path         = Column(String(500), nullable=True) 
     file_name         = Column(String(255), nullable=True)
     file_type         = Column(String(10), nullable=True) # pdf | jpg | png
     file_size_kb      = Column(Integer, nullable=True)
