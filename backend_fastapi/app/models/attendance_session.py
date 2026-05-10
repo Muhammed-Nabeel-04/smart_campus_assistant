@@ -13,5 +13,6 @@ class AttendanceSession(Base):
     token = Column(String, nullable=True)
     status = Column(String, default="active")  # active, ended
 
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=datetime.now)
+    auto_end_at = Column(DateTime, nullable=True)
     ended_at = Column(DateTime, nullable=True)

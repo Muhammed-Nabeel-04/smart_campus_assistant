@@ -775,7 +775,7 @@ def get_system_reports(
     else:
         total_present = 0
 
-    # Also count manual entries (session_id=0)
+    # Also count manual entries
     if dept_code:
         dept_student_ids = [
             s.id for s in db.query(Student).filter(
@@ -786,7 +786,7 @@ def get_system_reports(
         dept_student_ids = [s.id for s in db.query(Student).all()]
 
     manual_present = db.query(Attendance).filter(
-        Attendance.session_id == 0,
+        Attendance.is_manual == True,
         Attendance.status == 'present',
         Attendance.student_id.in_(dept_student_ids),
         Attendance.timestamp >= start_datetime,

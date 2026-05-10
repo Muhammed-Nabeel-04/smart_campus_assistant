@@ -18,6 +18,7 @@ from app.models.class_subject import ClassSubject
 from app.models.department import Department
 from app.models.class_model import ClassModel
 import secrets
+from app.tasks import auto_end_session_task
 
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
@@ -108,11 +109,22 @@ def start_session(
             token=token,
             status="active",
             started_at=datetime.now(),
+            auto_end_at=auto_end_at,
         )
 
         db.add(session)
         db.commit()
         db.refresh(session)
+
+        # ── Trigger Auto-End Task ──
+        if payload.duration_minutes:
+            try:
+                auto_end_session_task.apply_async(
+                    args=[session.id],
+                    countdown=payload.duration_minutes * 60
+                )
+            except Exception as e:
+                logger.error(f"Failed to schedule auto-end task: {e}")
 
         # ── Notify Students via WebSocket (Background) ──
         def notify_students():
@@ -666,11 +678,11 @@ def get_student_attendance_stats(student_id: int, db: Session = Depends(get_db),
         Attendance.session_id.in_(ended_session_ids),
     ).count() if ended_session_ids else 0
 
-    # Count manual entries (session_id == 0)
+    # Count manual entries
     manual_present = db.query(Attendance).filter(
         Attendance.student_id == student_id,
         Attendance.status == "present",
-        Attendance.session_id == 0,
+        Attendance.is_manual == True,
     ).count()
 
     present = session_present + manual_present
@@ -795,10 +807,10 @@ def get_student_attendance_history(student_id: int, db: Session = Depends(get_db
                 "timestamp": attendance.timestamp.isoformat() if attendance and attendance.timestamp else session.started_at.isoformat(),
             })
 
-    # Also include manual entries (session_id=0)
+    # Also include manual entries
     manual_records = db.query(Attendance).filter(
         Attendance.student_id == student_id,
-        Attendance.session_id == 0,
+        Attendance.is_manual == True,
     ).all()
 
     for r in manual_records:
