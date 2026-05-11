@@ -48,7 +48,6 @@ class _StudentQRLoginScreenState extends State<StudentQRLoginScreen> {
       // Validate token with backend
       final response = await ApiService.validateStudentQR(
         token: data['token'],
-        studentId: data['student_id'],
       );
 
       // If first time, ask for password setup

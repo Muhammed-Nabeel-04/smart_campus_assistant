@@ -117,6 +117,7 @@ class ApiService {
     required String password,
     required String department,
     required String year,
+    required String section,
     required String registerNumber,
   }) async {
     try {
@@ -130,6 +131,7 @@ class ApiService {
               "password": password,
               "department": department,
               "year": year,
+              "section": section,
               "register_number": registerNumber,
             }),
           )

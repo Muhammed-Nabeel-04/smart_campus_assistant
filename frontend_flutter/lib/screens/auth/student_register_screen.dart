@@ -17,12 +17,15 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
   final _registerNumberController = TextEditingController();
   final _departmentController = TextEditingController();
   final _yearController = TextEditingController();
+  final _sectionController = TextEditingController();
 
   bool _isLoading = false;
   bool _obscurePassword = true;
 
   final List<String> _years = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+  final List<String> _sections = ['A', 'B', 'C', 'D'];
   String? _selectedYear;
+  String? _selectedSection;
 
   @override
   void dispose() {
@@ -32,6 +35,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
     _registerNumberController.dispose();
     _departmentController.dispose();
     _yearController.dispose();
+    _sectionController.dispose();
     super.dispose();
   }
 
@@ -48,6 +52,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
         registerNumber: _registerNumberController.text.trim(),
         department: _departmentController.text.trim(),
         year: _selectedYear ?? _yearController.text.trim(),
+        section: _selectedSection ?? _sectionController.text.trim(),
       );
 
       if (mounted) {
@@ -221,6 +226,22 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                   }).toList(),
                   onChanged: (v) => setState(() => _selectedYear = v),
                   validator: (v) => v == null ? 'Select your year' : null,
+                ),
+
+                const SizedBox(height: 14),
+
+                // Section Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedSection,
+                  decoration: const InputDecoration(
+                    labelText: 'Section',
+                    prefixIcon: Icon(Icons.groups_outlined),
+                  ),
+                  items: _sections.map((s) {
+                    return DropdownMenuItem(value: s, child: Text(s));
+                  }).toList(),
+                  onChanged: (v) => setState(() => _selectedSection = v),
+                  validator: (v) => v == null ? 'Select your section' : null,
                 ),
 
                 const SizedBox(height: 36),

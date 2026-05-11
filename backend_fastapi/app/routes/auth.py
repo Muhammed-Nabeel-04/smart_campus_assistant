@@ -42,6 +42,7 @@ class StudentRegisterRequest(BaseModel):
     password: str
     department: str
     year: str
+    section: str
     register_number: str
 
 class FacultyRegisterRequest(BaseModel):
@@ -92,7 +93,7 @@ def register_student(payload: StudentRegisterRequest, db: Session = Depends(get_
         register_number=payload.register_number,
         department=payload.department,
         year=payload.year,
-        section="A",
+        section=payload.section,
     )
     db.add(new_student)
     db.commit()
