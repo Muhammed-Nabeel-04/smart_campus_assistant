@@ -197,49 +197,6 @@ def generate_faculty_qr(payload: dict, db: Session = Depends(get_db), current_us
     }
 
 
-@router.post("/validate-qr")
-def validate_faculty_qr(payload: dict, db: Session = Depends(get_db)):
-    """Called when faculty scans onboarding QR"""
-
-    token = payload.get("token")
-    if not token:
-        raise HTTPException(status_code=400, detail="Token is required")
-
-    onboarding = db.query(OnboardingToken).filter(
-        OnboardingToken.token == token,
-        OnboardingToken.role == "faculty",
-        OnboardingToken.used == False,
-    ).first()
-
-    if not onboarding:
-        raise HTTPException(status_code=400, detail="Invalid or expired QR code")
-
-    if datetime.now() > onboarding.expiry_time:
-        raise HTTPException(status_code=400, detail="QR code has expired")
-
-    faculty = db.query(Faculty).filter(
-        Faculty.id == onboarding.target_id
-    ).first()
-
-    if not faculty:
-        raise HTTPException(status_code=404, detail="Faculty not found")
-
-    dept = db.query(Department).filter(
-        Department.code.ilike(faculty.department)
-    ).first()
-    return {
-        "faculty_id": faculty.id,
-        "full_name": faculty.full_name,
-        "employee_id": faculty.employee_id,
-        "department": dept.name if dept else faculty.department,
-        "phone_number": faculty.phone_number,
-        "email": faculty.email,
-    }
-
-
-
-
-
 # ============================================================================
 # DASHBOARD STATS
 # ============================================================================

@@ -100,7 +100,6 @@ def startup():
 # ── Routes imports ──
 from app.routes.auth import router as auth_router
 from app.routes.onboarding import router as onboarding_router
-from app.routes.faculty import router as faculty_router
 from app.routes.faculty_routes import router as faculty_routes_router
 from app.routes.department_routes import router as department_router
 from app.routes.class_routes import router as class_router

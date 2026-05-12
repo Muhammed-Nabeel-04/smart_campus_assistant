@@ -4,12 +4,10 @@ from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from app.database import SessionLocal
+from app.config import settings
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_key")
-if SECRET_KEY == "dev_secret_key":
-    import warnings
-    warnings.warn("⚠️  Using default SECRET_KEY. Set SECRET_KEY env variable in production!")
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 
