@@ -116,15 +116,13 @@ def start_session(
         db.commit()
         db.refresh(session)
 
-        # ── Trigger Auto-End Task ──
+        # ── Trigger Auto-End Task (No Redis/Celery) ──
         if payload.duration_minutes:
-            try:
-                auto_end_session_task.apply_async(
-                    args=[session.id],
-                    countdown=payload.duration_minutes * 60
-                )
-            except Exception as e:
-                logger.error(f"Failed to schedule auto-end task: {e}")
+            background_tasks.add_task(
+                auto_end_session_task, 
+                session_id=session.id, 
+                delay_seconds=payload.duration_minutes * 60
+            )
 
         # ── Notify Students via WebSocket (Background) ──
         def notify_students():

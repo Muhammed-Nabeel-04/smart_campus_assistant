@@ -8,9 +8,6 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./campus.db")
     
-    # Redis / Celery
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    
     # OCR Settings
     TESSERACT_CMD: str = os.getenv("TESSERACT_CMD", r'E:\1 MyApps\tesseract.exe')
     
