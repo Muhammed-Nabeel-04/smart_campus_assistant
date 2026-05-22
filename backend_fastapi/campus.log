@@ -209,3 +209,16 @@ Retry limit exceeded while trying to reconnect to the Celery redis result store 
 2026-05-21 17:00:38,103 [ERROR] app.attendance: Failed to schedule auto-end task: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
 2026-05-21 17:00:38,108 [INFO] app.attendance: New session 3 started by faculty 2 for class 1
 2026-05-21 17:01:46,065 [INFO] app.main: Initializing Smart Campus Assistant API...
+2026-05-21 17:03:50,306 [INFO] app.main: Initializing Smart Campus Assistant API...
+2026-05-21 17:05:58,078 [INFO] app.attendance: Session start request: Class 1, Subject 3
+2026-05-21 17:05:58,091 [INFO] app.attendance: New session 4 started by faculty 2 for class 1
+2026-05-21 17:05:58,094 [INFO] app.tasks: Scheduling auto-end for session 4 in 3600s
+2026-05-21 17:06:01,118 [INFO] app.attendance: Token refreshed for session 4
+2026-05-21 17:06:04,092 [INFO] app.attendance: Session 4 ended with 0 records
+2026-05-21 17:26:03,700 [INFO] app.attendance: Session 3 ended with 0 records
+2026-05-21 17:26:09,950 [INFO] app.attendance: Session start request: Class 1, Subject 3
+2026-05-21 17:26:09,963 [INFO] app.attendance: New session 5 started by faculty 2 for class 1
+2026-05-21 17:26:09,966 [INFO] app.tasks: Scheduling auto-end for session 5 in 3600s
+2026-05-21 17:26:13,003 [INFO] app.attendance: Token refreshed for session 5
+2026-05-21 17:26:13,058 [INFO] app.attendance: Session 5 ended with 0 records
+2026-05-22 10:46:42,385 [INFO] app.main: Initializing Smart Campus Assistant API...
