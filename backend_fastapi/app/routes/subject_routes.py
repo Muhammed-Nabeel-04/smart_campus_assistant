@@ -36,23 +36,14 @@ def get_subjects(class_id: int, db: Session = Depends(get_db)):
                 })
         return result
 
-    # 2. FALLBACK: If no links, fetch all subjects for this Dept + Year + Semester
+    # 2. FALLBACK: If no links, fetch all subjects for this Dept + Year
     dept = db.query(Department).filter(Department.id == cls.department_id).first()
     if not dept:
         return []
 
-    # Extract semester number from "Semester X" string
-    sem_num = 1
-    if cls.current_semester:
-        import re
-        match = re.search(r'\d+', cls.current_semester)
-        if match:
-            sem_num = int(match.group())
-
     subjects = db.query(Subject).filter(
         Subject.department == dept.code,
-        Subject.year == cls.year,
-        Subject.semester == sem_num
+        Subject.year == cls.year
     ).all()
 
     return [{
@@ -61,5 +52,5 @@ def get_subjects(class_id: int, db: Session = Depends(get_db)):
         "code": s.code,
         "credits": s.credits,
         "type": s.type,
-        "semester": f"Semester {s.semester}"
+        "semester": f"Semester {s.semester}" if isinstance(s.semester, int) else str(s.semester)
     } for s in subjects]

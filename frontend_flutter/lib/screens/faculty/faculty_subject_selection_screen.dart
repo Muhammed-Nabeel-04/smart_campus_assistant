@@ -29,6 +29,7 @@ class _FacultySubjectSelectionScreenState
     extends State<FacultySubjectSelectionScreen> {
   List<Map<String, dynamic>> _subjects = [];
   List<Map<String, dynamic>> _filteredSubjects = [];
+  List<String> _availableSemesters = [];
   bool _isLoading = true;
   late String _selectedSemester;
 
@@ -45,17 +46,48 @@ class _FacultySubjectSelectionScreenState
     try {
       final data = await ApiService.getSubjectsByClass(widget.classData['id']);
       final allSubjects = List<Map<String, dynamic>>.from(data);
+      
+      // Extract unique semesters
+      final semesters = allSubjects
+          .map((s) => s['semester']?.toString() ?? 'Semester 1')
+          .toSet()
+          .toList();
+      
+      // Numerical sort (Semester 1, Semester 2, ...)
+      semesters.sort((a, b) {
+        int getNum(String s) {
+          final match = RegExp(r'\d+').firstMatch(s);
+          return int.tryParse(match?.group(0) ?? '0') ?? 0;
+        }
+        return getNum(a).compareTo(getNum(b));
+      });
+
       setState(() {
         _subjects = allSubjects;
-        // ✅ Filter by current semester only
-        _filteredSubjects = allSubjects.where((s) {
-          return s['semester'] == _selectedSemester;
-        }).toList();
+        _availableSemesters = semesters;
+        
+        // If current selected semester is not in the list, pick the first one
+        if (!_availableSemesters.contains(_selectedSemester) && _availableSemesters.isNotEmpty) {
+           // But only if we are in 'reports' mode. For attendance, we should stick to what's expected.
+           if (widget.action == 'reports') {
+              _selectedSemester = _availableSemesters.first;
+           }
+        }
+
+        _filterSubjects();
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
     }
+  }
+
+  void _filterSubjects() {
+    setState(() {
+      _filteredSubjects = _subjects.where((s) {
+        return s['semester'] == _selectedSemester;
+      }).toList();
+    });
   }
 
   Future<void> _selectSubject(Map<String, dynamic> subject) async {
@@ -179,9 +211,9 @@ class _FacultySubjectSelectionScreenState
       ),
       body: Column(
         children: [
-          // Current Semester Banner
+          // Semester Selection Row
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: cs.surface,
               border: Border(
@@ -197,13 +229,71 @@ class _FacultySubjectSelectionScreenState
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _selectedSemester,
+                  'Semester:',
                   style: TextStyle(
-                    color: cs.primary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    color: cs.onSurface.withOpacity(0.6),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
+                const SizedBox(width: 12),
+                
+                // Semester Dropdown
+                _availableSemesters.length > 1 
+                  ? Expanded(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _availableSemesters.contains(_selectedSemester) 
+                              ? _selectedSemester 
+                              : (_availableSemesters.isNotEmpty ? _availableSemesters.first : null),
+                          isDense: true,
+                          icon: Icon(Icons.arrow_drop_down, color: cs.primary),
+                          style: TextStyle(
+                            color: cs.primary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() => _selectedSemester = newValue);
+                              _filterSubjects();
+                            }
+                          },
+                          items: _availableSemesters.map<DropdownMenuItem<String>>((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    )
+                  : Text(
+                      _selectedSemester,
+                      style: TextStyle(
+                        color: cs.primary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                
+                if (widget.action == 'reports')
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'Reports Mode',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
