@@ -152,8 +152,6 @@ class SessionManager {
     _registerNumber = null;
     _loginTime = null;
 
-    // Clear session keys — preserve hod_setup_done_ flags
-    // Also preserve principal meta fields (they are profile data, not session)
     await prefs.remove(_keyUserId);
     await prefs.remove(_keyName);
     await prefs.remove(_keyEmail);
@@ -189,18 +187,15 @@ class SessionManager {
   static String? get registerNumber => _registerNumber;
   static DateTime? get loginTime => _loginTime;
 
-  // Principal extra fields getters
   static String get principalPhone => _principalPhone;
   static String get principalCollegeName => _principalCollegeName;
   static String get principalCollegeCode => _principalCollegeCode;
 
-  // Role checks
   static bool isStudent() => _role?.toLowerCase() == 'student';
   static bool isFaculty() => _role?.toLowerCase() == 'faculty';
   static bool isAdmin() => _role?.toLowerCase() == 'admin';
   static bool isPrincipal() => _role?.toLowerCase() == 'principal';
 
-  // Display helpers
   static String get displayName => _name ?? 'Guest';
   static String get roleBadge => _role?.toUpperCase() ?? '';
 

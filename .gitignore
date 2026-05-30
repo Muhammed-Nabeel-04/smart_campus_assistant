@@ -17,6 +17,13 @@ Thumbs.db
 *.pyd
 .env
 **/requirements_local_backup.txt
+*.log
+**/uploads/
+*.pkl
+.pytest_cache/
+htmlcov/
+.tox/
+.cache/
 
 # =========================
 # Databases (SQLite)
@@ -36,20 +43,35 @@ Thumbs.db
 .pub-cache/
 .pub/
 coverage/
+
+# iOS-specific
 **/ios/Flutter/.last_build_id
 **/ios/Flutter/Generated.xcconfig
 **/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Runner/GeneratedPluginRegistrant.[hm]
+**/ios/Runner/GeneratedPluginRegistrant.swift
 
-# =========================
-# Android build artifacts
-# =========================
-**/android/app/debug
-**/android/app/profile
-**/android/app/release
+# Android-specific
 **/android/local.properties
 **/android/key.properties
 **/*.keystore
 **/*.jks
+**/android/app/src/main/res/raw/google_services.json
+**/android/.gradle/
+**/android/captures/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+
+# Other Flutter platforms
+**/linux/flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+**/windows/flutter/ephemeral/
 
 # =========================
 # IDE Files
@@ -65,3 +87,5 @@ coverage/
 # =========================
 # Temporary verification files
 verification_temp/
+# Setup notes
+"# campus_assistand backend setup.txt"

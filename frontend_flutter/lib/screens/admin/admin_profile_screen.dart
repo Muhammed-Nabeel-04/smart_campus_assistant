@@ -15,13 +15,11 @@ class AdminProfileScreen extends StatefulWidget {
 }
 
 class _AdminProfileScreenState extends State<AdminProfileScreen> {
-  // HOD role color
   static const Color _hodColor = Color(0xFFF44336);
 
   String _department = '';
   bool _isLoading = true;
 
-  // Accordion state
   bool _passwordExpanded = false;
   bool _emailExpanded = false;
   bool _twoFAExpanded = false;
@@ -74,8 +72,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       final deptData = await ApiService.getHODDepartment();
       if (mounted) {
         setState(() {
-          _department =
-              deptData['department_name'] ??
+          _department = deptData['department_name'] ??
               deptData['department'] ??
               'Unknown';
           _is2faEnabled = deptData['is_2fa_enabled'] ?? false;
@@ -594,9 +591,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                             const SizedBox(height: 16),
                             if (!_is2faEnabled && _provisioningUri == null)
                               ElevatedButton.icon(
-                                onPressed: _isSettingUp2FA
-                                    ? null
-                                    : _handleSetup2FA,
+                                onPressed:
+                                    _isSettingUp2FA ? null : _handleSetup2FA,
                                 icon: _isSettingUp2FA
                                     ? const SizedBox(
                                         width: 18,
@@ -630,9 +626,11 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                               const SizedBox(height: 12),
                               InkWell(
                                 onTap: () {
-                                  Clipboard.setData(ClipboardData(text: _totpSecret!));
+                                  Clipboard.setData(
+                                      ClipboardData(text: _totpSecret!));
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Secret key copied!')),
+                                    const SnackBar(
+                                        content: Text('Secret key copied!')),
                                   );
                                 },
                                 child: Row(
@@ -663,9 +661,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                               ),
                               const SizedBox(height: 12),
                               ElevatedButton(
-                                onPressed: _isVerifying2FA
-                                    ? null
-                                    : _handleEnable2FA,
+                                onPressed:
+                                    _isVerifying2FA ? null : _handleEnable2FA,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
                                   foregroundColor: Colors.white,
@@ -703,9 +700,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                               ),
                               const SizedBox(height: 12),
                               ElevatedButton(
-                                onPressed: _isVerifying2FA
-                                    ? null
-                                    : _handleDisable2FA,
+                                onPressed:
+                                    _isVerifying2FA ? null : _handleDisable2FA,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: cs.error,
                                   foregroundColor: Colors.white,

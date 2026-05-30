@@ -1,5 +1,4 @@
 // File: lib/screens/faculty/cc_timetable_editor_screen.dart
-// CC Faculty timetable grid editor
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
@@ -31,7 +30,7 @@ class _CCTimetableEditorScreenState extends State<CCTimetableEditorScreen> {
     'Friday',
     'Saturday',
   ];
-  // grid[day][periodIndex] = slot or null
+
   Map<String, Map<int, Map<String, dynamic>?>> _grid = {};
   List<Map<String, dynamic>> _subjects = [];
   List<Map<String, dynamic>> _faculty = [];
@@ -72,7 +71,6 @@ class _CCTimetableEditorScreenState extends State<CCTimetableEditorScreen> {
       slots.forEach((day, daySlots) {
         if (daySlots is List) {
           for (final slot in daySlots) {
-            // Match slot to period index by start time
             final startTime = slot['start_time'];
             final pIdx = timings.indexWhere((p) => p['start'] == startTime);
             if (pIdx >= 0 && grid[day] != null) {
@@ -498,9 +496,8 @@ class _CCTimetableEditorScreenState extends State<CCTimetableEditorScreen> {
                           color: isSelected
                               ? cs.primary
                               : cs.onSurface.withOpacity(0.8),
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 13,
                         ),
                       ),
@@ -549,9 +546,8 @@ class _CCTimetableEditorScreenState extends State<CCTimetableEditorScreen> {
                           color: isSelected
                               ? cs.primary
                               : cs.onSurface.withOpacity(0.8),
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 13,
                         ),
                       ),

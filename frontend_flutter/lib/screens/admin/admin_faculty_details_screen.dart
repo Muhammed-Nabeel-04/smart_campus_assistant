@@ -1,5 +1,4 @@
 // File: lib/screens/admin/admin_faculty_details_screen.dart
-// Admin view of specific faculty profile with detailed assignments and QR actions
 
 import 'package:flutter/material.dart';
 

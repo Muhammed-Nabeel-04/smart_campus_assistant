@@ -1,5 +1,4 @@
 // File: lib/screens/admin/admin_dashboard_screen.dart
-// Admin dashboard with system stats and quick actions
 
 import 'package:flutter/material.dart';
 import '../../core/session.dart';
@@ -17,7 +16,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _isLoading = true;
   Map<String, dynamic> _stats = {};
 
-  // Fixed Role Colors for Admin context
   static const Color roleAdmin = Color(0xFF1565C0);
   static const Color statusSuccess = Color(0xFF4CAF50);
   static const Color statusWarning = Color(0xFFFF9800);

@@ -1,5 +1,4 @@
 // File: lib/screens/admin/admin_complaints_management_screen.dart
-// HOD/Admin interface to filter, resolve, and escalate student complaints
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
@@ -102,26 +101,25 @@ class _AdminComplaintsManagementScreenState
             ),
           ),
 
-          // Complaints List
           Expanded(
             child: _isLoading
                 ? const AppPageSkeleton()
                 : _filteredComplaints.isEmpty
-                ? _buildEmptyState(cs)
-                : RefreshIndicator(
-                    onRefresh: _loadComplaints,
-                    color: cs.primary,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _filteredComplaints.length,
-                      itemBuilder: (context, index) {
-                        return _buildComplaintCard(
-                          _filteredComplaints[index],
-                          cs,
-                        );
-                      },
-                    ),
-                  ),
+                    ? _buildEmptyState(cs)
+                    : RefreshIndicator(
+                        onRefresh: _loadComplaints,
+                        color: cs.primary,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _filteredComplaints.length,
+                          itemBuilder: (context, index) {
+                            return _buildComplaintCard(
+                              _filteredComplaints[index],
+                              cs,
+                            );
+                          },
+                        ),
+                      ),
           ),
         ],
       ),
@@ -156,8 +154,8 @@ class _AdminComplaintsManagementScreenState
     final Color priorityColor = priority == 'high' || priority == 'urgent'
         ? cs.error
         : priority == 'medium'
-        ? warningOrange
-        : successGreen;
+            ? warningOrange
+            : successGreen;
 
     return Card(
       elevation: 0,

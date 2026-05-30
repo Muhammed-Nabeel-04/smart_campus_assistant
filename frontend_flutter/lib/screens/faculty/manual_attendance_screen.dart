@@ -12,7 +12,6 @@ class ManualAttendanceScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manual Attendance'),
-        // Theme handles background and elevation automatically
       ),
       body: Center(
         child: Column(

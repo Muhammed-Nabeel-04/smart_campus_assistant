@@ -1,5 +1,4 @@
 // File: lib/screens/admin/admin_settings_screen.dart
-// Admin interface for system configurations, account security, and data management
 
 import 'package:flutter/material.dart';
 import '../../core/session.dart';
@@ -26,13 +25,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Account Section
           _buildSectionTitle('Account Profile', cs),
           _buildAccountCard(cs),
 
           const SizedBox(height: 24),
 
-          // System Settings
           _buildSectionTitle('System Configuration', cs),
           _buildSettingCard(
             'Push Notifications',
@@ -145,7 +142,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             Icons.factory_outlined,
             () => _confirmReset(),
             cs,
-            color: const Color(0xFFFF9800), // Warning Orange
+            color: const Color(0xFFFF9800),
           ),
           const SizedBox(height: 12),
           _buildActionButton(

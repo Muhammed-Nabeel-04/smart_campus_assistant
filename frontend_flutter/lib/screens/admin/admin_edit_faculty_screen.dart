@@ -22,11 +22,9 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
   bool _isLoading = false;
   bool _loadingDepts = true;
 
-  // HOD's own department (auto-loaded)
   String _hodDepartmentCode = '';
   String _hodDepartmentName = '';
 
-  // All departments (for assignment picker)
   List<Map<String, dynamic>> _departments = [];
 
   static const List<String> _years = [
@@ -100,11 +98,9 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
           _hodDepartmentCode = deptCode;
           _hodDepartmentName = deptName;
           _departments = List<Map<String, dynamic>>.from(data);
-          // Flatten all sections across all years for assignment picker
-          final allSections = sectionsByYear.values
-              .expand((s) => s)
-              .toSet()
-              .toList();
+
+          final allSections =
+              sectionsByYear.values.expand((s) => s).toSet().toList();
           _sections = allSections.isNotEmpty ? allSections : ['A', 'B', 'C'];
           _loadingDepts = false;
         });
@@ -150,9 +146,8 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
 
   Future<void> _loadSectionsForDept(String deptCode) async {
     try {
-      // Load per-year sections from HOD
       final sectionsByYear = await ApiService.getHODSections();
-      // Use sections for currently selected year, or flatten all
+
       final yearSections = _pickerYear != null
           ? (sectionsByYear[_pickerYear] ?? [])
           : sectionsByYear.values.expand((s) => s).toSet().toList();
@@ -181,7 +176,6 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
   Future<void> _handleUpdate() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // If CC is ON and section is selected but classId not resolved yet, resolve now
     if (_isCc && _ccYear != null && _ccSection != null && _ccClassId == null) {
       final classId = await _findClassId(_ccYear!, _ccSection!);
       if (classId == null) {
@@ -205,7 +199,6 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
         'teaching_assignments': _assignments,
       });
 
-      // Update CC status
       await ApiService.setCCFaculty(
         facultyId: widget.faculty['id'],
         isCc: _isCc,
@@ -230,8 +223,8 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
         backgroundColor: isError
             ? Theme.of(context).colorScheme.error
             : isWarning
-            ? const Color(0xFFFF9800)
-            : const Color(0xFF4CAF50),
+                ? const Color(0xFFFF9800)
+                : const Color(0xFF4CAF50),
       ),
     );
   }
@@ -271,17 +264,17 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
   }
 
   Widget _secLabel(String t, ColorScheme cs) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, top: 8),
-    child: Text(
-      t,
-      style: TextStyle(
-        color: cs.onSurface.withOpacity(0.5),
-        fontSize: 11,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0.8,
-      ),
-    ),
-  );
+        padding: const EdgeInsets.only(bottom: 8, top: 8),
+        child: Text(
+          t,
+          style: TextStyle(
+            color: cs.onSurface.withOpacity(0.5),
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.8,
+          ),
+        ),
+      );
 
   Widget _card({
     required String title,
@@ -383,7 +376,7 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Home department — read only, auto from HOD
+                      // Home department
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -494,7 +487,6 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
                             )
                             .toList(),
                       ),
-
                       _secLabel('DEPARTMENT', cs),
                       Wrap(
                         spacing: 8,
@@ -515,7 +507,6 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
                             )
                             .toList(),
                       ),
-
                       _secLabel('SECTION', cs),
                       Wrap(
                         spacing: 8,
@@ -544,7 +535,6 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
                           ),
                         ),
                       ),
-
                       if (_assignments.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         const Divider(),
@@ -561,8 +551,8 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
                                   ),
                                   onDeleted: () =>
                                       setState(() => _assignments.remove(a)),
-                                  backgroundColor: cs.surfaceVariant
-                                      .withOpacity(0.5),
+                                  backgroundColor:
+                                      cs.surfaceVariant.withOpacity(0.5),
                                   deleteIcon: const Icon(Icons.close, size: 14),
                                 ),
                               )
@@ -706,8 +696,7 @@ class _AdminEditFacultyScreenState extends State<AdminEditFacultyScreen> {
                   SizedBox(
                     height: 56,
                     child: ElevatedButton.icon(
-                      onPressed:
-                          (_isLoading ||
+                      onPressed: (_isLoading ||
                               (_isCc &&
                                   _ccSection != null &&
                                   _ccClassId == null))

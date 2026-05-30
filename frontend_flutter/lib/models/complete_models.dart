@@ -8,7 +8,7 @@ class AttendanceSession {
   final String semester;
   final DateTime startTime;
   final DateTime endTime;
-  final String status; // 'active', 'completed', 'cancelled'
+  final String status;
   final int? totalPresent;
   final int? totalAbsent;
 
@@ -58,7 +58,7 @@ class AttendanceRecord {
   final int? id;
   final int sessionId;
   final int studentId;
-  final String status; // 'present', 'absent', 'late'
+  final String status;
   final DateTime timestamp;
   final String? remarks;
 
@@ -133,9 +133,9 @@ class Department {
 class ClassModel {
   final int? id;
   final int departmentId;
-  final String year; // "1st Year", "2nd Year", etc.
-  final String section; // "A", "B", "C"
-  final String currentSemester; // "Semester 1", "Semester 2", etc.
+  final String year;
+  final String section;
+  final String currentSemester;
   final int? totalStudents;
 
   ClassModel({
@@ -177,9 +177,9 @@ class Subject {
   final String code;
   final int departmentId;
   final String year;
-  final String semester; // Which semester this subject belongs to
+  final String semester;
   final int credits;
-  final String type; // 'Theory', 'Lab', 'Project'
+  final String type;
 
   Subject({
     this.id,
@@ -292,8 +292,8 @@ class ClassSubjectFaculty {
 class OnboardingToken {
   final int? id;
   final String token;
-  final String role; // 'student', 'faculty', 'admin'
-  final int? targetId; // For student-specific QR, store student_id
+  final String role;
+  final int? targetId;
   final DateTime expiryTime;
   final bool used;
   final DateTime? usedAt;
@@ -349,8 +349,8 @@ class OnboardingToken {
 class Complaint {
   final int? id;
   final int studentId;
-  final String category; // 'Academic', 'Infrastructure', 'Hostel', 'Other'
-  final String priority; // 'Low', 'Medium', 'High', 'Critical'
+  final String category;
+  final String priority;
   final String title;
   final String description;
   final String status;
@@ -471,7 +471,6 @@ class CampusNotification {
   final DateTime? expiresAt;
 
   CampusNotification({
-    // ✅ fixed
     this.id,
     required this.title,
     required this.message,
@@ -485,9 +484,7 @@ class CampusNotification {
   });
 
   factory CampusNotification.fromJson(Map<String, dynamic> json) {
-    // ✅ fixed
     return CampusNotification(
-      // ✅ fixed
       id: json['id'],
       title: json['title'],
       message: json['message'],

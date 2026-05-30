@@ -1,5 +1,4 @@
 // File: lib/screens/admin/admin_initial_setup_screen.dart
-// HOD first-time setup: Change password + Add subjects by year
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,8 +6,8 @@ import '../../services/api_service.dart';
 import '../../core/session.dart';
 
 class AdminInitialSetupScreen extends StatefulWidget {
-  final String department; // Department from login (e.g., "AIDS", "CSE")
-  final int? userId; // Used to mark setup complete locally
+  final String department;
+  final int? userId;
 
   const AdminInitialSetupScreen({
     super.key,
@@ -210,9 +209,7 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
           onChanged: (value) =>
               setState(() => yearData.selectedSemester = value!),
         ),
-
         const SizedBox(height: 16),
-
         DropdownButtonFormField<int>(
           value: yearData.subjectCount,
           decoration: const InputDecoration(
@@ -230,7 +227,6 @@ class _AdminInitialSetupScreenState extends State<AdminInitialSetupScreen> {
           onChanged: (value) =>
               setState(() => yearData.updateSubjectCount(value!)),
         ),
-
         if (yearData.subjectCount > 0) ...[
           const SizedBox(height: 24),
           Text(
@@ -276,7 +272,7 @@ class YearSubjects {
   List<TextEditingController> subjectControllers;
 
   YearSubjects({required this.selectedSemester, this.subjectCount = 0})
-    : subjectControllers = [];
+      : subjectControllers = [];
 
   void updateSubjectCount(int newCount) {
     if (newCount > subjectControllers.length) {

@@ -1,5 +1,4 @@
 // File: lib/screens/admin/admin_generate_faculty_qr_screen.dart
-// Admin generates a secure, one-time JSON QR for faculty onboarding
 
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -22,16 +21,15 @@ class AdminGenerateFacultyQRScreen extends StatefulWidget {
 class _AdminGenerateFacultyQRScreenState
     extends State<AdminGenerateFacultyQRScreen> {
   String? _qrToken;
-  String? _rawToken; // Store the raw token string
+  String? _rawToken;
   int _secondsRemaining = 60;
   Timer? _timer;
-  Timer? _statusTimer; // Timer for polling status
+  Timer? _statusTimer;
   bool _isLoading = true;
   bool _isExpired = false;
   bool _isUsed = false;
   String? _usedByName;
 
-  // Fixed semantic colors for status/timer
   static const Color successGreen = Color(0xFF4CAF50);
   static const Color warningOrange = Color(0xFFFF9800);
   static const Color infoBlue = Color(0xFF2196F3);
@@ -65,7 +63,7 @@ class _AdminGenerateFacultyQRScreenState
 
       if (mounted) {
         _rawToken = response['token'];
-        // Encode as JSON so the faculty scanner app can parse both fields
+
         final qrData = jsonEncode({
           'faculty_id': widget.faculty['id'],
           'token': _rawToken,
@@ -163,10 +161,11 @@ class _AdminGenerateFacultyQRScreenState
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Go back to management screen
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
             },
-            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            child:
+                const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

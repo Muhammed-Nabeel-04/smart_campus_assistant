@@ -73,14 +73,12 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
           _hodDepartmentName = deptName;
           _pickerDept = deptCode;
           _departments = List<Map<String, dynamic>>.from(data);
+
           // Initialize sections for HOD's own department
-          final hodDeptSections = sectionsByYear.values
-              .expand((s) => s)
-              .toSet()
-              .toList();
-          _sections = hodDeptSections.isNotEmpty
-              ? hodDeptSections
-              : ['A', 'B', 'C'];
+          final hodDeptSections =
+              sectionsByYear.values.expand((s) => s).toSet().toList();
+          _sections =
+              hodDeptSections.isNotEmpty ? hodDeptSections : ['A', 'B', 'C'];
           _loadingDepts = false;
         });
       }
@@ -103,7 +101,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Select year, department and section first'),
-          backgroundColor: Color(0xFFFF9800), // Warning Orange
+          backgroundColor: Color(0xFFFF9800),
         ),
       );
       return;
@@ -134,7 +132,6 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
   }
 
   Future<void> _loadSectionsForDept(String deptCode) async {
-    // Find the selected department's sections from already-loaded _departments list
     final dept = _departments.firstWhere(
       (d) => d['code'] == deptCode,
       orElse: () => <String, dynamic>{},
@@ -144,16 +141,14 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
       (k, v) => MapEntry(k, List<String>.from(v ?? [])),
     );
 
-    // Use sections for currently selected year, or flatten all
     final yearSections = _pickerYear != null
         ? (sectionsByYear[_pickerYear] ?? [])
         : sectionsByYear.values.expand((s) => s).toSet().toList();
 
     if (mounted) {
       setState(
-        () => _sections = yearSections.isNotEmpty
-            ? yearSections
-            : ['A', 'B', 'C'],
+        () => _sections =
+            yearSections.isNotEmpty ? yearSections : ['A', 'B', 'C'],
       );
     }
   }
@@ -192,7 +187,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
         'phone': _phoneController.text.trim(),
         'teaching_assignments': _assignments,
       });
-      // Set CC if enabled
+
       if (_isCc && _ccClassId != null) {
         final facultyId = result['id'] ?? result['faculty_id'];
         if (facultyId != null) {
@@ -209,7 +204,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
             content: Text(
               'Faculty created! Now generate a QR to complete onboarding.',
             ),
-            backgroundColor: Color(0xFF4CAF50), // Success Green
+            backgroundColor: Color(0xFF4CAF50),
           ),
         );
         Navigator.pop(context, true);
@@ -227,8 +222,6 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
-  // ── UI helpers ─────────────────────────────────────────────────────────────
 
   Widget _selChip(
     String label,
@@ -264,17 +257,17 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
   }
 
   Widget _secLabel(String t, ColorScheme cs) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, top: 8),
-    child: Text(
-      t,
-      style: TextStyle(
-        color: cs.onSurface.withOpacity(0.5),
-        fontSize: 11,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0.8,
-      ),
-    ),
-  );
+        padding: const EdgeInsets.only(bottom: 8, top: 8),
+        child: Text(
+          t,
+          style: TextStyle(
+            color: cs.onSurface.withOpacity(0.5),
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.8,
+          ),
+        ),
+      );
 
   Widget _card({
     required String title,
@@ -369,7 +362,6 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                   validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
-                // Department auto-set from HOD's department
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -404,8 +396,8 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                               _loadingDepts
                                   ? 'Loading...'
                                   : _hodDepartmentName.isNotEmpty
-                                  ? _hodDepartmentName
-                                  : _selectedDepartment,
+                                      ? _hodDepartmentName
+                                      : _selectedDepartment,
                               style: TextStyle(
                                 color: cs.onSurface,
                                 fontSize: 15,
@@ -639,7 +631,8 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
                           .map(
                             (
                               s,
-                            ) => _selChip('Sec $s', _ccSection == s, () async {
+                            ) =>
+                                _selChip('Sec $s', _ccSection == s, () async {
                               setState(() => _ccSection = s);
                               final classId = await _findClassId(_ccYear!, s);
                               if (mounted) setState(() => _ccClassId = classId);
