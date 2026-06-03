@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../widgets/skeleton.dart';
-import '../../core/session.dart';
 
 class CCTimetableEditorScreen extends StatefulWidget {
   final int classId;
@@ -102,7 +101,6 @@ class _CCTimetableEditorScreenState extends State<CCTimetableEditorScreen> {
   // ── Period (Column) Management ──────────────────────────────
 
   void _addPeriod() async {
-    final cs = Theme.of(context).colorScheme;
     final startCtrl = TextEditingController();
     final endCtrl = TextEditingController();
 

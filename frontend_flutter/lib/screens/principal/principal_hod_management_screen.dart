@@ -60,19 +60,19 @@ class _PrincipalHODManagementScreenState
       body: _isLoading
           ? const AppPageSkeleton()
           : _hods.isEmpty
-              ? _buildEmptyState(cs)
-              : RefreshIndicator(
-                  onRefresh: _loadHODs,
-                  color: cs.primary,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _hods.length,
-                    itemBuilder: (ctx, i) {
-                      final hod = _hods[i];
-                      return _buildHODCard(hod, cs);
-                    },
-                  ),
-                ),
+          ? _buildEmptyState(cs)
+          : RefreshIndicator(
+              onRefresh: _loadHODs,
+              color: cs.primary,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _hods.length,
+                itemBuilder: (ctx, i) {
+                  final hod = _hods[i];
+                  return _buildHODCard(hod, cs);
+                },
+              ),
+            ),
     );
   }
 

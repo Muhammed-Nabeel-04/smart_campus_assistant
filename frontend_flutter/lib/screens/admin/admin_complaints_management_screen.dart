@@ -21,7 +21,6 @@ class _AdminComplaintsManagementScreenState
   // Semantic Status Colors
   static const Color successGreen = Color(0xFF4CAF50);
   static const Color warningOrange = Color(0xFFFF9800);
-  static const Color infoBlue = Color(0xFF2196F3);
 
   @override
   void initState() {
@@ -149,8 +148,6 @@ class _AdminComplaintsManagementScreenState
 
   Widget _buildComplaintCard(Map<String, dynamic> complaint, ColorScheme cs) {
     final priority = (complaint['priority'] ?? 'low').toString().toLowerCase();
-    final status = (complaint['status'] ?? 'pending').toString().toLowerCase();
-
     final Color priorityColor = priority == 'high' || priority == 'urgent'
         ? cs.error
         : priority == 'medium'

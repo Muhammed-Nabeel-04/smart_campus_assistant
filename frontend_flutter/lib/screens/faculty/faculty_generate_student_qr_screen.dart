@@ -34,7 +34,6 @@ class _FacultyGenerateStudentQRScreenState
   // Fixed role/status colors - matching AdminGenerateFacultyQRScreen
   static const Color errorRed = Color(0xFFF44336);
   static const Color successGreen = Color(0xFF4CAF50);
-  static const Color warningOrange = Color(0xFFFF9800);
   static const Color infoBlue = Color(0xFF2196F3);
 
   @override
@@ -168,7 +167,10 @@ class _FacultyGenerateStudentQRScreenState
               Navigator.of(context).pop(); // Close dialog
               Navigator.of(context).pop(); // Go back to student management
             },
-            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'OK',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -270,9 +272,8 @@ class _FacultyGenerateStudentQRScreenState
                                 .withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _remainingSeconds < 30
-                              ? errorRed
-                              : successGreen,
+                          color:
+                              _remainingSeconds < 30 ? errorRed : successGreen,
                           width: 2,
                         ),
                       ),

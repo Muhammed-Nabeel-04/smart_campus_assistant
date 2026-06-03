@@ -334,7 +334,6 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -454,9 +453,8 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
             title: 'Personal Details',
             icon: Icons.person_outline_rounded,
             cs: cs,
-            child: _isEditingDetails
-                ? _buildEditForm(cs)
-                : _buildDetailsView(cs),
+            child:
+                _isEditingDetails ? _buildEditForm(cs) : _buildDetailsView(cs),
           ),
 
           const SizedBox(height: 12),
@@ -480,7 +478,8 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
                       _emailExpanded = false;
                       _twoFAExpanded = false;
                     }
-                  }),                  child: Form(
+                  }),
+                  child: Form(
                     key: _passFormKey,
                     child: Column(
                       children: [
@@ -552,9 +551,8 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _isChangingPass
-                                ? null
-                                : _handleChangePassword,
+                            onPressed:
+                                _isChangingPass ? null : _handleChangePassword,
                             child: _isChangingPass
                                 ? const SizedBox(
                                     height: 20,
@@ -709,9 +707,11 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
                         const SizedBox(height: 12),
                         InkWell(
                           onTap: () {
-                            Clipboard.setData(ClipboardData(text: _totpSecret!));
+                            Clipboard.setData(
+                                ClipboardData(text: _totpSecret!));
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Secret key copied!')),
+                              const SnackBar(
+                                  content: Text('Secret key copied!')),
                             );
                           },
                           child: Row(
@@ -797,9 +797,9 @@ class _PrincipalProfileScreenState extends State<PrincipalProfileScreen> {
                     ],
                   ),
                 ),
-                ],
-                ),
-                ),
+              ],
+            ),
+          ),
 
           const SizedBox(height: 12),
 

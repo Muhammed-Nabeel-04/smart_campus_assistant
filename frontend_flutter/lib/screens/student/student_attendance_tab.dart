@@ -14,7 +14,6 @@ class StudentAttendanceTab extends StatefulWidget {
 
 class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
   List<AttendanceRecord> _records = [];
-  List<Map<String, dynamic>> _rawRecords = [];
   bool _isLoading = true;
   String _filterBy = 'all';
 
@@ -25,18 +24,20 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
   }
 
   Future<void> _loadRecords() async {
+    final studentId = SessionManager.studentId;
+    if (studentId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
     setState(() => _isLoading = true);
     try {
-      final data = await ApiService.getStudentAttendanceHistory(
-        SessionManager.studentId!,
-      );
+      final data = await ApiService.getStudentAttendanceHistory(studentId);
       setState(() {
-        _rawRecords = List<Map<String, dynamic>>.from(data);
         _records = data.map<AttendanceRecord>((json) {
           return AttendanceRecord(
             id: json['id'],
             sessionId: json['id'] ?? 0,
-            studentId: SessionManager.studentId ?? 0,
+            studentId: studentId,
             status: json['status'] ?? 'absent',
             timestamp:
                 DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
@@ -99,7 +100,11 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
                     ),
                     child: Row(
                       children: [
-                        const Skeleton(width: 48, height: 48, borderRadius: BorderRadius.all(Radius.circular(12))),
+                        const Skeleton(
+                            width: 48,
+                            height: 48,
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(12))),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -111,7 +116,11 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
                             ],
                           ),
                         ),
-                        const Skeleton(width: 60, height: 24, borderRadius: BorderRadius.all(Radius.circular(12))),
+                        const Skeleton(
+                            width: 60,
+                            height: 24,
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(12))),
                       ],
                     ),
                   ),

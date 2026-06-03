@@ -47,9 +47,15 @@ class _FacultyManualAttendanceScreenState
   Future<void> _checkSessionAndLoad() async {
     setState(() => _isLoading = true);
     try {
-      final sessions = await ApiService.getActiveSessions(
-        SessionManager.facultyId!,
-      );
+      final facultyId = SessionManager.facultyId ?? SessionManager.userId;
+      if (facultyId == null) {
+        setState(() {
+          _noSessionMessage = 'Session expired. Please log in again.';
+          _isLoading = false;
+        });
+        return;
+      }
+      final sessions = await ApiService.getActiveSessions(facultyId);
       // Find active session for this class+subject
       final expectedClassName =
           '${widget.classData['year']} Sec ${widget.classData['section']}';
@@ -277,36 +283,36 @@ class _FacultyManualAttendanceScreenState
             child: _isLoading
                 ? const AppPageSkeleton()
                 : _noSessionMessage != null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.event_busy,
-                            size: 64,
-                            color: warningOrange.withOpacity(0.5),
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.event_busy,
+                                size: 64,
+                                color: warningOrange.withOpacity(0.5),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _noSessionMessage!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: cs.onSurface.withOpacity(0.6),
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _noSessionMessage!,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: cs.onSurface.withOpacity(0.6),
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _students.length,
+                        itemBuilder: (context, index) =>
+                            _buildStudentTile(_students[index], cs),
                       ),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _students.length,
-                    itemBuilder: (context, index) =>
-                        _buildStudentTile(_students[index], cs),
-                  ),
           ),
         ],
       ),
@@ -402,9 +408,8 @@ class _FacultyManualAttendanceScreenState
           style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 12),
         ),
         secondary: CircleAvatar(
-          backgroundColor: isPresent
-              ? successGreen
-              : cs.primary.withOpacity(0.1),
+          backgroundColor:
+              isPresent ? successGreen : cs.primary.withOpacity(0.1),
           child: Text(
             (student['full_name'] ?? 'S')
                 .toString()

@@ -38,6 +38,11 @@ class _StudentMarkAttendanceScreenState
 
   Future<void> _handleQRScan(String qrData) async {
     if (_isProcessing || _marked) return;
+    final studentId = SessionManager.studentId;
+    if (studentId == null) {
+      _showError('Session expired. Please log in again.');
+      return;
+    }
 
     setState(() => _isProcessing = true);
 
@@ -53,7 +58,7 @@ class _StudentMarkAttendanceScreenState
 
       final response = await ApiService.markAttendance(
         token: token,
-        studentId: SessionManager.studentId!,
+        studentId: studentId,
       );
 
       setState(() {

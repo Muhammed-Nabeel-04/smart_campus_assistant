@@ -28,14 +28,6 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
   bool _loadingClasses = true;
 
   final List<String> _years = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
-  final List<String> _days = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-  ];
   final Map<String, List<int>> _yearSemesters = {
     '1st Year': [1, 2],
     '2nd Year': [3, 4],
@@ -75,7 +67,6 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
   }
 
   Future<void> _saveSections() async {
-    final cs = Theme.of(context).colorScheme;
     try {
       await ApiService.updateHODSections(_sectionsByYear);
       if (mounted)
@@ -387,7 +378,7 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
           final existingClasses = await ApiService.getClassesByDepartment(
             deptId,
           );
-          final existing = (existingClasses as List).firstWhere(
+          final existing = existingClasses.firstWhere(
             (c) => c['year'] == year && c['section'] == section,
             orElse: () => {},
           );
@@ -492,8 +483,7 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
   // ============================================================
 
   Widget _buildSubjectsTab(ColorScheme cs) {
-    if (_isLoading)
-      return const AppPageSkeleton();
+    if (_isLoading) return const AppPageSkeleton();
     return RefreshIndicator(
       onRefresh: _load,
       color: cs.primary,
@@ -651,9 +641,8 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
               ),
               const SizedBox(height: 8),
               ..._years.map((year) {
-                final yearClasses = _classes
-                    .where((c) => c['year'] == year)
-                    .toList();
+                final yearClasses =
+                    _classes.where((c) => c['year'] == year).toList();
                 if (yearClasses.isEmpty) return const SizedBox();
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -797,10 +786,7 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
           ),
           const Divider(height: 1),
           if (_loadingSections)
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: CardSkeleton(),
-            )
+            const Padding(padding: EdgeInsets.all(20), child: CardSkeleton())
           else
             ...(_years.map((year) {
               final yearSections = _sectionsByYear[year] ?? [];
@@ -1006,8 +992,8 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
     final Color typeColor = type == 'Lab'
         ? const Color(0xFF00897B)
         : type == 'Project'
-        ? const Color(0xFFE65100)
-        : cs.primary;
+            ? const Color(0xFFE65100)
+            : cs.primary;
 
     return ListTile(
       leading: Container(
@@ -1020,8 +1006,8 @@ class _HODSubjectManagementScreenState extends State<HODSubjectManagementScreen>
           type == 'Lab'
               ? Icons.science_outlined
               : type == 'Project'
-              ? Icons.assignment_outlined
-              : Icons.book_outlined,
+                  ? Icons.assignment_outlined
+                  : Icons.book_outlined,
           color: typeColor,
           size: 18,
         ),

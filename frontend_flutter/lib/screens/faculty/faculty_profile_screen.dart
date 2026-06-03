@@ -23,7 +23,6 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
 
   // Accordion state
   bool _passwordExpanded = false;
-  bool _emailExpanded = false;
   bool _twoFAExpanded = false;
 
   // Password controllers
@@ -36,11 +35,6 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   bool _obscureNew = true;
   bool _obscureConfirm = true;
   bool _isChangingPass = false;
-
-  // Email controllers
-  final _newEmailCtrl = TextEditingController();
-  final _emailPassCtrl = TextEditingController();
-  bool _isChangingEmail = false;
 
   // 2FA state
   bool _isSettingUp2FA = false;
@@ -60,8 +54,6 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     _currentPassCtrl.dispose();
     _newPassCtrl.dispose();
     _confirmPassCtrl.dispose();
-    _newEmailCtrl.dispose();
-    _emailPassCtrl.dispose();
     _totpVerifyCtrl.dispose();
     super.dispose();
   }
@@ -70,13 +62,15 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     setState(() => _isLoading = true);
     try {
       final profile = await ApiService.getFacultyProfile();
-      final stats = await ApiService.getFacultyStats(
-        SessionManager.facultyId ?? SessionManager.userId!,
-      );
+      final facultyId = SessionManager.facultyId ?? SessionManager.userId;
+      if (facultyId == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+      final stats = await ApiService.getFacultyStats(facultyId);
       if (mounted) {
         setState(() {
           _facultyData = {...profile, ...stats};
-          _newEmailCtrl.text = SessionManager.email ?? '';
           _isLoading = false;
         });
       }
@@ -102,33 +96,6 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
       _showSnack(e.message, isError: true);
     } finally {
       if (mounted) setState(() => _isChangingPass = false);
-    }
-  }
-
-  Future<void> _handleChangeEmail() async {
-    final email = _newEmailCtrl.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
-      _showSnack('Enter a valid email', isError: true);
-      return;
-    }
-    if (_emailPassCtrl.text.isEmpty) {
-      _showSnack('Enter your password to confirm', isError: true);
-      return;
-    }
-    setState(() => _isChangingEmail = true);
-    try {
-      await ApiService.changeFacultyEmail(
-        newEmail: email,
-        password: _emailPassCtrl.text,
-      );
-      await SessionManager.updateProfile(email: email);
-      _emailPassCtrl.clear();
-      setState(() => _emailExpanded = false);
-      _showSnack('Email updated successfully');
-    } on ApiException catch (e) {
-      _showSnack(e.message, isError: true);
-    } finally {
-      if (mounted) setState(() => _isChangingEmail = false);
     }
   }
 
@@ -417,7 +384,6 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                           onTap: () => setState(() {
                             _passwordExpanded = !_passwordExpanded;
                             if (_passwordExpanded) {
-                              _emailExpanded = false;
                               _twoFAExpanded = false;
                             }
                           }),
@@ -534,7 +500,6 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                             _twoFAExpanded = !_twoFAExpanded;
                             if (_twoFAExpanded) {
                               _passwordExpanded = false;
-                              _emailExpanded = false;
                             }
                           }),
                           child: Column(
@@ -569,9 +534,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                               const SizedBox(height: 16),
                               if (!is2faEnabled && _provisioningUri == null)
                                 ElevatedButton.icon(
-                                  onPressed: _isSettingUp2FA
-                                      ? null
-                                      : _handleSetup2FA,
+                                  onPressed:
+                                      _isSettingUp2FA ? null : _handleSetup2FA,
                                   icon: _isSettingUp2FA
                                       ? const SizedBox(
                                           width: 18,
@@ -581,11 +545,12 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                                           ),
                                         )
                                       : const Icon(Icons.qr_code_2_rounded),
-
                                   label: const Text('Setup 2FA'),
                                   style: ElevatedButton.styleFrom(
-                                    minimumSize:
-                                        const Size(double.infinity, 45),
+                                    minimumSize: const Size(
+                                      double.infinity,
+                                      45,
+                                    ),
                                   ),
                                 ),
                               if (_provisioningUri != null) ...[
@@ -607,9 +572,13 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                                 const SizedBox(height: 12),
                                 InkWell(
                                   onTap: () {
-                                    Clipboard.setData(ClipboardData(text: _totpSecret!));
+                                    Clipboard.setData(
+                                      ClipboardData(text: _totpSecret!),
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Secret key copied!')),
+                                      const SnackBar(
+                                        content: Text('Secret key copied!'),
+                                      ),
                                     );
                                   },
                                   child: Row(
@@ -640,14 +609,15 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                                 ),
                                 const SizedBox(height: 12),
                                 ElevatedButton(
-                                  onPressed: _isVerifying2FA
-                                      ? null
-                                      : _handleEnable2FA,
+                                  onPressed:
+                                      _isVerifying2FA ? null : _handleEnable2FA,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.green,
                                     foregroundColor: Colors.white,
-                                    minimumSize:
-                                        const Size(double.infinity, 45),
+                                    minimumSize: const Size(
+                                      double.infinity,
+                                      45,
+                                    ),
                                   ),
                                   child: _isVerifying2FA
                                       ? const CircularProgressIndicator(
@@ -687,8 +657,10 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: cs.error,
                                     foregroundColor: Colors.white,
-                                    minimumSize:
-                                        const Size(double.infinity, 45),
+                                    minimumSize: const Size(
+                                      double.infinity,
+                                      45,
+                                    ),
                                   ),
                                   child: _isVerifying2FA
                                       ? const CircularProgressIndicator(

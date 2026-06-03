@@ -124,17 +124,17 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
             child: _isLoading
                 ? const AppPageSkeleton()
                 : _complaints.isEmpty
-                ? _buildEmptyState(cs)
-                : RefreshIndicator(
-                    onRefresh: _loadComplaints,
-                    color: cs.primary,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _complaints.length,
-                      itemBuilder: (context, index) =>
-                          _buildComplaintCard(_complaints[index], cs),
-                    ),
-                  ),
+                    ? _buildEmptyState(cs)
+                    : RefreshIndicator(
+                        onRefresh: _loadComplaints,
+                        color: cs.primary,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _complaints.length,
+                          itemBuilder: (context, index) =>
+                              _buildComplaintCard(_complaints[index], cs),
+                        ),
+                      ),
           ),
         ],
       ),
@@ -163,13 +163,8 @@ class _PrincipalComplaintsScreenState extends State<PrincipalComplaintsScreen> {
   }
 
   Widget _buildComplaintCard(Map<String, dynamic> complaint, ColorScheme cs) {
-    final priority = (complaint['priority'] ?? 'medium')
-        .toString()
-        .toLowerCase();
-    final status = (complaint['status'] ?? 'escalated')
-        .toString()
-        .toLowerCase();
-
+    final priority =
+        (complaint['priority'] ?? 'medium').toString().toLowerCase();
     // Priority Colors
     final Color priorityColor = priority == 'high' || priority == 'urgent'
         ? cs.error

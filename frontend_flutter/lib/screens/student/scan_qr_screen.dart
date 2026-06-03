@@ -27,7 +27,8 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   Future<void> _validateQR(String qrRawData) async {
     if (_isProcessing) return;
 
-    if (SessionManager.studentId == null) {
+    final studentId = SessionManager.studentId;
+    if (studentId == null) {
       _showResult('Session missing. Please log in again.', isError: true);
       return;
     }
@@ -46,7 +47,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
 
       final data = await ApiService.markAttendance(
         token: token,
-        studentId: SessionManager.studentId!,
+        studentId: studentId,
       );
 
       if (mounted) {

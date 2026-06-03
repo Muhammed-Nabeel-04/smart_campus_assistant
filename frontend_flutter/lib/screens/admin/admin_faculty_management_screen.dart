@@ -55,14 +55,14 @@ class _AdminFacultyManagementScreenState
         .where(
           (f) =>
               f['name'].toString().toLowerCase().contains(
-                    _searchQuery.toLowerCase(),
-                  ) ||
+                _searchQuery.toLowerCase(),
+              ) ||
               f['email'].toString().toLowerCase().contains(
-                    _searchQuery.toLowerCase(),
-                  ) ||
+                _searchQuery.toLowerCase(),
+              ) ||
               f['employee_id'].toString().toLowerCase().contains(
-                    _searchQuery.toLowerCase(),
-                  ),
+                _searchQuery.toLowerCase(),
+              ),
         )
         .toList();
   }
@@ -104,19 +104,19 @@ class _AdminFacultyManagementScreenState
             child: _isLoading
                 ? const AppPageSkeleton()
                 : _filteredFaculty.isEmpty
-                    ? _buildEmptyState(cs)
-                    : RefreshIndicator(
-                        onRefresh: _loadFaculty,
-                        color: cs.primary,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _filteredFaculty.length,
-                          itemBuilder: (context, index) {
-                            final faculty = _filteredFaculty[index];
-                            return _buildFacultyCard(faculty, cs);
-                          },
-                        ),
-                      ),
+                ? _buildEmptyState(cs)
+                : RefreshIndicator(
+                    onRefresh: _loadFaculty,
+                    color: cs.primary,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _filteredFaculty.length,
+                      itemBuilder: (context, index) {
+                        final faculty = _filteredFaculty[index];
+                        return _buildFacultyCard(faculty, cs);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

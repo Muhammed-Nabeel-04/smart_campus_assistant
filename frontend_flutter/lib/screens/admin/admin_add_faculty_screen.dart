@@ -159,7 +159,7 @@ class _AdminAddFacultyScreenState extends State<AdminAddFacultyScreen> {
       final deptId = hodDept['department_id'];
       if (deptId == null) return null;
       final classes = await ApiService.getClassesByDepartment(deptId);
-      final cls = (classes as List).firstWhere(
+      final cls = classes.firstWhere(
         (c) => c['year'] == year && c['section'] == section,
         orElse: () => {},
       );

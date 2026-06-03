@@ -40,11 +40,14 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
   }
 
   Future<void> _loadProfile() async {
+    final studentId = SessionManager.studentId;
+    if (studentId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
     setState(() => _isLoading = true);
     try {
-      final data = await ApiService.getStudentProfile(
-        SessionManager.studentId!,
-      );
+      final data = await ApiService.getStudentProfile(studentId);
       if (mounted) {
         setState(() {
           _profileData = data;

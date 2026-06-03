@@ -164,8 +164,10 @@ class _AdminGenerateFacultyQRScreenState
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
-            child:
-                const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'OK',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

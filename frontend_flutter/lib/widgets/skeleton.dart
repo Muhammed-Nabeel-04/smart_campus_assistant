@@ -6,17 +6,12 @@ class Skeleton extends StatelessWidget {
   final double? height;
   final BorderRadiusGeometry? borderRadius;
 
-  const Skeleton({
-    super.key,
-    this.width,
-    this.height,
-    this.borderRadius,
-  });
+  const Skeleton({super.key, this.width, this.height, this.borderRadius});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Shimmer.fromColors(
       baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
       highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,

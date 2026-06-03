@@ -178,13 +178,27 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
             const SizedBox(height: 24),
             Text(
               "Final Attendance Summary",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).primaryColor,
+              ),
             ),
-            Text("${_studentsPresent.length} Students Present", style: TextStyle(color: Colors.grey[600])),
+            Text(
+              "${_studentsPresent.length} Students Present",
+              style: TextStyle(color: Colors.grey[600]),
+            ),
             const SizedBox(height: 20),
             Expanded(
               child: ListView.separated(
@@ -194,9 +208,15 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
                   final s = _studentsPresent[index];
                   return ListTile(
                     leading: CircleAvatar(child: Text("${index + 1}")),
-                    title: Text(s['full_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      s['full_name'] ?? 'Unknown',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     subtitle: Text(s['register_number'] ?? ''),
-                    trailing: const Icon(Icons.check_circle, color: Color(0xFF4CAF50)),
+                    trailing: const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF4CAF50),
+                    ),
                   );
                 },
               ),
@@ -212,7 +232,7 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
                 },
                 child: const Text("Done"),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -237,10 +257,7 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Attendance QR'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Attendance QR'), centerTitle: true),
       body: _isLoading
           ? const AppPageSkeleton(itemCount: 3)
           : SingleChildScrollView(
@@ -306,25 +323,37 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
                             backgroundColor: Colors.white,
                           ),
                         ),
-                      
+
                       // Floating Student Counter
                       Positioned(
                         top: -10,
                         right: -10,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: cs.primary,
                             borderRadius: BorderRadius.circular(20),
-                            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                            boxShadow: [
+                              BoxShadow(color: Colors.black26, blurRadius: 4),
+                            ],
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.people, color: Colors.white, size: 16),
+                              const Icon(
+                                Icons.people,
+                                color: Colors.white,
+                                size: 16,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 '${_studentsPresent.length}',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -373,7 +402,10 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         "Recently Joined:",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -382,7 +414,9 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
                       decoration: BoxDecoration(
                         color: cs.surface,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: cs.onSurface.withOpacity(0.05)),
+                        border: Border.all(
+                          color: cs.onSurface.withOpacity(0.05),
+                        ),
                       ),
                       child: ListView.builder(
                         padding: const EdgeInsets.all(8),
@@ -397,14 +431,36 @@ class _AttendanceQRScreenState extends State<AttendanceQRScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(10),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4)],
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.02),
+                                  blurRadius: 4,
+                                ),
+                              ],
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.person, color: Color(0xFF4CAF50), size: 18),
+                                const Icon(
+                                  Icons.person,
+                                  color: Color(0xFF4CAF50),
+                                  size: 18,
+                                ),
                                 const SizedBox(width: 10),
-                                Expanded(child: Text(s['full_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w500))),
-                                Text(s['timestamp'] ?? '', style: TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: 11)),
+                                Expanded(
+                                  child: Text(
+                                    s['full_name'] ?? 'Unknown',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  s['timestamp'] ?? '',
+                                  style: TextStyle(
+                                    color: cs.onSurface.withOpacity(0.4),
+                                    fontSize: 11,
+                                  ),
+                                ),
                               ],
                             ),
                           );

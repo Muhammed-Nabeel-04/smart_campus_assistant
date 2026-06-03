@@ -7,9 +7,7 @@ import '../../core/notification_service.dart';
 import '../../services/api_service.dart';
 import 'student_attendance_tab.dart';
 import 'student_notifications_tab.dart';
-import 'student_complaints_tab.dart';
 import 'student_profile_tab.dart';
-import 'ssm_activity_dashboard.dart';
 import '../../widgets/skeleton.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
@@ -208,11 +206,13 @@ class _HomeTabState extends State<_HomeTab>
   }
 
   Future<void> _checkNewNotifications() async {
+    final studentId = SessionManager.studentId;
+    if (studentId == null) return;
     try {
       final data = await ApiService.getStudentNotifications(
-        studentId: SessionManager.studentId!,
+        studentId: studentId,
       );
-      final count = (data as List).length;
+      final count = data.length;
       if (_lastNotificationCount == -1) {
         _lastNotificationCount = count;
         return;
@@ -232,19 +232,21 @@ class _HomeTabState extends State<_HomeTab>
   }
 
   Future<void> _checkActiveSession() async {
+    final studentId = SessionManager.studentId;
+    if (studentId == null) return;
     try {
       final data = await ApiService.getActiveSessionForStudent(
-        SessionManager.studentId!,
+        studentId,
       );
       if (mounted) setState(() => _activeSession = data);
     } catch (_) {}
   }
 
   Future<void> _loadNextSlot() async {
+    final studentId = SessionManager.studentId;
+    if (studentId == null) return;
     try {
-      final slot = await ApiService.getNextSlotStudent(
-        SessionManager.studentId!,
-      );
+      final slot = await ApiService.getNextSlotStudent(studentId);
       if (mounted) {
         setState(() {
           _nextSlot = slot.isNotEmpty ? slot : null;
@@ -301,14 +303,15 @@ class _HomeTabState extends State<_HomeTab>
   }
 
   Future<void> _loadStats() async {
+    final studentId = SessionManager.studentId;
+    if (studentId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
     try {
-      final stats = await ApiService.getStudentAttendance(
-        SessionManager.studentId!,
-      );
+      final stats = await ApiService.getStudentAttendance(studentId);
       try {
-        final profile = await ApiService.getStudentProfile(
-          SessionManager.studentId!,
-        );
+        final profile = await ApiService.getStudentProfile(studentId);
         if (profile['department'] != null) {
           await SessionManager.updateProfile(department: profile['department']);
         }
@@ -336,31 +339,63 @@ class _HomeTabState extends State<_HomeTab>
       return ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Skeleton(height: 100, borderRadius: BorderRadius.all(Radius.circular(16))),
+          const Skeleton(
+            height: 100,
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+          ),
           const SizedBox(height: 16),
-          const Skeleton(height: 180, borderRadius: BorderRadius.all(Radius.circular(20))),
+          const Skeleton(
+            height: 180,
+            borderRadius: BorderRadius.all(Radius.circular(20)),
+          ),
           const SizedBox(height: 24),
           Row(
             children: [
-              Expanded(child: Skeleton(height: 100, borderRadius: BorderRadius.circular(16))),
+              Expanded(
+                child: Skeleton(
+                  height: 100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: Skeleton(height: 100, borderRadius: BorderRadius.circular(16))),
+              Expanded(
+                child: Skeleton(
+                  height: 100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: Skeleton(height: 100, borderRadius: BorderRadius.circular(16))),
+              Expanded(
+                child: Skeleton(
+                  height: 100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: Skeleton(height: 100, borderRadius: BorderRadius.circular(16))),
+              Expanded(
+                child: Skeleton(
+                  height: 100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),
           const Skeleton(width: 150, height: 24),
           const SizedBox(height: 12),
-          const Skeleton(height: 120, borderRadius: BorderRadius.all(Radius.circular(16))),
+          const Skeleton(
+            height: 120,
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+          ),
           const SizedBox(height: 12),
-          const Skeleton(height: 120, borderRadius: BorderRadius.all(Radius.circular(16))),
+          const Skeleton(
+            height: 120,
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+          ),
         ],
       );
     }
@@ -397,8 +432,9 @@ class _HomeTabState extends State<_HomeTab>
                       animation: _blinkAnim,
                       builder: (context, child) => Icon(
                         Icons.radio_button_checked,
-                        color: const Color(0xFF4CAF50)
-                            .withOpacity(_blinkAnim.value),
+                        color: const Color(
+                          0xFF4CAF50,
+                        ).withOpacity(_blinkAnim.value),
                         size: 20,
                       ),
                     ),
@@ -909,8 +945,9 @@ class _HomeTabState extends State<_HomeTab>
                         // Normalize keys to lowercase — same fix as faculty dashboard
                         final slots = <String, List<dynamic>>{};
                         rawSlots.forEach((key, value) {
-                          slots[key.trim().toLowerCase()] =
-                              List<dynamic>.from(value as List? ?? []);
+                          slots[key.trim().toLowerCase()] = List<dynamic>.from(
+                            value as List? ?? [],
+                          );
                         });
                         final today = _todayName().toLowerCase();
                         final days = showWeekly
@@ -957,7 +994,7 @@ class _HomeTabState extends State<_HomeTab>
                         return ListView(
                           controller: scroll,
                           children: days.map((day) {
-                            final daySlots = (slots[day] as List?) ?? [];
+                            final daySlots = slots[day] ?? [];
                             if (daySlots.isEmpty) {
                               return const SizedBox();
                             }

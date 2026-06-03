@@ -3,7 +3,6 @@
 // Ported from standalone SSM app — adapted for campus app routing + SessionManager
 
 import 'package:flutter/material.dart';
-import '../../core/session.dart';
 import '../../services/api_service.dart';
 import '../../widgets/skeleton.dart';
 
@@ -21,15 +20,29 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
   String _filter = 'all';
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   Future<void> _load() async {
-    setState(() { _loading = _data == null; _error = null; });
+    setState(() {
+      _loading = _data == null;
+      _error = null;
+    });
     try {
       final d = await ApiService.ssmGetMyActivities();
-      if (mounted) setState(() { _data = d; _loading = false; });
+      if (mounted)
+        setState(() {
+          _data = d;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -41,8 +54,11 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
     final status = _data?['status'] as String? ?? 'draft';
     final canEdit = (status == 'draft' || status == 'rejected');
 
-    final filtered = _filter == 'all' ? activities
-        : activities.where((a) => _categoryOf(a['activity_type'] ?? '') == _filter).toList();
+    final filtered = _filter == 'all'
+        ? activities
+        : activities
+            .where((a) => _categoryOf(a['activity_type'] ?? '') == _filter)
+            .toList();
 
     if (_loading) {
       return Scaffold(
@@ -50,11 +66,18 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Skeleton(height: 160, borderRadius: BorderRadius.all(Radius.circular(16))),
+            const Skeleton(
+                height: 160,
+                borderRadius: BorderRadius.all(Radius.circular(16))),
             const SizedBox(height: 16),
-            const Skeleton(height: 50, borderRadius: BorderRadius.all(Radius.circular(12))),
+            const Skeleton(
+                height: 50,
+                borderRadius: BorderRadius.all(Radius.circular(12))),
             const SizedBox(height: 16),
-            const Skeleton(width: 150, height: 40, borderRadius: BorderRadius.all(Radius.circular(25))),
+            const Skeleton(
+                width: 150,
+                height: 40,
+                borderRadius: BorderRadius.all(Radius.circular(25))),
             const SizedBox(height: 16),
             ...List.generate(3, (index) => const CardSkeleton()),
           ],
@@ -74,7 +97,6 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
         onRefresh: _load,
         color: cs.primary,
         child: CustomScrollView(slivers: [
-  
           // ── Score card ──────────────────────────────────────────
           SliverToBoxAdapter(
             child: GestureDetector(
@@ -85,18 +107,20 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
               child: _ScoreCard(score: score, status: status),
             ),
           ),
-  
+
           // ── Timeline Banner ──────────────────────────────
           if (_data?['form_id'] != null)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: InkWell(
                   onTap: () => Navigator.pushNamed(context, '/ssmTimeline',
                       arguments: _data!['form_id']),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 16),
                     decoration: BoxDecoration(
                       color: cs.primary.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(12),
@@ -104,7 +128,8 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.timeline_rounded, color: cs.primary, size: 20),
+                        Icon(Icons.timeline_rounded,
+                            color: cs.primary, size: 20),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -123,58 +148,69 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
                 ),
               ),
             ),
-  
+
           // ── Submit / Status banner ──────────────────────────────
           if (canEdit && activities.isNotEmpty)
-            SliverToBoxAdapter(child: Padding(
+            SliverToBoxAdapter(
+                child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2E7D32),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.send_rounded),
                 label: const Text('Submit Form to Mentor',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 onPressed: _submitForm,
               ),
             )),
-  
+
           if (!canEdit)
-            SliverToBoxAdapter(child: Container(
+            SliverToBoxAdapter(
+                child: Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: const Color(0xFF2E7D32).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.3)),
+                border:
+                    Border.all(color: const Color(0xFF2E7D32).withOpacity(0.3)),
               ),
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.lock_rounded, color: const Color(0xFF2E7D32), size: 18),
+              child:
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.lock_rounded,
+                    color: const Color(0xFF2E7D32), size: 18),
                 const SizedBox(width: 8),
                 Text(_statusLabel(status),
-                    style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+                    style: const TextStyle(
+                        color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
               ]),
             )),
-  
+
           // ── Category filter ─────────────────────────────────────
-          SliverToBoxAdapter(child: _CategoryFilter(
+          SliverToBoxAdapter(
+              child: _CategoryFilter(
             selected: _filter,
             onChanged: (v) => setState(() => _filter = v),
           )),
-  
+
           // ── Activity list ───────────────────────────────────────
           if (filtered.isEmpty)
             SliverToBoxAdapter(child: _emptyState(cs, canEdit))
           else
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-              sliver: SliverList(delegate: SliverChildBuilderDelegate(
+              sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
                 (_, i) => _ActivityCard(
                   activity: filtered[i],
-                  onDelete: canEdit ? () => _deleteActivity(filtered[i]['id']) : null,
+                  onDelete:
+                      canEdit ? () => _deleteActivity(filtered[i]['id']) : null,
                 ),
                 childCount: filtered.length,
               )),
@@ -195,16 +231,24 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
     final formId = _data?['form_id'] as int?;
     if (formId == null) return;
 
-    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text('Submit Form?'),
-      content: const Text('Once submitted, you cannot add or delete activities until your mentor completes the review. Proceed?'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-        TextButton(onPressed: () => Navigator.pop(context, true),
-            child: const Text('Submit', style: TextStyle(fontWeight: FontWeight.bold))),
-      ],
-    ));
+    final confirm = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: const Text('Submit Form?'),
+              content: const Text(
+                  'Once submitted, you cannot add or delete activities until your mentor completes the review. Proceed?'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel')),
+                TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Submit',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+              ],
+            ));
     if (confirm != true || !mounted) return;
 
     try {
@@ -217,36 +261,58 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
         _load();
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
     }
   }
 
   Future<void> _deleteActivity(int id) async {
-    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text('Delete Activity?'),
-      content: const Text('This activity and its document will be permanently deleted.'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-        TextButton(onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red))),
-      ],
-    ));
+    final confirm = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: const Text('Delete Activity?'),
+              content: const Text(
+                  'This activity and its document will be permanently deleted.'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel')),
+                TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Delete',
+                        style: TextStyle(color: Colors.red))),
+              ],
+            ));
     if (confirm != true || !mounted) return;
     try {
       await ApiService.ssmDeleteStudentActivity(id);
       _load();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
     }
   }
 
   String _categoryOf(String type) {
-    const devTypes = ['nptel','online_cert','internship','competition','publication','prof_program'];
-    const skillTypes = ['placement','higher_study','industry_int','research'];
-    const leadTypes = ['formal_role','event_org','community'];
+    const devTypes = [
+      'nptel',
+      'online_cert',
+      'internship',
+      'competition',
+      'publication',
+      'prof_program'
+    ];
+    const skillTypes = [
+      'placement',
+      'higher_study',
+      'industry_int',
+      'research'
+    ];
+    const leadTypes = ['formal_role', 'event_org', 'community'];
     if (devTypes.contains(type)) return 'development';
     if (skillTypes.contains(type)) return 'skill';
     if (leadTypes.contains(type)) return 'leadership';
@@ -255,61 +321,71 @@ class _SSMActivityDashboardState extends State<SSMActivityDashboard> {
 
   String _statusLabel(String s) {
     switch (s) {
-      case 'submitted':     return 'Submitted — Awaiting mentor review';
-      case 'mentor_review': return 'Under mentor review';
-      case 'hod_review':    return 'Under HOD review';
-      case 'approved':      return '✓ Score Approved & Locked';
-      case 'rejected':      return 'Returned — Please re-submit after corrections';
-      default:              return s;
+      case 'submitted':
+        return 'Submitted — Awaiting mentor review';
+      case 'mentor_review':
+        return 'Under mentor review';
+      case 'hod_review':
+        return 'Under HOD review';
+      case 'approved':
+        return '✓ Score Approved & Locked';
+      case 'rejected':
+        return 'Returned — Please re-submit after corrections';
+      default:
+        return s;
     }
   }
 
   Widget _emptyState(ColorScheme cs, bool canEdit) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
-    child: Column(children: [
-      Icon(Icons.playlist_add_rounded, size: 60,
-          color: cs.onBackground.withOpacity(0.2)),
-      const SizedBox(height: 16),
-      Text(
-        _filter == 'all'
-            ? 'No activities yet.\nTap + to add your first!'
-            : 'No activities in this category.',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: cs.onBackground.withOpacity(0.5), fontSize: 14),
-      ),
-      if (canEdit && _filter == 'all') ...[
-        const SizedBox(height: 20),
-        ElevatedButton.icon(
-          onPressed: _openAddActivity,
-          icon: const Icon(Icons.add),
-          label: const Text('Add First Activity'),
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
+        child: Column(children: [
+          Icon(Icons.playlist_add_rounded,
+              size: 60, color: cs.onBackground.withOpacity(0.2)),
+          const SizedBox(height: 16),
+          Text(
+            _filter == 'all'
+                ? 'No activities yet.\nTap + to add your first!'
+                : 'No activities in this category.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                color: cs.onBackground.withOpacity(0.5), fontSize: 14),
           ),
-        ),
-      ]
-    ]),
-  );
+          if (canEdit && _filter == 'all') ...[
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _openAddActivity,
+              icon: const Icon(Icons.add),
+              label: const Text('Add First Activity'),
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ]
+        ]),
+      );
 
   void _openAddActivity() async {
     final added = await Navigator.pushNamed(context, '/ssmAddActivity');
     if (added == true) _load();
   }
 
-  Widget _errorView(ColorScheme cs) => Center(child: Padding(
-    padding: const EdgeInsets.all(32),
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.cloud_off, size: 56, color: cs.error.withOpacity(0.4)),
-      const SizedBox(height: 16),
-      Text(_error!, textAlign: TextAlign.center,
-          style: TextStyle(color: cs.onBackground.withOpacity(0.6))),
-      const SizedBox(height: 24),
-      ElevatedButton(onPressed: _load, child: const Text('Retry')),
-    ]),
-  ));
+  Widget _errorView(ColorScheme cs) => Center(
+          child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.cloud_off, size: 56, color: cs.error.withOpacity(0.4)),
+          const SizedBox(height: 16),
+          Text(_error!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: cs.onBackground.withOpacity(0.6))),
+          const SizedBox(height: 24),
+          ElevatedButton(onPressed: _load, child: const Text('Retry')),
+        ]),
+      ));
 }
-
 
 // ─── SCORE CARD ───────────────────────────────────────────────────────────────
 
@@ -375,7 +451,8 @@ class _ScoreCard extends StatelessWidget {
                                         letterSpacing: 1.2)),
                                 const SizedBox(height: 4),
                                 Row(
-                                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.baseline,
                                   textBaseline: TextBaseline.alphabetic,
                                   children: [
                                     Text('${total.toStringAsFixed(0)}',
@@ -386,7 +463,8 @@ class _ScoreCard extends StatelessWidget {
                                             height: 1)),
                                     Text(' / 500',
                                         style: TextStyle(
-                                            color: cs.onPrimary.withOpacity(0.5),
+                                            color:
+                                                cs.onPrimary.withOpacity(0.5),
                                             fontSize: 18,
                                             fontWeight: FontWeight.w600)),
                                   ],
@@ -470,7 +548,6 @@ class _Pill extends StatelessWidget {
   }
 }
 
-
 // ─── CATEGORY FILTER ──────────────────────────────────────────────────────────
 
 class _CategoryFilter extends StatelessWidget {
@@ -481,23 +558,25 @@ class _CategoryFilter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      ('all',        'All',      Icons.apps_rounded),
-      ('academic',   'Academic', Icons.school_rounded),
-      ('development','Dev',      Icons.workspace_premium_outlined),
-      ('skill',      'Skill',    Icons.trending_up_rounded),
-      ('leadership', 'Lead',     Icons.emoji_events_outlined),
+      ('all', 'All', Icons.apps_rounded),
+      ('academic', 'Academic', Icons.school_rounded),
+      ('development', 'Dev', Icons.workspace_premium_outlined),
+      ('skill', 'Skill', Icons.trending_up_rounded),
+      ('leadership', 'Lead', Icons.emoji_events_outlined),
     ];
     return SizedBox(
       height: 48,
-      child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         children: items.map((item) {
           final isSelected = selected == item.$1;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
               label: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(item.$3, size: 14,
-                    color: isSelected ? Colors.white : Colors.grey),
+                Icon(item.$3,
+                    size: 14, color: isSelected ? Colors.white : Colors.grey),
                 const SizedBox(width: 4),
                 Text(item.$2),
               ]),
@@ -506,7 +585,8 @@ class _CategoryFilter extends StatelessWidget {
               selectedColor: Theme.of(context).colorScheme.primary,
               labelStyle: TextStyle(
                   color: isSelected ? Colors.white : Colors.grey,
-                  fontSize: 12, fontWeight: FontWeight.w500),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500),
               showCheckmark: false,
               padding: const EdgeInsets.symmetric(horizontal: 6),
             ),
@@ -516,7 +596,6 @@ class _CategoryFilter extends StatelessWidget {
     );
   }
 }
-
 
 // ─── ACTIVITY CARD ────────────────────────────────────────────────────────────
 
@@ -529,12 +608,12 @@ class _ActivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final type = activity['activity_type'] as String? ?? '';
-    final ocrStatus    = activity['ocr_status']    as String? ?? '';
+    final ocrStatus = activity['ocr_status'] as String? ?? '';
     final mentorStatus = activity['mentor_status'] as String? ?? '';
-    final data     = activity['data']     as Map?    ?? {};
+    final data = activity['data'] as Map? ?? {};
     final filename = activity['filename'] as String?;
     final mentorNote = activity['mentor_note'] as String?;
-    final ocrNote    = activity['ocr_note']    as String?;
+    final ocrNote = activity['ocr_note'] as String?;
 
     final (icon, color) = _typeInfo(type);
     final (statusColor, statusLabel) = _statusInfo(ocrStatus, mentorStatus);
@@ -557,13 +636,21 @@ class _ActivityCard extends StatelessWidget {
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(width: 10),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(_typeLabel(type), style: TextStyle(
-                  color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 14)),
-              if (activity['submitted_at'] != null)
-                Text(_fmtDate(activity['submitted_at']), style: TextStyle(
-                    color: cs.onSurface.withOpacity(0.4), fontSize: 11)),
-            ])),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(_typeLabel(type),
+                      style: TextStyle(
+                          color: cs.onSurface,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14)),
+                  if (activity['submitted_at'] != null)
+                    Text(_fmtDate(activity['submitted_at']),
+                        style: TextStyle(
+                            color: cs.onSurface.withOpacity(0.4),
+                            fontSize: 11)),
+                ])),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
@@ -571,38 +658,47 @@ class _ActivityCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: statusColor.withOpacity(0.3)),
               ),
-              child: Text(statusLabel, style: TextStyle(
-                  color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
+              child: Text(statusLabel,
+                  style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600)),
             ),
           ]),
-
           if (data.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 4,
-              children: data.entries.take(3).map((e) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: cs.onSurface.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text('${_fieldLabel(e.key)}: ${e.value}',
-                    style: TextStyle(fontSize: 11, color: cs.onSurface)),
-              )).toList(),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: data.entries
+                  .take(3)
+                  .map((e) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: cs.onSurface.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text('${_fieldLabel(e.key)}: ${e.value}',
+                            style:
+                                TextStyle(fontSize: 11, color: cs.onSurface)),
+                      ))
+                  .toList(),
             ),
           ],
-
           if (filename != null) ...[
             const SizedBox(height: 6),
             Row(children: [
-              Icon(Icons.attach_file_rounded, size: 13,
-                  color: cs.onSurface.withOpacity(0.4)),
+              Icon(Icons.attach_file_rounded,
+                  size: 13, color: cs.onSurface.withOpacity(0.4)),
               const SizedBox(width: 4),
-              Expanded(child: Text(filename,
-                  style: TextStyle(fontSize: 11, color: cs.onSurface.withOpacity(0.4)),
-                  overflow: TextOverflow.ellipsis)),
+              Expanded(
+                  child: Text(filename,
+                      style: TextStyle(
+                          fontSize: 11, color: cs.onSurface.withOpacity(0.4)),
+                      overflow: TextOverflow.ellipsis)),
             ]),
           ],
-
           if (ocrStatus == 'failed') ...[
             const SizedBox(height: 8),
             Container(
@@ -614,31 +710,39 @@ class _ActivityCard extends StatelessWidget {
                 border: Border.all(color: Colors.red.withOpacity(0.3)),
               ),
               child: Row(children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 16),
+                const Icon(Icons.warning_amber_rounded,
+                    color: Colors.red, size: 16),
                 const SizedBox(width: 6),
-                Expanded(child: Text(ocrNote ?? 'Document verification failed. Please re-upload.',
-                    style: const TextStyle(color: Colors.red, fontSize: 11))),
+                Expanded(
+                    child: Text(
+                        ocrNote ??
+                            'Document verification failed. Please re-upload.',
+                        style:
+                            const TextStyle(color: Colors.red, fontSize: 11))),
               ]),
             ),
           ],
-
           if (mentorNote != null && mentorNote.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text('Mentor: $mentorNote',
-                style: TextStyle(color: cs.onSurface.withOpacity(0.5),
-                    fontSize: 11, fontStyle: FontStyle.italic)),
+                style: TextStyle(
+                    color: cs.onSurface.withOpacity(0.5),
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic)),
           ],
-
           if (mentorStatus != 'approved' && onDelete != null) ...[
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
                 onPressed: onDelete,
-                icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red),
-                label: const Text('Delete', style: TextStyle(color: Colors.red, fontSize: 12)),
+                icon: const Icon(Icons.delete_outline_rounded,
+                    size: 16, color: Colors.red),
+                label: const Text('Delete',
+                    style: TextStyle(color: Colors.red, fontSize: 12)),
                 style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
               ),
             ),
           ],
@@ -648,74 +752,80 @@ class _ActivityCard extends StatelessWidget {
   }
 
   (IconData, Color) _typeInfo(String t) => switch (t) {
-    'gpa_update'   => (Icons.school_rounded,             const Color(0xFF1565C0)),
-    'project'      => (Icons.code_rounded,               const Color(0xFF1565C0)),
-    'nptel'        => (Icons.workspace_premium_rounded,  const Color(0xFF2E7D32)),
-    'online_cert'  => (Icons.laptop_rounded,             const Color(0xFF2E7D32)),
-    'internship'   => (Icons.work_outline_rounded,       const Color(0xFF2E7D32)),
-    'competition'  => (Icons.emoji_events_rounded,       const Color(0xFF2E7D32)),
-    'publication'  => (Icons.article_rounded,            const Color(0xFF2E7D32)),
-    'prof_program' => (Icons.event_rounded,              const Color(0xFF2E7D32)),
-    'placement'    => (Icons.business_center_rounded,    const Color(0xFF6A1B9A)),
-    'higher_study' => (Icons.import_contacts_rounded,   const Color(0xFF6A1B9A)),
-    'industry_int' => (Icons.factory_rounded,            const Color(0xFF6A1B9A)),
-    'research'     => (Icons.biotech_rounded,            const Color(0xFF6A1B9A)),
-    'formal_role'  => (Icons.star_rounded,               const Color(0xFFC62828)),
-    'event_org'    => (Icons.celebration_rounded,        const Color(0xFFC62828)),
-    'community'    => (Icons.group_rounded,              const Color(0xFFC62828)),
-    _              => (Icons.task_rounded,               Colors.grey),
-  };
+        'gpa_update' => (Icons.school_rounded, const Color(0xFF1565C0)),
+        'project' => (Icons.code_rounded, const Color(0xFF1565C0)),
+        'nptel' => (Icons.workspace_premium_rounded, const Color(0xFF2E7D32)),
+        'online_cert' => (Icons.laptop_rounded, const Color(0xFF2E7D32)),
+        'internship' => (Icons.work_outline_rounded, const Color(0xFF2E7D32)),
+        'competition' => (Icons.emoji_events_rounded, const Color(0xFF2E7D32)),
+        'publication' => (Icons.article_rounded, const Color(0xFF2E7D32)),
+        'prof_program' => (Icons.event_rounded, const Color(0xFF2E7D32)),
+        'placement' => (Icons.business_center_rounded, const Color(0xFF6A1B9A)),
+        'higher_study' => (
+            Icons.import_contacts_rounded,
+            const Color(0xFF6A1B9A)
+          ),
+        'industry_int' => (Icons.factory_rounded, const Color(0xFF6A1B9A)),
+        'research' => (Icons.biotech_rounded, const Color(0xFF6A1B9A)),
+        'formal_role' => (Icons.star_rounded, const Color(0xFFC62828)),
+        'event_org' => (Icons.celebration_rounded, const Color(0xFFC62828)),
+        'community' => (Icons.group_rounded, const Color(0xFFC62828)),
+        _ => (Icons.task_rounded, Colors.grey),
+      };
 
   (Color, String) _statusInfo(String ocr, String mentor) {
     if (ocr == 'failed') return (Colors.red, 'Re-upload needed');
     if (mentor == 'approved') return (const Color(0xFF2E7D32), 'Approved ✓');
     if (mentor == 'rejected') return (Colors.red, 'Rejected');
-    if (mentor == 'not_required') return (const Color(0xFF2E7D32), 'Auto-verified ✓');
+    if (mentor == 'not_required')
+      return (const Color(0xFF2E7D32), 'Auto-verified ✓');
     if (ocr == 'valid') return (const Color(0xFF1565C0), 'Sent to mentor');
     if (ocr == 'review') return (const Color(0xFFFF9800), 'Under review');
     return (Colors.grey, 'Pending');
   }
 
   String _typeLabel(String t) => switch (t) {
-    'gpa_update'   => 'Academic Update (GPA / Attendance)',
-    'project'      => 'Project / Beyond Curriculum',
-    'nptel'        => 'NPTEL / SWAYAM Certificate',
-    'online_cert'  => 'Online Course Certificate',
-    'internship'   => 'Internship / In-plant Training',
-    'competition'  => 'Competition / Hackathon',
-    'publication'  => 'Publication / Patent / Prototype',
-    'prof_program' => 'Professional Skill Program',
-    'placement'    => 'Placement Offer',
-    'higher_study' => 'Higher Studies (GATE / GRE)',
-    'industry_int' => 'Industry Interaction',
-    'research'     => 'Research Paper',
-    'formal_role'  => 'Formal Leadership Role',
-    'event_org'    => 'Event Organization',
-    'community'    => 'Community / Social Service',
-    _              => t,
-  };
+        'gpa_update' => 'Academic Update (GPA / Attendance)',
+        'project' => 'Project / Beyond Curriculum',
+        'nptel' => 'NPTEL / SWAYAM Certificate',
+        'online_cert' => 'Online Course Certificate',
+        'internship' => 'Internship / In-plant Training',
+        'competition' => 'Competition / Hackathon',
+        'publication' => 'Publication / Patent / Prototype',
+        'prof_program' => 'Professional Skill Program',
+        'placement' => 'Placement Offer',
+        'higher_study' => 'Higher Studies (GATE / GRE)',
+        'industry_int' => 'Industry Interaction',
+        'research' => 'Research Paper',
+        'formal_role' => 'Formal Leadership Role',
+        'event_org' => 'Event Organization',
+        'community' => 'Community / Social Service',
+        _ => t,
+      };
 
   String _fieldLabel(String k) => switch (k) {
-    'nptel_tier'         => 'Tier',
-    'course_name'        => 'Course',
-    'platform_name'      => 'Platform',
-    'internship_company' => 'Company',
-    'internship_duration'=> 'Duration',
-    'competition_name'   => 'Event',
-    'competition_result' => 'Result',
-    'publication_title'  => 'Title',
-    'placement_lpa'      => 'LPA',
-    'role_level'         => 'Level',
-    'internal_gpa'       => 'Int GPA',
-    'university_gpa'     => 'Univ GPA',
-    'attendance_pct'     => 'Attendance',
-    _                    => k,
-  };
+        'nptel_tier' => 'Tier',
+        'course_name' => 'Course',
+        'platform_name' => 'Platform',
+        'internship_company' => 'Company',
+        'internship_duration' => 'Duration',
+        'competition_name' => 'Event',
+        'competition_result' => 'Result',
+        'publication_title' => 'Title',
+        'placement_lpa' => 'LPA',
+        'role_level' => 'Level',
+        'internal_gpa' => 'Int GPA',
+        'university_gpa' => 'Univ GPA',
+        'attendance_pct' => 'Attendance',
+        _ => k,
+      };
 
   String _fmtDate(String iso) {
     try {
       final d = DateTime.parse(iso);
       return '${d.day}/${d.month}/${d.year}';
-    } catch (_) { return iso; }
+    } catch (_) {
+      return iso;
+    }
   }
 }

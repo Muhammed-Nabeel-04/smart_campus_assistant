@@ -113,87 +113,86 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
       body: _loading
           ? const AppPageSkeleton()
           : _students.isEmpty
-              ? _buildEmptyState(cs)
-              : RefreshIndicator(
-                  onRefresh: _loadAttendance,
-                  color: cs.primary,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _students.length,
-                    itemBuilder: (context, index) {
-                      final s = _students[index];
-                      final percentage = s['percentage'] ?? 0;
-                      final statusColor = _getAttendanceColor(percentage, cs);
+          ? _buildEmptyState(cs)
+          : RefreshIndicator(
+              onRefresh: _loadAttendance,
+              color: cs.primary,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _students.length,
+                itemBuilder: (context, index) {
+                  final s = _students[index];
+                  final percentage = s['percentage'] ?? 0;
+                  final statusColor = _getAttendanceColor(percentage, cs);
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: cs.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border:
-                              Border.all(color: cs.onSurface.withOpacity(0.1)),
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cs.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: cs.onSurface.withOpacity(0.1)),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: statusColor.withOpacity(0.1),
+                          child: Text(
+                            (s['full_name'] ?? '?')[0].toUpperCase(),
+                            style: TextStyle(
+                              color: statusColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: statusColor.withOpacity(0.1),
-                              child: Text(
-                                (s['full_name'] ?? '?')[0].toUpperCase(),
-                                style: TextStyle(
-                                  color: statusColor,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s['full_name'] ?? 'Unknown',
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 15,
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    s['full_name'] ?? 'Unknown',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                  Text(
-                                    s['register_number'] ?? '',
-                                    style: TextStyle(
-                                      color: cs.onSurface.withOpacity(0.6),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                s['register_number'] ?? '',
+                                style: TextStyle(
+                                  color: cs.onSurface.withOpacity(0.6),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${percentage.toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                color: statusColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
                               ),
                             ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '${percentage.toStringAsFixed(1)}%',
-                                  style: TextStyle(
-                                    color: statusColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                Text(
-                                  '${s['attended']}/${s['total']} days',
-                                  style: TextStyle(
-                                    color: cs.onSurface.withOpacity(0.4),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              '${s['attended']}/${s['total']} days',
+                              style: TextStyle(
+                                color: cs.onSurface.withOpacity(0.4),
+                                fontSize: 11,
+                              ),
                             ),
                           ],
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 

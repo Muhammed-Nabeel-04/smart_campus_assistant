@@ -25,11 +25,14 @@ class _StudentComplaintsTabState extends State<StudentComplaintsTab> {
   }
 
   Future<void> _loadComplaints() async {
+    final studentId = SessionManager.studentId;
+    if (studentId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
     setState(() => _isLoading = true);
     try {
-      final data = await ApiService.getStudentComplaints(
-        SessionManager.studentId!,
-      );
+      final data = await ApiService.getStudentComplaints(studentId);
       setState(() {
         _complaints = (data as List).map((json) {
           final safeJson = {
@@ -622,10 +625,20 @@ class _NewComplaintScreenState extends State<NewComplaintScreen> {
 
   Future<void> _submitComplaint() async {
     if (!_formKey.currentState!.validate()) return;
+    final studentId = SessionManager.studentId;
+    if (studentId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session expired. Please log in again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     setState(() => _isSubmitting = true);
     try {
       await ApiService.submitComplaint(
-        studentId: SessionManager.studentId!,
+        studentId: studentId,
         category: _category,
         priority: _priority,
         title: _titleController.text.trim(),

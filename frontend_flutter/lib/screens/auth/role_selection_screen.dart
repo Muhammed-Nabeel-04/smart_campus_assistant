@@ -1,6 +1,5 @@
 // lib/screens/auth/role_selection_screen.dart
 import 'package:flutter/material.dart';
-import '../../core/session.dart';
 import '../../main.dart';
 
 class RoleSelectionScreen extends StatefulWidget {

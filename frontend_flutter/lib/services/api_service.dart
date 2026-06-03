@@ -8,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_config.dart';
 import '../core/session.dart';
 import '../main.dart';
-import '../models/ssm_models.dart';
 
 class ApiService {
   static String get _baseUrl => AppConfig.backendUrl;
@@ -76,7 +75,8 @@ class ApiService {
     } catch (e) {
       // For other errors (like ApiException 401, 403, 500), don't fallback to cache
       // unless it's a generic connection error that wasn't caught above
-      if (e.toString().contains('Connection failed') || e.toString().contains('is not reachable')) {
+      if (e.toString().contains('Connection failed') ||
+          e.toString().contains('is not reachable')) {
         return await _fallbackToCache<T>(cacheKey, isList);
       }
       throw _handleError(e);
@@ -87,7 +87,8 @@ class ApiService {
     final cached = await _getFromCache(cacheKey);
     if (cached != null) {
       _showOfflineMessage();
-      return (isList ? List.from(cached) : Map<String, dynamic>.from(cached)) as T;
+      return (isList ? List.from(cached) : Map<String, dynamic>.from(cached))
+          as T;
     }
     throw ApiException('No internet connection and no cached data available.');
   }
@@ -234,12 +235,10 @@ class ApiService {
     required String code,
   }) async {
     try {
-      final response = await http
-          .post(
-            Uri.parse("$_baseUrl/auth/login/2fa?user_id=$userId&code=$code"),
-            headers: {"Content-Type": "application/json"},
-          )
-          .timeout(_timeout);
+      final response = await http.post(
+        Uri.parse("$_baseUrl/auth/login/2fa?user_id=$userId&code=$code"),
+        headers: {"Content-Type": "application/json"},
+      ).timeout(_timeout);
       return _handleResponse(response, isLogin: true) as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -1764,7 +1763,8 @@ class ApiService {
           )
           .timeout(_timeout);
       final data = _handleResponse(response) as Map<String, dynamic>;
-      final result = List<Map<String, dynamic>>.from(data['period_timings'] ?? []);
+      final result =
+          List<Map<String, dynamic>>.from(data['period_timings'] ?? []);
       _saveToCache("period_timings", result);
       return result;
     } catch (e) {
@@ -1929,7 +1929,8 @@ class ApiService {
           file.path,
         ));
       }
-      final streamed = await request.send().timeout(const Duration(seconds: 60));
+      final streamed =
+          await request.send().timeout(const Duration(seconds: 60));
       final response = await http.Response.fromStream(streamed);
       return _handleResponse(response) as Map<String, dynamic>;
     } catch (e) {
@@ -2069,7 +2070,8 @@ class ApiService {
   }
 
   /// Get full form details for mentor
-  static Future<Map<String, dynamic>> ssmGetMentorFormDetails(int formId) async {
+  static Future<Map<String, dynamic>> ssmGetMentorFormDetails(
+      int formId) async {
     return _requestWithCache<Map<String, dynamic>>(
       "$_baseUrl/ssm/mentor/form/$formId",
       "ssm_mentor_form_$formId",
@@ -2082,8 +2084,7 @@ class ApiService {
     try {
       final response = await http
           .post(Uri.parse("$_baseUrl/ssm/mentor/form/$formId/review"),
-              headers: _authHeaders,
-              body: jsonEncode(payload))
+              headers: _authHeaders, body: jsonEncode(payload))
           .timeout(_timeout);
       return _handleResponse(response) as Map<String, dynamic>;
     } catch (e) {
@@ -2111,8 +2112,7 @@ class ApiService {
   static Future<Map<String, dynamic>> ssmApproveActivity(int activityId,
       {String? note}) async {
     try {
-      final request = http.MultipartRequest(
-          'POST',
+      final request = http.MultipartRequest('POST',
           Uri.parse("$_baseUrl/ssm/mentor/activity/$activityId/approve"));
       if (SessionManager.token != null) {
         request.headers['Authorization'] = 'Bearer ${SessionManager.token}';
@@ -2129,8 +2129,7 @@ class ApiService {
   /// Mentor rejects an activity
   static Future<void> ssmRejectActivity(int activityId, String note) async {
     try {
-      final request = http.MultipartRequest(
-          'POST',
+      final request = http.MultipartRequest('POST',
           Uri.parse("$_baseUrl/ssm/mentor/activity/$activityId/reject"));
       if (SessionManager.token != null) {
         request.headers['Authorization'] = 'Bearer ${SessionManager.token}';
@@ -2193,8 +2192,7 @@ class ApiService {
     try {
       final response = await http
           .post(Uri.parse("$_baseUrl/ssm/hod/form/$formId/approve"),
-              headers: _authHeaders,
-              body: jsonEncode(payload))
+              headers: _authHeaders, body: jsonEncode(payload))
           .timeout(_timeout);
       return _handleResponse(response) as Map<String, dynamic>;
     } catch (e) {

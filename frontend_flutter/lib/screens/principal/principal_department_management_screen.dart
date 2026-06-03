@@ -199,125 +199,139 @@ class _PrincipalDepartmentManagementScreenState
       body: _isLoading
           ? const AppPageSkeleton()
           : _departments.isEmpty
-          ? _buildEmptyState(cs)
-          : RefreshIndicator(
-              onRefresh: _loadDepartments,
-              color: cs.primary,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _departments.length,
-                itemBuilder: (ctx, i) {
-                  final dept = _departments[i];
-                  final hasHOD = dept['hod'] != null;
+              ? _buildEmptyState(cs)
+              : RefreshIndicator(
+                  onRefresh: _loadDepartments,
+                  color: cs.primary,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _departments.length,
+                    itemBuilder: (ctx, i) {
+                      final dept = _departments[i];
+                      final hasHOD = dept['hod'] != null;
 
-                  return Card(
-                    elevation: 0,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: cs.onSurface.withOpacity(0.1)),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      leading: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: cs.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+                      return Card(
+                        elevation: 0,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side:
+                              BorderSide(color: cs.onSurface.withOpacity(0.1)),
                         ),
-                        child: Icon(
-                          Icons.account_tree_outlined,
-                          color: cs.primary,
-                        ),
-                      ),
-                      title: Text(
-                        dept['name'] ?? '',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text(
-                            'Code: ${dept['code']}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: cs.onSurface.withOpacity(0.5),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          leading: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: cs.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.account_tree_outlined,
+                              color: cs.primary,
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Row(
+                          title: Text(
+                            dept['name'] ?? '',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                hasHOD
-                                    ? Icons.check_circle_outline
-                                    : Icons.error_outline,
-                                size: 14,
-                                color: hasHOD ? Colors.green : Colors.orange,
-                              ),
-                              const SizedBox(width: 4),
+                              const SizedBox(height: 4),
                               Text(
-                                hasHOD
-                                    ? 'HOD: ${dept['hod']['name']}'
-                                    : 'No HOD Assigned',
+                                'Code: ${dept['code']}',
                                 style: TextStyle(
-                                  color: hasHOD ? Colors.green : Colors.orange,
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w500,
+                                  color: cs.onSurface.withOpacity(0.5),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Icon(
+                                    hasHOD
+                                        ? Icons.check_circle_outline
+                                        : Icons.error_outline,
+                                    size: 14,
+                                    color:
+                                        hasHOD ? Colors.green : Colors.orange,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    hasHOD
+                                        ? 'HOD: ${dept['hod']['name']}'
+                                        : 'No HOD Assigned',
+                                    style: TextStyle(
+                                      color:
+                                          hasHOD ? Colors.green : Colors.orange,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          trailing: PopupMenuButton<String>(
+                            icon: Icon(
+                              Icons.more_vert,
+                              color: cs.onSurface.withOpacity(0.4),
+                            ),
+                            onSelected: (val) {
+                              if (val == 'edit') _showEditDialog(dept);
+                              if (val == 'sections')
+                                _showEditSectionsDialog(dept);
+                              if (val == 'delete') _deleteDepartment(dept);
+                            },
+                            itemBuilder: (ctx) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit_outlined, size: 20),
+                                    SizedBox(width: 10),
+                                    Text('Edit Name'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'sections',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.view_module_outlined, size: 20),
+                                    SizedBox(width: 10),
+                                    Text('Edit Sections'),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.delete_outline,
+                                      size: 20,
+                                      color: cs.error,
+                                    ),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      'Delete',
+                                      style: TextStyle(color: cs.error),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                      trailing: PopupMenuButton<String>(
-                        icon: Icon(
-                          Icons.more_vert,
-                          color: cs.onSurface.withOpacity(0.4),
                         ),
-                        onSelected: (val) {
-                          if (val == 'edit') _showEditDialog(dept);
-                          if (val == 'delete') _deleteDepartment(dept);
-                        },
-                        itemBuilder: (ctx) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_outlined, size: 20),
-                                SizedBox(width: 10),
-                                Text('Edit Name'),
-                              ],
-                            ),
-                          ),
-
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.delete_outline,
-                                  size: 20,
-                                  color: cs.error,
-                                ),
-                                SizedBox(width: 10),
-                                Text(
-                                  'Delete',
-                                  style: TextStyle(color: cs.error),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+                      );
+                    },
+                  ),
+                ),
     );
   }
 
@@ -386,9 +400,7 @@ class _PrincipalDepartmentManagementScreenState
                       );
                     }),
                     // Show custom sections not in allSections
-                    ...selected
-                        .where((s) => !allSections.contains(s))
-                        .map(
+                    ...selected.where((s) => !allSections.contains(s)).map(
                           (s) => GestureDetector(
                             onTap: () => setD(() => selected.remove(s)),
                             child: Container(

@@ -27,13 +27,18 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
   }
 
   Future<void> _loadNotifications() async {
+    final studentId = SessionManager.studentId;
+    if (studentId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       final data = await ApiService.getStudentNotifications(
-        studentId: SessionManager.studentId!,
+        studentId: studentId,
       );
       setState(() {
-        _notifications = (data as List).map((json) {
+        _notifications = data.map((json) {
           // Add missing fields with defaults to prevent crash
           final safeJson = {
             'sent_by': null,
@@ -71,7 +76,10 @@ class _StudentNotificationsTabState extends State<StudentNotificationsTab> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Skeleton(width: 48, height: 48, borderRadius: BorderRadius.all(Radius.circular(12))),
+              const Skeleton(
+                  width: 48,
+                  height: 48,
+                  borderRadius: BorderRadius.all(Radius.circular(12))),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(

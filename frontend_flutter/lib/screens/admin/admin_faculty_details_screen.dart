@@ -200,7 +200,7 @@ class AdminFacultyDetailsScreen extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: (assignments as List).map((a) {
+      children: assignments.map((a) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(

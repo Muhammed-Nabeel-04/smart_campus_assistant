@@ -31,7 +31,9 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   static const Color infoBlue = Color(0xFF2196F3);
   static const Color warningOrange = Color(0xFFFF9800);
   static const Color principalPurple = Color(0xFF9C27B0);
-  static const Color facultyCyan = Color(0xFF00BCD4);
+
+  int? get _facultySessionId =>
+      SessionManager.facultyId ?? SessionManager.userId;
 
   @override
   void initState() {
@@ -66,7 +68,16 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
 
   Future<void> _loadNextSlot() async {
     try {
-      final facultyId = SessionManager.facultyId!;
+      final facultyId = _facultySessionId;
+      if (facultyId == null) {
+        if (mounted) {
+          setState(() {
+            _nextSlot = null;
+            _targetClassTime = null;
+          });
+        }
+        return;
+      }
       final slot = await ApiService.getNextSlotFaculty(facultyId);
       if (mounted) {
         setState(() {
@@ -110,7 +121,11 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   Future<void> _loadStats() async {
     setState(() => _isLoading = true);
     try {
-      final facultyId = SessionManager.facultyId!;
+      final facultyId = _facultySessionId;
+      if (facultyId == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
       final data = await ApiService.getFacultyStats(facultyId);
       final active = await ApiService.getActiveSessions(facultyId);
       final recent = await ApiService.getSessionsByPeriod(
@@ -196,7 +211,9 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     if (ccClassId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Error: No class assigned to you as Coordinator. Contact HOD.'),
+          content: Text(
+            'Error: No class assigned to you as Coordinator. Contact HOD.',
+          ),
           backgroundColor: Colors.orange,
         ),
       );
@@ -250,6 +267,11 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
             IconButton(
               icon: const Icon(Icons.settings_outlined),
               onPressed: () => Navigator.pushNamed(context, '/backendSettings'),
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _handleLogout,
+              tooltip: 'Logout',
             ),
           ],
         ),
@@ -484,14 +506,16 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                 Icons.rate_review_outlined,
                                 principalPurple,
                                 () => Navigator.pushNamed(
-                                    context, '/ssmMentorDashboard'),
+                                  context,
+                                  '/ssmMentorDashboard',
+                                ),
                                 cs,
                               ),
                             ),
                             const SizedBox(width: 12),
                             const Expanded(
-                                child:
-                                    SizedBox()), // Empty box to keep grid sizes even
+                              child: SizedBox(),
+                            ), // Empty box to keep grid sizes even
                           ],
                         ),
                       ],
@@ -647,7 +671,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   // FIX: Container is always visible; only the icon blinks
   Widget _buildClassReminderBanner(ColorScheme cs) {
     final slot = _nextSlot!;
-    final minutesUntil = slot['minutes_until'] as int? ?? 0;
 
     return GestureDetector(
       onTap: () => _startSessionFromSlot(slot),
@@ -811,6 +834,16 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
 
   void _showSessionsSheet() {
     final cs = Theme.of(context).colorScheme;
+    final facultyId = _facultySessionId;
+    if (facultyId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Session expired. Please log in again.'),
+          backgroundColor: cs.error,
+        ),
+      );
+      return;
+    }
     String period = 'today';
     showModalBottomSheet(
       context: context,
@@ -873,7 +906,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                 Expanded(
                   child: FutureBuilder<List<dynamic>>(
                     future: ApiService.getSessionsByPeriod(
-                      SessionManager.facultyId!,
+                      facultyId,
                       period: period,
                     ),
                     builder: (ctx, snap) {
@@ -940,14 +973,22 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
 
   void _showTimetableSheet() {
     final cs = Theme.of(context).colorScheme;
+    final facultyId = _facultySessionId;
+    if (facultyId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Session expired. Please log in again.'),
+          backgroundColor: cs.error,
+        ),
+      );
+      return;
+    }
 
     // FIX 1: Move state variables OUTSIDE the builder so they don't reset on every tap!
-    bool _showWeekly = false;
+    bool showWeekly = false;
 
     // FIX 2: Cache the API call OUTSIDE so it only fetches once when the sheet opens
-    final _timetableFuture = ApiService.getFacultyTimetable(
-      SessionManager.facultyId!,
-    );
+    final timetableFuture = ApiService.getFacultyTimetable(facultyId);
 
     showModalBottomSheet(
       context: context,
@@ -1002,9 +1043,9 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                             ),
                           ),
                         ],
-                        selected: {_showWeekly},
+                        selected: {showWeekly},
                         onSelectionChanged: (v) =>
-                            setSheet(() => _showWeekly = v.first),
+                            setSheet(() => showWeekly = v.first),
                       ),
                     ],
                   ),
@@ -1130,7 +1171,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                   Expanded(
                     child: FutureBuilder<Map<String, dynamic>>(
                       // Uses the cached future so it doesn't flicker/reload!
-                      future: _timetableFuture,
+                      future: timetableFuture,
                       builder: (ctx, snap) {
                         if (snap.connectionState == ConnectionState.waiting) {
                           return const AppPageSkeleton(showHeader: false);
@@ -1148,7 +1189,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                         });
 
                         final today = _todayName().toLowerCase();
-                        final days = _showWeekly
+                        final days = showWeekly
                             ? [
                                 'monday',
                                 'tuesday',
@@ -1175,7 +1216,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  _showWeekly
+                                  showWeekly
                                       ? 'No classes this week'
                                       : 'No classes today',
                                   style: TextStyle(
